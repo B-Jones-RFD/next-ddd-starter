@@ -20,4 +20,4 @@ Uses the default five labels: `needs-triage`, `needs-info`, `ready-for-agent`, `
 
 ### Domain docs
 
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Multi-context: `GLOSSARY-MAP.md` at the repo root points to one `GLOSSARY.md` per context in `src/modules/<context>/`; ADRs live in `docs/adr/`. See `docs/agents/domain.md`.
