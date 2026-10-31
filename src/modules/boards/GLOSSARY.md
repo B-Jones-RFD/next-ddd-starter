@@ -1,18 +1,14 @@
-# Task Boards
+# Boards
 
-A multi-user workspace where people organize work as tasks on shared boards.
+Where people organize work as tasks on shared boards. Users from identity appear here only as Board members.
 
 ## Language
 
 ### People and access
 
-**User**:
-A person with an account who can sign in.
-_Avoid_: Account, profile
-
 **Board member**:
 A user whom an Owner has added to a board. Every board member has exactly one role on that board.
-_Avoid_: Collaborator, participant, share
+_Avoid_: Collaborator, participant, share, user (within boards)
 
 **Owner**:
 The board-member role that can rename or archive the board and manage its members. A board has exactly one Owner at all times: the user who created it, until they transfer ownership to another board member, who becomes the Owner while they become a Member. The Owner cannot leave the board without first transferring ownership.
@@ -55,17 +51,3 @@ _Avoid_: Open, live
 **Comment**:
 Free text a board member writes on a task, recorded with its author and time.
 _Avoid_: Note, message
-
-### Audit
-
-**Audit log**:
-The append-only record of every state change in the domain and every sign-in and sign-out.
-_Avoid_: History, event log
-
-**Audit entry**:
-One record in the audit log: who did what, to which board, user, or task, and when.
-_Avoid_: Event, log line
-
-**Activity**:
-The combined, time-ordered view of a task's comments and audit entries.
-_Avoid_: Timeline, history, feed
