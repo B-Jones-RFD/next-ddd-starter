@@ -1,0 +1,21 @@
+# Database sessions with opaque tokens, not JWTs
+
+Identity stores sessions in its own database table. The `session` cookie holds a random 256-bit token, and `identity_sessions` stores only that token's SHA-256 hash. Every request looks the session up. We chose this over signed JWTs (the earlier preference was jose) for three reasons. Sign-out, "sign out everywhere" and "a password change ends other sessions" only really work if sessions can be revoked. Idle expiry can be tracked in the database, so the cookie never has to be rewritten, and that matters because Next 16 Server Components can't set cookies. And an opaque token needs no signing secret or token library. **This is a per-project choice, not a template rule.** Other apps will often authenticate against an external directory (Active Directory or another identity provider), and that decides the session model. Choose authentication and session management for each project. The rest of this ADR holds only for this app, and the template protects only the seam described below.
+
+## The seam
+
+`app/` reaches authentication only through identity's `api.ts`: `signUp`, `signIn`, `authenticate(token)`, `signOut(token)`, `signOutEverywhere(token)`, `changePassword` and `rename`. `authenticate` returns `{ userId, displayName }`, and session ids never leave identity. Every command and query in the other contexts takes an explicit `actorId: UserId`. Replacing self-built auth with an external provider therefore changes identity's internals, the cookie handling in `app/` and `proxy.ts`. Boards, audit and their domains stay the same.
+
+## Decisions
+
+- **Hashing**: `node:crypto` `scrypt` with N=2¹⁷, r=8 and p=1 (it needs `maxmem`), a 16-byte salt and a 32-byte key, compared with `timingSafeEqual`. The hash is stored as `scrypt$N$r$p$salt$hash`, so raising the parameters rehashes a password at its next successful sign-in. It sits behind `IPasswordHasher`, whose `.mock.ts` is cheap so seeded users sign in instantly.
+- **Expiry**: a 7-day idle limit, measured from `last_seen_at`, and a 30-day absolute limit. The cookie's `Max-Age` is the absolute limit. Expiry is computed when the session is read: nothing marks a session ended on expiry, it emits no event, and nothing purges old rows. A deployed app would add a scheduled purge.
+- **Writing during render**: when `authenticate` runs during Server Component render, it updates `last_seen_at` at most once a minute. The save goes directly to the session repository, with no events and no outbox rows. That is the one documented exception to read-only queries.
+- **Cookie**: `session`, `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` when `NODE_ENV === 'production'`. We didn't use a `__Host-` prefix because Safari rejects `Secure` cookies on `http://localhost`. CSRF protection is the Server Action Origin check plus `Lax`, and any Route Handler that mutates checks Origin itself.
+- **Sign-in**: every sign-in creates a new session with a fresh token. If the browser presented an older token, that session ends as a sign-out. A wrong email and a wrong password both return the same `InvalidCredentialsError`. An unknown email is still hashed against a dummy hash so its timing matches. `ISignInThrottle`, with an in-memory adapter, returns `TooManyAttemptsError` after 5 failures per email in 15 minutes. Failed sign-ins aren't audited.
+- **Edge**: `getActor()` in `app/` is server-only and memoized with React `cache()`, never `'use cache: private'`, because it reads the database and may write. It's always read inside `<Suspense>`. `UnauthenticatedError` redirects to `/sign-in?next=<same-origin path>`, and `ForbiddenError` calls `notFound()`. `authInterrupts` stays off. `proxy.ts` only checks that the cookie exists on protected routes. It never redirects away from `/sign-in`, because a stale cookie would make that loop.
+
+## Considered Options
+
+- **Stateless JWT (jose).** No table and no lookup, but a session can't be revoked, sliding expiry has to rewrite the cookie outside render, and it needs a signing secret.
+- **A JWT carrying a session id, checked against the table.** It costs both a signing secret and a lookup. Its one gain, rejecting a forged cookie in `proxy` without the database, doesn't matter because `proxy` only checks optimistically.
