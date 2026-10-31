@@ -1,5 +1,7 @@
 # SQLite through `node:sqlite`, raw SQL, and every write as one synchronous unit-of-work commit
 
+> **Partly superseded by [ADR 0007](./0007-one-aggregate-per-transaction-with-a-transactional-outbox.md).** SQLite, `node:sqlite`, raw SQL, migrations and the no-`await`-inside-a-transaction rule stand. `IUnitOfWork.commit(changes)` and the `board_lists`/`list_tasks` join tables are replaced by a synchronous `save(aggregate, events)` per repository that writes one aggregate and its outbox rows.
+
 The app stores its data in one SQLite file, reached through Node's built-in `node:sqlite` (`Database`, so Node `>=26`) with hand-written SQL and prepared statements: no driver package, query builder or ORM. Repositories only load aggregates. Writes go through `IUnitOfWork.commit(changes)`. `changes` is one plain object of named arrays (`{ boards, lists, tasks, comments, users }`). `commit` runs `BEGIN IMMEDIATE`, every write with its version check, and `COMMIT` synchronously, with no `await` between them, so there is no `repo.save()` and no transaction stays open across an `await`. We chose this because `node:sqlite` is synchronous and uses one shared connection: any `await` inside an open transaction would let another request's statements run inside it. The domain already returns `{ state, events }`, so a use case has every changed aggregate in hand at the end anyway.
 
 ## Considered Options
