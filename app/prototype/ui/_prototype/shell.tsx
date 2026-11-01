@@ -46,7 +46,7 @@ function ProtoBar({ url }: { url: (l: ReturnType<typeof useLoc>['loc']) => strin
   const { loc, go } = useLoc()
   const [showState, setShowState] = useState(false)
   return (
-    <div className="fixed right-3 bottom-16 z-50 w-[26rem] rounded-lg border-2 border-fuchsia-500 bg-white/95 p-2 font-mono text-[11px] shadow-xl">
+    <div className="fixed right-3 bottom-16 z-50 w-[min(26rem,calc(100vw-1.5rem))] rounded-lg border-2 border-fuchsia-500 bg-white/95 p-2 font-mono text-[11px] shadow-xl">
       <div className="flex items-center gap-2">
         <span className="rounded bg-fuchsia-600 px-1 text-white">PROTOTYPE</span>
         <span className="truncate" title={url(loc)}>{s.actorId ? url(loc) : url({ ...loc, screen: loc.screen === 'sign-up' ? 'sign-up' : 'sign-in' })}</span>

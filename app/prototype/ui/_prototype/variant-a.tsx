@@ -14,6 +14,7 @@ import {
   ActivityFeed,
   AddInline,
   ArchivedBadge,
+  Avatar,
   Avatars,
   BoardLog,
   Dialog,
@@ -29,7 +30,7 @@ import {
 } from './shared'
 import { activeTaskCount, listsOf, tasksOf, userName, useStore, type Task } from './store'
 
-export const nameA = 'Columns + side sheet'
+export const nameA = 'Columns + task dialog'
 
 export function urlA(l: Loc) {
   switch (l.screen) {
@@ -42,7 +43,7 @@ export function urlA(l: Loc) {
     case 'board':
       return `/boards/${l.board}`
     case 'task':
-      return `/boards/${l.board}/tasks/${l.task}   (sheet over the board via (.)tasks intercept)`
+      return `/boards/${l.board}/tasks/${l.task}   (dialog over the board via (.)tasks intercept; full page on direct load)`
     case 'settings':
       return `/boards/${l.board}/settings${l.tab && l.tab !== 'general' ? `?tab=${l.tab}` : ''}`
     case 'account':
@@ -62,7 +63,7 @@ export function VariantA() {
       {loc.screen === 'task' && loc.task && loc.board && <TaskSheet boardId={loc.board} taskId={loc.task} />}
       {loc.screen === 'settings' && loc.board && <SettingsA boardId={loc.board} />}
       {loc.screen === 'account' && (
-        <main className="mx-auto w-full max-w-2xl space-y-3 p-6">
+        <main className="mx-auto w-full max-w-2xl space-y-3 p-4 sm:p-6">
           <h1 className="text-xl font-semibold">Your account</h1>
           <h2 className="font-medium">Sign-in history (User log)</h2>
           <UserLog />
@@ -78,30 +79,41 @@ function TopBar() {
   const board = s.boards.find((b) => b.id === loc.board)
   return (
     <header className="flex h-12 items-center gap-3 border-b bg-white px-4">
-      <button className="font-semibold" onClick={() => go({ screen: 'boards' })}>
-        ▦ Taskboard
+      <button className="shrink-0 font-semibold" onClick={() => go({ screen: 'boards' })}>
+        ▦<span className="hidden sm:inline"> Taskboard</span>
       </button>
       {board && loc.screen !== 'boards' && (
         <>
           <span className="text-neutral-400">/</span>
-          <button className="text-sm" onClick={() => go({ screen: 'board', board: board.id })}>
+          <button className="truncate text-sm" onClick={() => go({ screen: 'board', board: board.id })}>
             {board.name}
           </button>
         </>
       )}
-      <div className="ml-auto flex items-center gap-3 text-sm">
-        <button onClick={() => go({ screen: 'account' })}>{userName(s, s.actorId!)}</button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            c.signOut()
-            go({ screen: 'sign-in' })
-          }}
+      <details className="relative ml-auto">
+        <summary className="flex cursor-pointer list-none items-center rounded-full" aria-label="Account menu">
+          <Avatar userId={s.actorId!} size="md" />
+        </summary>
+        <div
+          className="absolute right-0 z-40 mt-2 w-56 rounded-md border bg-white py-1 text-sm shadow-lg"
+          onClick={(e) => e.currentTarget.parentElement?.removeAttribute('open')}
         >
-          Sign out
-        </Button>
-      </div>
+          <div className="border-b px-3 py-2">
+            <p className="font-medium">{userName(s, s.actorId!)}</p>
+            <p className="text-xs text-neutral-500">{s.users.find((u) => u.id === s.actorId)?.email}</p>
+          </div>
+          <MenuItem onClick={() => go({ screen: 'boards' })}>Your boards</MenuItem>
+          <MenuItem onClick={() => go({ screen: 'account' })}>Account</MenuItem>
+          <MenuItem
+            onClick={() => {
+              c.signOut()
+              go({ screen: 'sign-in' })
+            }}
+          >
+            Sign out
+          </MenuItem>
+        </div>
+      </details>
     </header>
   )
 }
@@ -131,8 +143,8 @@ function BoardsA() {
   const [showArchived, setShowArchived] = useState(false)
   const mine = s.boards.filter((b) => b.members.some((m) => m.userId === s.actorId) && (showArchived || !b.archived))
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-4 p-6">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Your boards</h1>
         <Toggle label="Show archived boards" checked={showArchived} onChange={setShowArchived} />
       </div>
@@ -174,26 +186,48 @@ function BoardA({ boardId }: { boardId: string }) {
   const lists = listsOf(s, boardId, showArchived)
   return (
     <main className="flex flex-1 flex-col">
-      <div className="flex items-center gap-3 px-6 py-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
         <h1 className="text-lg font-semibold">{board.name}</h1>
         {board.archived && <ArchivedBadge />}
-        <Avatars ids={board.members.map((m) => m.userId)} />
-        <div className="ml-auto flex items-center gap-4">
+        <span className="hidden sm:inline-flex">
+          <Avatars ids={board.members.map((m) => m.userId)} />
+        </span>
+        <div className="ml-auto flex items-center gap-3 sm:gap-4">
           <Toggle label="Show archived" checked={showArchived} onChange={setShowArchived} />
-          <Button size="sm" variant="outline" onClick={() => go({ screen: 'settings', board: boardId, tab: 'general' })}>
-            ⚙ Settings
+          <Button size="sm" variant="outline" aria-label="Board settings" onClick={() => go({ screen: 'settings', board: boardId, tab: 'general' })}>
+            ⚙<span className="hidden sm:inline"> Settings</span>
           </Button>
         </div>
       </div>
       {board.archived && (
-        <p className="mx-6 mb-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">This board is archived and read-only.</p>
+        <p className="mx-4 mb-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900 sm:mx-6">This board is archived and read-only.</p>
       )}
-      <div className="flex flex-1 items-start gap-3 overflow-x-auto px-6 pb-6">
+      {/* Mobile only: jump strip, one chip per list. Tapping scrolls that column into view. */}
+      <nav aria-label="Lists" className="flex gap-2 overflow-x-auto px-4 pb-2 sm:hidden">
+        {lists.map((l) => (
+          <a
+            key={l.id}
+            href={`#list-${l.id}`}
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById(`list-${l.id}`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+            }}
+            className="shrink-0 rounded-full border bg-white px-3 py-1 text-xs"
+          >
+            {l.name} <span className="text-neutral-500">{tasksOf(s, l.id, showArchived).length}</span>
+          </a>
+        ))}
+      </nav>
+      <div className="flex flex-1 snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-6 sm:snap-none sm:px-6">
         {lists.map((l, i) => {
           const tasks = tasksOf(s, l.id, showArchived)
           const active = activeTaskCount(s, l.id)
           return (
-            <section key={l.id} className={`w-72 shrink-0 rounded-xl bg-neutral-200/70 p-2 ${l.archived ? 'opacity-60' : ''}`}>
+            <section
+              key={l.id}
+              id={`list-${l.id}`}
+              className={`w-[calc(100vw-2.5rem)] shrink-0 snap-center rounded-xl bg-neutral-200/70 p-2 sm:w-72 ${l.archived ? 'opacity-60' : ''}`}
+            >
               <header className="flex items-center justify-between px-1 pb-2">
                 <h2 className="flex items-center gap-2 text-sm font-semibold">
                   {l.name} <span className="font-normal text-neutral-500">{tasks.length}</span>
@@ -243,7 +277,7 @@ function BoardA({ boardId }: { boardId: string }) {
           )
         })}
         {canEdit && (
-          <section className="w-72 shrink-0 rounded-xl border border-dashed p-2">
+          <section className="w-[calc(100vw-2.5rem)] shrink-0 snap-center rounded-xl border border-dashed p-2 sm:w-72">
             <AddInline placeholder="Add a list" onAdd={(v) => c.createList(boardId, v)} />
           </section>
         )}
@@ -349,8 +383,22 @@ function TaskSheet({ boardId, taskId }: { boardId: string; taskId: string }) {
   const editable = canEdit && !task.archived && !list.archived
   const lists = listsOf(s, boardId, false)
   return (
-    <div className="fixed inset-0 z-30 flex justify-end bg-black/30" onClick={() => go({ screen: 'board', board: boardId })}>
-      <aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    // Centered dialog on sm+; full-screen sheet on phones. Esc / backdrop / × close it.
+    <div
+      className="fixed inset-0 z-30 flex items-stretch justify-center bg-black/40 sm:items-center sm:p-6"
+      onClick={() => go({ screen: 'board', board: boardId })}
+      onKeyDown={(e) => e.key === 'Escape' && go({ screen: 'board', board: boardId })}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={task.title}
+        className="w-full overflow-y-auto bg-white p-4 shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-xl sm:p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="mb-1 text-xs text-neutral-500">
+          {board.name} · in <span className="font-medium">{list.name}</span>
+        </p>
         <div className="mb-4 flex items-start justify-between gap-3">
           <input
             key={task.title}
@@ -364,7 +412,7 @@ function TaskSheet({ boardId, taskId }: { boardId: string; taskId: string }) {
           </button>
         </div>
         {task.archived && <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">This task is archived and read-only.</p>}
-        <dl className="mb-4 grid grid-cols-[7rem_1fr] items-center gap-y-3 text-sm">
+        <dl className="mb-4 grid grid-cols-[5.5rem_1fr] items-center gap-y-3 text-sm sm:grid-cols-[7rem_1fr]">
           <dt className="text-neutral-500">List</dt>
           <dd>
             <select
@@ -451,7 +499,7 @@ function TaskSheet({ boardId, taskId }: { boardId: string; taskId: string }) {
             ))}
         </div>
         <ActivityFeed taskId={task.id} readOnly={!canEdit} />
-      </aside>
+      </div>
     </div>
   )
 }
@@ -471,14 +519,14 @@ function SettingsA({ boardId }: { boardId: string }) {
     ...(isOwner ? [['log', 'Board log']] : []),
   ]
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
+    <main className="mx-auto w-full max-w-3xl p-4 sm:p-6">
       <h1 className="mb-4 text-xl font-semibold">{board.name} · Settings</h1>
-      <nav className="mb-6 flex gap-1 border-b">
+      <nav className="mb-6 flex gap-1 overflow-x-auto border-b">
         {tabs.map(([k, label]) => (
           <button
             key={k}
             onClick={() => go({ screen: 'settings', board: boardId, tab: k })}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${tab === k ? 'border-neutral-900 font-medium' : 'border-transparent text-neutral-500'}`}
+            className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm ${tab === k ? 'border-neutral-900 font-medium' : 'border-transparent text-neutral-500'}`}
           >
             {label}
           </button>
@@ -570,7 +618,7 @@ function SettingsA({ boardId }: { boardId: string }) {
           </div>
           <ul className="divide-y rounded-lg border bg-white">
             {board.members.map((m) => (
-              <li key={m.userId} className="flex items-center justify-between px-3 py-2">
+              <li key={m.userId} className="flex items-center justify-between gap-2 px-3 py-2">
                 <span className="text-sm">
                   <span className="font-medium">{userName(s, m.userId)}</span>
                   {m.userId === s.actorId && <span className="text-neutral-500"> (you)</span>}
