@@ -8,10 +8,38 @@ A **diagnostic log** (technical and operational, never the Audit log) is written
 - **Who may import it**: `src/shared/infrastructure/**`, each module's `infrastructure/` (adapters, the outbox relay and event handlers, which is where [ADR 0007](./0007-one-aggregate-per-transaction-with-a-transactional-outbox.md)'s "logged and skipped" happens), `src/di/**`, `src/instrumentation.ts` / `src/instrumentation.node.ts`, and in `src/app/` exactly `@/shared/infrastructure/logging`.
 - **Enforcement**: `no-restricted-imports` bans `pino` and `pino/*` everywhere except the facade, so the trace-id mixin and `redact` can't be bypassed. `no-console` is an error across `src/`. The existing allowlists already keep domain/ and application/ from reaching the logger.
 
+## What gets logged, and at what level
+
+_(Amended by the "What gets logged" decision.)_
+
+- **Levels** each mean one thing. `error`: a person needs to look. `warn`: degraded but self-healing, or an unusual setup. `info`: rare lifecycle events. `debug`: high-volume detail for development. The default is `info` in production and `debug` in dev, and `LOG_LEVEL` overrides it. There is no `fatal`: a fatal condition is a throw.
+- **Events** are a closed `LogEvent` union in the facade, so a new one is added on purpose:
+
+  | Event                    | Level | Written by                                                                                                                             |
+  | ------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+  | `action.unexpected`      | error | `to-action-error`, for anything it maps to `unexpected`, whatever `retryable` says, so a user's `reference` always finds an error line |
+  | `request.failed`         | error | `onRequestError`                                                                                                                       |
+  | `outbox.row.retrying`    | warn  | the relay, on every retryable failure, with `attempts` and `nextDelayMs`                                                               |
+  | `outbox.row.stuck`       | error | the relay, once, when a row has been retrying for 5 minutes                                                                            |
+  | `outbox.row.recovered`   | info  | the relay, when a row delivers after at least one failure, with total attempts and duration                                            |
+  | `outbox.row.failed`      | error | the relay, when a row is marked `failed`                                                                                               |
+  | `outbox.row.delivered`   | debug | the relay, on a normal delivery                                                                                                        |
+  | `app.started`            | info  | `register()`: adapter mode, span processor, whether logs export, the level. The relay start is part of this                            |
+  | `adapters.mock_fallback` | warn  | `di/`, with the names (never values) of the missing env vars                                                                           |
+  | `outbox.replay.reset`    | info  | `npm run outbox:replay`, with the outbox and row count                                                                                 |
+
+- **Not logged**: expected errors (span attributes only, per [ADR 0008](./0008-error-classes-thrown-outages-and-an-edge-mapper-in-app.md)), drain cycles, and startup config errors that throw (the throw is the record). There is **no per-request access log**: Next's root span records every request, and `logging.incomingRequests` only affects dev.
+- **Fields on every line**: `time`, `level`, `event`, `service` (from `OTEL_SERVICE_NAME`), `trace_id` / `span_id` / `trace_flags` whenever a span is active, and `module` bound by child loggers in a module's `infrastructure/`. pino's `pid` and `hostname` are dropped (the OTel resource carries them), and there is no `useCase` field (that is the `traced` span name).
+- **Logs point at traces, they don't copy them.** A line carries the event, error `code`, the ids needed to act and, on `error`, the `err` slot. It never carries span timings, attributes or request shape. An `error` line must stand on its own, because with the `none` span processor nothing else is exported. `err` serializes `type`, `message`, `stack`, `code` and the full `cause` chain.
+- **`onRequestError`** logs `routePath`, `routeType`, `renderSource` and `method`, never `path`, which holds ids and can hold user input in its query.
+- **CLIs** such as `outbox:replay` run with `--conditions=react-server`, so the facade keeps its `server-only` guard. Without that condition, `server-only` resolves to a module that throws.
+
 ## Considered Options
 
 - **An `ILogger` port injected through the container.** Rejected. Only infrastructure and the edge log, and they import infrastructure anyway. Tests don't assert on logs ([ADR 0012](./0012-tests-go-through-api-on-mock-adapters-kept-honest-by-contract-suites.md)), and mock and test output is a configuration concern.
 - **`traced` logs thrown errors.** Rejected. Nested `traced` spans would log the same error once per level, and an RSC throw would be logged again by `onRequestError`.
+- **A per-request access log.** Rejected. Traces already record every request, and a Route Handler wrapper would miss pages and Server Actions.
+- **`warn` forever for a retrying row.** Rejected. A long outage would never page anyone, so the row escalates once to `error` after 5 minutes.
 - **Letting application log a swallowed outage.** Rejected. A use case that hides an outage behind a fallback is the thing to fix. If a fallback must be visible, the adapter that threw logs it.
 
 ## Consequences
@@ -19,3 +47,5 @@ A **diagnostic log** (technical and operational, never the Audit log) is written
 - `src/app/`'s import rule becomes "only `@/modules/*/api`, `@/app/**` and `@/shared/infrastructure/logging`".
 - `docs/DDD-ARCHITECTURE.md`'s `shared/lib/logger.ts` and the `logger.error(e)` in its `toActionError` example are superseded. The guide is revised in the observability consolidation.
 - `di/container.ts`'s `console.warn` for falling back to mock adapters becomes a logger call.
+- A per-request access log, if an app needs one, is built per app.
+- Every CLI script in `package.json` passes `--conditions=react-server`.
