@@ -23,7 +23,7 @@ The template's own spans follow one naming scheme and carry a small, fixed set o
   - A handler that throws sets `ERROR` on its span, as `traced` does.
 
 - **Replay leaves `attempts` alone.** `npm run outbox:replay` resets only the row's status, so `app.outbox.attempt` keeps climbing, and a delivery whose attempt follows a `failed` one is visibly a replay. There is no separate replay attribute.
-- **Attribute keys live in one place**: `src/shared/infrastructure/tracing/attributes.ts` exports each key as a constant, which `traced`, the relay and the metrics facade import, so no call site spells a key as a string literal. Whether lint or types force every caller through that module is decided with the no-user-input enforcement.
+- **Attribute keys live in one place**: `src/shared/infrastructure/tracing/attributes.ts` exports each key as a constant, which `traced`, the relay and the metrics facade import, so no call site spells a key as a string literal. Both force it: lint bans span writes outside `tracing/`, and the helpers there accept only the closed `AppAttributes` type ([ADR 0017](./0017-telemetry-keeps-user-input-out-by-construction-except-error-messages.md)). _(Amended by the no-user-input enforcement decision.)_
 
 ## Considered Options
 
