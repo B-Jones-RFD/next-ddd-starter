@@ -1,5 +1,7 @@
 # DDD Architecture Guide — Next.js (App Router)
 
+> **Superseded where it conflicts with [`standards.md`](../standards.md).** `standards.md` owns the rules for this repo. This guide is kept as raw material for the docs site and will be deleted once the site's pages cover it.
+
 Reference for structuring a Next.js web project using Domain-Driven Design.
 Covers folder structure, aggregates, services, repositories, and error handling.
 Example bounded context: `surveys`.
