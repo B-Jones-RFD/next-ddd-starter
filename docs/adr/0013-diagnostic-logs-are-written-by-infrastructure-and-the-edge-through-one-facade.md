@@ -12,7 +12,7 @@ A **diagnostic log** (technical and operational, never the Audit log) is written
 
 _(Amended by the "What gets logged" decision.)_
 
-- **Levels** each mean one thing. `error`: a person needs to look. `warn`: degraded but self-healing, or an unusual setup. `info`: rare lifecycle events. `debug`: high-volume detail for development. The default is `info` in production and `debug` in dev, and `LOG_LEVEL` overrides it. There is no `fatal`: a fatal condition is a throw.
+- **Levels** each mean one thing. `error`: a person needs to look. `warn`: degraded but self-healing, or an unusual setup. `info`: rare lifecycle events. `debug`: high-volume detail for development. The default is `info` in production and `debug` in dev, and `LOG_LEVEL` overrides it. Its accepted values and validation are in [ADR 0015](./0015-observability-is-configured-by-standard-otel-env-with-safe-defaults.md). There is no `fatal`: a fatal condition is a throw.
 - **Events** are a closed `LogEvent` union in the facade, so a new one is added on purpose:
 
   | Event                    | Level | Written by                                                                                                                             |
@@ -24,7 +24,7 @@ _(Amended by the "What gets logged" decision.)_
   | `outbox.row.recovered`   | info  | the relay, when a row delivers after at least one failure, with total attempts and duration                                            |
   | `outbox.row.failed`      | error | the relay, when a row is marked `failed`                                                                                               |
   | `outbox.row.delivered`   | debug | the relay, on a normal delivery                                                                                                        |
-  | `app.started`            | info  | `register()`: adapter mode, span processor, whether logs export, the level. The relay start is part of this                            |
+  | `app.started`            | info  | `register()`: adapter mode, span processor, whether logs export, the level. The relay start is part of this. `warn` in production when traces are `none` ([ADR 0015](./0015-observability-is-configured-by-standard-otel-env-with-safe-defaults.md)) |
   | `adapters.mock_fallback` | warn  | `di/`, with the names (never values) of the missing env vars                                                                           |
   | `outbox.replay.reset`    | info  | `npm run outbox:replay`, with the outbox and row count                                                                                 |
 
