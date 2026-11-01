@@ -6,17 +6,17 @@ All observability configuration comes from environment variables. Where the Open
 
 - **Variables**:
 
-  | Variable                                                 | Values                                                  | Default            | Read by                                         |
-  | -------------------------------------------------------- | ------------------------------------------------------- | ------------------ | ----------------------------------------------- |
-  | `OTEL_TRACES_EXPORTER`                                   | `otlp` \| `console` \| `none`                           | `none`             | our config reader                               |
-  | `OTEL_METRICS_EXPORTER`                                  | `otlp` \| `console` \| `none`                           | `none`             | our config reader                               |
-  | `OTEL_LOGS_EXPORTER`                                     | `otlp` \| `none`                                        | `none`             | our config reader                               |
-  | `OTEL_METRIC_EXPORT_INTERVAL` / `…_TIMEOUT`              | milliseconds                                            | 60000 / 30000      | our config reader, passed to the reader         |
-  | `LOG_LEVEL`                                              | `error` \| `warn` \| `info` \| `debug` \| `trace` \| `silent` | `info` in production, `debug` in dev, `silent` under test | our config reader |
-  | `OTEL_SERVICE_NAME`                                      | string                                                  | `next-ddd-starter` | `NodeSDK` resource, the log facade's `service`  |
-  | `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_*`       | per spec                                                | per spec           | `NodeSDK` and the OTLP exporters, untouched     |
-  | `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`        | per spec                                                | `parentbased_always_on` | `NodeSDK`, untouched                       |
-  | `NEXT_OTEL_VERBOSE`, `NEXT_OTEL_FETCH_DISABLED`          | per Next                                                | unset              | Next, untouched                                 |
+  | Variable                                           | Values                                                        | Default                                                   | Read by                                        |
+  | -------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------- |
+  | `OTEL_TRACES_EXPORTER`                             | `otlp` \| `console` \| `none`                                 | `none`                                                    | our config reader                              |
+  | `OTEL_METRICS_EXPORTER`                            | `otlp` \| `console` \| `none`                                 | `none`                                                    | our config reader                              |
+  | `OTEL_LOGS_EXPORTER`                               | `otlp` \| `none`                                              | `none`                                                    | our config reader                              |
+  | `OTEL_METRIC_EXPORT_INTERVAL` / `…_TIMEOUT`        | milliseconds                                                  | 60000 / 30000                                             | our config reader, passed to the reader        |
+  | `LOG_LEVEL`                                        | `error` \| `warn` \| `info` \| `debug` \| `trace` \| `silent` | `info` in production, `debug` in dev, `silent` under test | our config reader                              |
+  | `OTEL_SERVICE_NAME`                                | string                                                        | `next-ddd-starter`                                        | `NodeSDK` resource, the log facade's `service` |
+  | `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_*` | per spec                                                      | per spec                                                  | `NodeSDK` and the OTLP exporters, untouched    |
+  | `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG`  | per spec                                                      | `parentbased_always_on`                                   | `NodeSDK`, untouched                           |
+  | `NEXT_OTEL_VERBOSE`, `NEXT_OTEL_FETCH_DISABLED`    | per Next                                                      | unset                                                     | Next, untouched                                |
 
 - **`none` for traces is a `NoopSpanProcessor`.** The tracer provider is always registered, so every request has a trace id. This holds for every value, so that `none` means "export nothing" and never means "no tracing". For metrics, `none` means no reader at all ([ADR 0014](./0014-outbox-backlog-gauges-are-the-only-metrics-the-template-ships.md)). For logs, `none` means instrumentation-pino gets `disableLogSending: true` and no log processor is registered. `console` isn't accepted for logs, because pino already writes NDJSON to stdout.
 - **The default is `none` in every environment, production included.** A deployment opts in with `=otlp`. Defaults stay vendor-neutral, and nothing errors while no collector exists. If production starts with traces set to `none`, `app.started` is logged at `warn`, the level [ADR 0013](./0013-diagnostic-logs-are-written-by-infrastructure-and-the-edge-through-one-facade.md) defines for "an unusual setup", so a forgotten opt-in is visible.

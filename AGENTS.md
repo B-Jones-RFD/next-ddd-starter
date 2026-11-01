@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Standards
+
+Before writing or reviewing code, read `standards.md`; it overrides your defaults.
+
 ## Agent skills
 
 ### Issue tracker
