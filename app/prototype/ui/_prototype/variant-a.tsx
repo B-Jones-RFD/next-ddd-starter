@@ -161,7 +161,7 @@ function BoardsA() {
                   {b.name} {b.archived && <ArchivedBadge />}
                 </span>
                 <span className="flex items-center justify-between text-xs text-neutral-500">
-                  <Avatars ids={b.members.map((m) => m.userId)} />
+                  <Avatars ids={b.members.map((m) => m.userId)} ownerId={b.members.find((m) => m.role === 'Owner')?.userId} />
                   {role}
                 </span>
               </button>
@@ -190,7 +190,7 @@ function BoardA({ boardId }: { boardId: string }) {
         <h1 className="text-lg font-semibold">{board.name}</h1>
         {board.archived && <ArchivedBadge />}
         <span className="hidden sm:inline-flex">
-          <Avatars ids={board.members.map((m) => m.userId)} />
+          <Avatars ids={board.members.map((m) => m.userId)} ownerId={board.members.find((m) => m.role === 'Owner')?.userId} />
         </span>
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
           <Toggle label="Show archived" checked={showArchived} onChange={setShowArchived} />
@@ -619,7 +619,8 @@ function SettingsA({ boardId }: { boardId: string }) {
           <ul className="divide-y rounded-lg border bg-white">
             {board.members.map((m) => (
               <li key={m.userId} className="flex items-center justify-between gap-2 px-3 py-2">
-                <span className="text-sm">
+                <span className="flex items-center gap-2 text-sm">
+                  <Avatar userId={m.userId} owner={m.role === 'Owner'} />
                   <span className="font-medium">{userName(s, m.userId)}</span>
                   {m.userId === s.actorId && <span className="text-neutral-500"> (you)</span>}
                 </span>

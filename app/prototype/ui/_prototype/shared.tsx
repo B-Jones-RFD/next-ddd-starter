@@ -54,7 +54,7 @@ export function TagChip({ name, color, onRemove }: { name: string; color: string
   )
 }
 
-export function Avatar({ userId, size = 'sm' }: { userId: string; size?: 'sm' | 'md' }) {
+export function Avatar({ userId, size = 'sm', owner = false }: { userId: string; size?: 'sm' | 'md'; owner?: boolean }) {
   const { s } = useStore()
   const n = userName(s, userId)
   const initials = n
@@ -62,20 +62,30 @@ export function Avatar({ userId, size = 'sm' }: { userId: string; size?: 'sm' | 
     .map((p) => p[0])
     .join('')
   return (
-    <span
-      title={n}
-      className={`inline-flex items-center justify-center rounded-full bg-neutral-800 font-medium text-white ring-2 ring-white ${size === 'sm' ? 'size-6 text-[10px]' : 'size-8 text-xs'}`}
-    >
-      {initials}
+    <span className={`relative inline-flex ${owner ? 'z-10' : ''}`}>
+      <span
+        title={owner ? `${n} (Owner)` : n}
+        aria-label={owner ? `${n}, Owner` : n}
+        className={`inline-flex items-center justify-center rounded-full bg-neutral-800 font-medium text-white ${owner ? 'ring-2 ring-amber-400' : 'ring-2 ring-white'} ${size === 'sm' ? 'size-6 text-[10px]' : 'size-8 text-xs'}`}
+      >
+        {initials}
+      </span>
+      {owner && (
+        <span aria-hidden className="absolute -top-1.5 -right-1 text-[10px] leading-none drop-shadow-[0_0_1px_white]">
+          👑
+        </span>
+      )}
     </span>
   )
 }
 
-export function Avatars({ ids }: { ids: string[] }) {
+/** Board-member stack: pass ownerId to put the Owner first and mark them. */
+export function Avatars({ ids, ownerId }: { ids: string[]; ownerId?: string }) {
+  const ordered = ownerId && ids.includes(ownerId) ? [ownerId, ...ids.filter((i) => i !== ownerId)] : ids
   return (
     <span className="flex -space-x-1.5">
-      {ids.map((i) => (
-        <Avatar key={i} userId={i} />
+      {ordered.map((i) => (
+        <Avatar key={i} userId={i} owner={i === ownerId} />
       ))}
     </span>
   )
