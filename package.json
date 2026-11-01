@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prototype:ui": "echo \"Open http://localhost:3000/prototype/ui\" && next dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
