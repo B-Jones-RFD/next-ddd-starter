@@ -185,6 +185,8 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     // Agent worktrees are separate checkouts.
     '.claude/**',
+    // The docs site is a self-contained project outside `npm run check`.
+    'site/**',
   ]),
 ])
 
