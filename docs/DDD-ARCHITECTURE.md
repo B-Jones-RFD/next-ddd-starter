@@ -111,6 +111,7 @@ src/
 An aggregate is a cluster of objects that must stay consistent together, with one **root** as the only entry point.
 
 Rules:
+
 - **Mutate only through the root.** Never edit a `Question` directly; call `survey.addQuestion()`. The root enforces invariants (no edits after publish, max 20 questions).
 - **One repository per aggregate.** `SurveyRepository` exists; `QuestionRepository` does not. Load and save the whole aggregate, typically in one transaction.
 - **Reference other aggregates by ID.** `Response` holds `surveyId`, not a `Survey`. Keeps aggregates small and transactions bounded.
@@ -122,43 +123,53 @@ Rules:
 ```ts
 // domain/survey/Survey.ts
 export class Survey {
-  private events: DomainEvent[] = [];
+  private events: DomainEvent[] = []
 
   private constructor(
     readonly id: SurveyId,
     private title: string,
     private status: SurveyStatus,
-    private questions: Question[],
+    private questions: Question[]
   ) {}
 
   static create(title: string): Survey {
-    return new Survey(SurveyId.new(), title, SurveyStatus.draft(), []);
+    return new Survey(SurveyId.new(), title, SurveyStatus.draft(), [])
   }
 
   /** Used by SurveyMapper to rebuild from persistence. */
-  static rehydrate(props: { id: SurveyId; title: string; status: SurveyStatus; questions: Question[] }): Survey {
-    return new Survey(props.id, props.title, props.status, props.questions);
+  static rehydrate(props: {
+    id: SurveyId
+    title: string
+    status: SurveyStatus
+    questions: Question[]
+  }): Survey {
+    return new Survey(props.id, props.title, props.status, props.questions)
   }
 
-  addQuestion(text: string): Result<void, SurveyAlreadyPublishedError | QuestionLimitError> {
-    if (!this.status.isDraft()) return err(new SurveyAlreadyPublishedError(this.id));
-    if (this.questions.length >= 20) return err(new QuestionLimitError(this.id, 20));
-    this.questions.push(Question.create(text));
-    return ok(undefined);
+  addQuestion(
+    text: string
+  ): Result<void, SurveyAlreadyPublishedError | QuestionLimitError> {
+    if (!this.status.isDraft())
+      return err(new SurveyAlreadyPublishedError(this.id))
+    if (this.questions.length >= 20)
+      return err(new QuestionLimitError(this.id, 20))
+    this.questions.push(Question.create(text))
+    return ok(undefined)
   }
 
   publish(): Result<void, SurveyAlreadyPublishedError | EmptySurveyError> {
-    if (!this.status.isDraft()) return err(new SurveyAlreadyPublishedError(this.id));
-    if (this.questions.length === 0) return err(new EmptySurveyError(this.id));
-    this.status = SurveyStatus.published();
-    this.events.push(new SurveyPublished(this.id));
-    return ok(undefined);
+    if (!this.status.isDraft())
+      return err(new SurveyAlreadyPublishedError(this.id))
+    if (this.questions.length === 0) return err(new EmptySurveyError(this.id))
+    this.status = SurveyStatus.published()
+    this.events.push(new SurveyPublished(this.id))
+    return ok(undefined)
   }
 
   pullEvents(): DomainEvent[] {
-    const e = this.events;
-    this.events = [];
-    return e;
+    const e = this.events
+    this.events = []
+    return e
   }
 }
 ```
@@ -169,11 +180,11 @@ Every write use case follows: **load → call root → save → publish events.*
 
 ## 4. Services
 
-| Kind | Location | Purpose | Example |
-|---|---|---|---|
-| Domain service | `domain/services/` | Business logic not belonging to one entity; often spans aggregates. Pure, no I/O. | `NpsCalculator.ts` |
-| Application service (use case) | `application/use-cases/` | Orchestrates one task: load, call domain, save, publish. No business rules. | `PublishSurvey.ts` |
-| Infrastructure service | `infrastructure/adapters/` | Talks to the outside world by implementing an application port. | `SendGridEmailSender.ts` |
+| Kind                           | Location                   | Purpose                                                                           | Example                  |
+| ------------------------------ | -------------------------- | --------------------------------------------------------------------------------- | ------------------------ |
+| Domain service                 | `domain/services/`         | Business logic not belonging to one entity; often spans aggregates. Pure, no I/O. | `NpsCalculator.ts`       |
+| Application service (use case) | `application/use-cases/`   | Orchestrates one task: load, call domain, save, publish. No business rules.       | `PublishSurvey.ts`       |
+| Infrastructure service         | `infrastructure/adapters/` | Talks to the outside world by implementing an application port.                   | `SendGridEmailSender.ts` |
 
 **Test:** would the logic still matter with no database or web app? → domain. Coordinates steps? → application. Touches I/O? → infrastructure.
 
@@ -181,36 +192,39 @@ Every write use case follows: **load → call root → save → publish events.*
 // domain/services/NpsCalculator.ts
 export class NpsCalculator {
   calculate(responses: Response[]): NpsScore {
-    const scores = responses.map(r => r.score.value);
-    const promoters = scores.filter(s => s >= 9).length;
-    const detractors = scores.filter(s => s <= 6).length;
-    return NpsScore.of(((promoters - detractors) / scores.length) * 100);
+    const scores = responses.map((r) => r.score.value)
+    const promoters = scores.filter((s) => s >= 9).length
+    const detractors = scores.filter((s) => s <= 6).length
+    return NpsScore.of(((promoters - detractors) / scores.length) * 100)
   }
 }
 ```
 
 ```ts
 // application/use-cases/PublishSurvey.ts
-import 'server-only';
+import 'server-only'
 
-export type PublishSurveyError = NotFoundError | SurveyAlreadyPublishedError | EmptySurveyError;
+export type PublishSurveyError =
+  NotFoundError | SurveyAlreadyPublishedError | EmptySurveyError
 
 export class PublishSurvey {
   constructor(
     private surveys: SurveyRepository,
-    private events: EventPublisher,
+    private events: EventPublisher
   ) {}
 
-  async execute({ surveyId }: PublishSurveyInput): Promise<Result<void, PublishSurveyError>> {
-    const survey = await this.surveys.findById(SurveyId.from(surveyId));
-    if (!survey) return err(new NotFoundError('Survey', surveyId));
+  async execute({
+    surveyId,
+  }: PublishSurveyInput): Promise<Result<void, PublishSurveyError>> {
+    const survey = await this.surveys.findById(SurveyId.from(surveyId))
+    if (!survey) return err(new NotFoundError('Survey', surveyId))
 
-    const result = survey.publish();
-    if (!result.ok) return result;
+    const result = survey.publish()
+    if (!result.ok) return result
 
-    await this.surveys.save(survey);              // may throw ConcurrencyError / PersistenceError
-    await this.events.publish(survey.pullEvents());
-    return ok(undefined);
+    await this.surveys.save(survey) // may throw ConcurrencyError / PersistenceError
+    await this.events.publish(survey.pullEvents())
+    return ok(undefined)
   }
 }
 ```
@@ -226,9 +240,9 @@ Dependencies are injected through the constructor as **interfaces**.
 ```ts
 // domain/survey/SurveyRepository.ts
 export interface SurveyRepository {
-  findById(id: SurveyId): Promise<Survey | null>;
-  findActiveByOwner(ownerId: UserId): Promise<Survey[]>;
-  save(survey: Survey): Promise<void>;
+  findById(id: SurveyId): Promise<Survey | null>
+  findActiveByOwner(ownerId: UserId): Promise<Survey[]>
+  save(survey: Survey): Promise<void>
 }
 ```
 
@@ -236,7 +250,7 @@ export interface SurveyRepository {
 
 ```ts
 // infrastructure/persistence/PrismaSurveyRepository.ts
-import 'server-only';
+import 'server-only'
 
 export class PrismaSurveyRepository implements SurveyRepository {
   constructor(private db: PrismaClient) {}
@@ -245,26 +259,31 @@ export class PrismaSurveyRepository implements SurveyRepository {
     const row = await this.db.survey.findUnique({
       where: { id: id.value },
       include: { questions: true },
-    });
-    return row ? SurveyMapper.toDomain(row) : null;
+    })
+    return row ? SurveyMapper.toDomain(row) : null
   }
 
   async save(survey: Survey) {
-    const data = SurveyMapper.toPersistence(survey);
+    const data = SurveyMapper.toPersistence(survey)
     try {
       await this.db.$transaction([
-        this.db.survey.upsert({ where: { id: data.id }, create: data.survey, update: data.survey }),
+        this.db.survey.upsert({
+          where: { id: data.id },
+          create: data.survey,
+          update: data.survey,
+        }),
         this.db.question.deleteMany({ where: { surveyId: data.id } }),
         this.db.question.createMany({ data: data.questions }),
-      ]);
+      ])
     } catch (e) {
-      throw translatePrismaError(e, 'Survey', data.id);   // see §6
+      throw translatePrismaError(e, 'Survey', data.id) // see §6
     }
   }
 }
 ```
 
 Guidelines:
+
 - Intent-revealing methods (`findActiveByOwner`), not generic `query(filter)`.
 - No `update()` / `delete()` for child entities — mutate the aggregate, then `save()`.
 - `save()` persists the whole aggregate in one transaction.
@@ -281,10 +300,10 @@ Guidelines:
 ```ts
 // shared/kernel/errors/DomainError.ts
 export abstract class DomainError extends Error {
-  abstract readonly code: string;
+  abstract readonly code: string
   constructor(message: string) {
-    super(message);
-    this.name = new.target.name;
+    super(message)
+    this.name = new.target.name
   }
 }
 ```
@@ -292,41 +311,46 @@ export abstract class DomainError extends Error {
 ```ts
 // domain/survey/errors/SurveyAlreadyPublishedError.ts
 export class SurveyAlreadyPublishedError extends DomainError {
-  readonly code = 'SURVEY_ALREADY_PUBLISHED';
+  readonly code = 'SURVEY_ALREADY_PUBLISHED'
   constructor(readonly surveyId: SurveyId) {
-    super(`Survey ${surveyId.value} is already published`);
+    super(`Survey ${surveyId.value} is already published`)
   }
 }
 ```
 
 ```ts
 // shared/kernel/Result.ts
-export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
-export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
-export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
+export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
+export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value })
+export const err = <E>(error: E): Result<never, E> => ({ ok: false, error })
 ```
 
-**Convention:** return `Result` for *expected* business failures (they appear in the type signature); `throw` only for genuine bugs / broken invariants. Value-object factories (`SurveyId.from(raw)`) validate input.
+**Convention:** return `Result` for _expected_ business failures (they appear in the type signature); `throw` only for genuine bugs / broken invariants. Value-object factories (`SurveyId.from(raw)`) validate input.
 
 ### 6.2 Infrastructure & external errors
 
 Never let Prisma, `fetch`, or SDK errors escape the adapter. Catch and translate into application errors:
 
-| Error | Meaning |
-|---|---|
-| `NotFoundError` | Entity missing |
-| `ConcurrencyError` | Optimistic-lock / unique-constraint conflict |
-| `PersistenceError` | DB unavailable / unknown failure |
+| Error                  | Meaning                                                       |
+| ---------------------- | ------------------------------------------------------------- |
+| `NotFoundError`        | Entity missing                                                |
+| `ConcurrencyError`     | Optimistic-lock / unique-constraint conflict                  |
+| `PersistenceError`     | DB unavailable / unknown failure                              |
 | `ExternalServiceError` | Email, payment, third-party API failure (carries `retryable`) |
 
 ```ts
 // infrastructure/persistence/translatePrismaError.ts
-export function translatePrismaError(e: unknown, entity: string, id: string): Error {
+export function translatePrismaError(
+  e: unknown,
+  entity: string,
+  id: string
+): Error {
   if (e instanceof Prisma.PrismaClientKnownRequestError) {
-    if (e.code === 'P2002') return new ConcurrencyError(entity, id, { cause: e });
-    if (e.code === 'P2025') return new NotFoundError(entity, id, { cause: e });
+    if (e.code === 'P2002')
+      return new ConcurrencyError(entity, id, { cause: e })
+    if (e.code === 'P2025') return new NotFoundError(entity, id, { cause: e })
   }
-  return new PersistenceError(`Failed to persist ${entity}`, { cause: e });
+  return new PersistenceError(`Failed to persist ${entity}`, { cause: e })
 }
 ```
 
@@ -345,6 +369,7 @@ async send(msg: EmailMessage) {
 ```
 
 Adapter rules:
+
 - Preserve the original as `cause`.
 - Tag errors `retryable` — the application layer or queue decides whether to retry.
 - Log technical detail in infrastructure; expose clean messages upward.
@@ -362,32 +387,39 @@ One central mapper — the only place that knows about HTTP codes or UI wording:
 // shared/lib/errors/toActionError.ts
 export type ActionError =
   | { kind: 'business'; code: string; message: string }
-  | { kind: 'not_found' | 'conflict' | 'unexpected'; message: string };
+  | { kind: 'not_found' | 'conflict' | 'unexpected'; message: string }
 
 export function toActionError(e: unknown): ActionError {
-  if (e instanceof DomainError)      return { kind: 'business', code: e.code, message: e.message };
-  if (e instanceof NotFoundError)    return { kind: 'not_found', message: 'Not found' };
-  if (e instanceof ConcurrencyError) return { kind: 'conflict', message: 'Someone else changed this — reload and try again' };
-  logger.error(e);                   // PersistenceError, ExternalServiceError, unknown
-  return { kind: 'unexpected', message: 'Something went wrong' };
+  if (e instanceof DomainError)
+    return { kind: 'business', code: e.code, message: e.message }
+  if (e instanceof NotFoundError)
+    return { kind: 'not_found', message: 'Not found' }
+  if (e instanceof ConcurrencyError)
+    return {
+      kind: 'conflict',
+      message: 'Someone else changed this — reload and try again',
+    }
+  logger.error(e) // PersistenceError, ExternalServiceError, unknown
+  return { kind: 'unexpected', message: 'Something went wrong' }
 }
 ```
 
 ```ts
 // app/(dashboard)/surveys/[id]/actions.ts
-'use server';
-import { revalidatePath } from 'next/cache';
-import { publishSurvey } from '@/composition/container';
-import { toActionError } from '@/shared/lib/errors/toActionError';
+'use server'
+import { revalidatePath } from 'next/cache'
+import { publishSurvey } from '@/composition/container'
+import { toActionError } from '@/shared/lib/errors/toActionError'
 
 export async function publishSurveyAction(id: string) {
   try {
-    const result = await publishSurvey.execute({ surveyId: id });
-    if (!result.ok) return { ok: false as const, error: toActionError(result.error) };
-    revalidatePath(`/surveys/${id}`);
-    return { ok: true as const };
+    const result = await publishSurvey.execute({ surveyId: id })
+    if (!result.ok)
+      return { ok: false as const, error: toActionError(result.error) }
+    revalidatePath(`/surveys/${id}`)
+    return { ok: true as const }
   } catch (e) {
-    return { ok: false as const, error: toActionError(e) };
+    return { ok: false as const, error: toActionError(e) }
   }
 }
 ```
@@ -404,13 +436,16 @@ The only place that knows concrete classes:
 
 ```ts
 // composition/container.ts
-import 'server-only';
-import { PrismaClient } from '@prisma/client';
+import 'server-only'
+import { PrismaClient } from '@prisma/client'
 
-const db = new PrismaClient();
+const db = new PrismaClient()
 
-export const surveyRepository = new PrismaSurveyRepository(db);
-export const publishSurvey = new PublishSurvey(surveyRepository, new InMemoryEventPublisher());
+export const surveyRepository = new PrismaSurveyRepository(db)
+export const publishSurvey = new PublishSurvey(
+  surveyRepository,
+  new InMemoryEventPublisher()
+)
 ```
 
 Testing: inject `InMemorySurveyRepository` into use cases — no database required.
