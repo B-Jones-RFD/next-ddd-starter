@@ -45,7 +45,7 @@ _(Amended by the "What gets logged" decision.)_
 ## Consequences
 
 - `src/app/`'s import rule becomes "only `@/modules/*/api`, `@/app/**` and `@/shared/infrastructure/logging`".
-- `docs/DDD-ARCHITECTURE.md`'s `shared/lib/logger.ts` and the `logger.error(e)` in its `toActionError` example are superseded. The guide is revised in the observability consolidation.
+- `docs/DDD-ARCHITECTURE.md`'s `shared/lib/logger.ts` and the `logger.error(e)` in its `toActionError` example are superseded. `standards.md` §8 Observability states the rules; the guide carries the superseded banner.
 - `di/container.ts`'s `console.warn` for falling back to mock adapters becomes a logger call.
 - A per-request access log, if an app needs one, is built per app.
 - Every CLI script in `package.json` passes `--conditions=react-server`.

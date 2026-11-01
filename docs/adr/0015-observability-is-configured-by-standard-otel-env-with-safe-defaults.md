@@ -24,7 +24,7 @@ All observability configuration comes from environment variables. Where the Open
 - **Sampling is never set in code.** No `sampler` is passed to `NodeSDK`, so the standard sampler variables apply, and the spec's default is `parentbased_always_on`. A trace that isn't sampled still carries a valid trace id, so the `unexpected` reference survives any ratio. The docs recommend `parentbased_traceidratio` for production volume, but the template doesn't set it.
 - **Relay delivery spans are sampled independently of the request they link to.** They are roots in the drain's own trace ([ADR 0007](./0007-one-aggregate-per-transaction-with-a-transactional-outbox.md)), and standard samplers ignore links.
 - **The `outbox.row.stuck` threshold stays a 5-minute constant** beside the relay, not an env var. It's an alerting judgement, not a deployment fact, and the `app.outbox.oldest_pending.age` gauge lets a backend alert at any threshold.
-- **`.env.example`** lists every variable above with its default. The architecture doc keeps the full table.
+- **`.env.example`** lists every variable above with its default. This ADR keeps the full table; `.env.example` mirrors it.
 
 ## Considered Options
 
