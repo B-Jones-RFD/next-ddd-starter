@@ -57,6 +57,7 @@ describe('createBoard', () => {
     expect(await listBoards({ actorId: ada })).toEqual({ ok: true, value: [] })
   })
 
+  // #region outage
   it('throws an outage from the repository', async () => {
     const ada = await givenUser('Ada')
     const outage = new PersistenceError('IBoardRepository', { retryable: true })
@@ -69,4 +70,5 @@ describe('createBoard', () => {
       createBoard({ actorId: ada, name: 'Launch plan' })
     ).rejects.toBe(outage)
   })
+  // #endregion outage
 })

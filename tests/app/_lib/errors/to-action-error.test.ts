@@ -92,12 +92,14 @@ describe('toActionError', () => {
     ).toEqual({ name: 'Use 60 characters or fewer.' })
   })
 
+  // #region code-case
   it('words boards.board.already-a-member', () => {
     expect(toActionError(new AlreadyAMemberError())).toEqual({
       code: 'boards.board.already-a-member',
       message: 'They’re already a member of this board.',
     })
   })
+  // #endregion code-case
 
   it('words boards.board.not-a-member', () => {
     expect(toActionError(new NotAMemberError())).toEqual({

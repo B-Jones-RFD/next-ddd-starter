@@ -13,6 +13,7 @@ import {
   signUp,
 } from '@tests/fixtures/visitors'
 
+// #region screen
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
 // the sweep checks it in both themes. `path` is visited after `arrange` (which
 // signs a visitor up, for screens behind a session); a function path is
@@ -27,6 +28,7 @@ type Screen = {
   /** Visited at this size; the desktop default otherwise. */
   viewport?: { width: number; height: number }
 }
+// #endregion screen
 
 /** Signs up and creates a board, leaving the page on it. */
 async function withBoard(page: Page) {
@@ -159,6 +161,7 @@ for (const theme of THEMES) {
       )
     })
 
+    // #region sweep
     for (const screen of SCREENS) {
       test(`${screen.name} has no WCAG 2.2 AA violations`, async ({ page }) => {
         await screen.arrange?.(page)
@@ -179,5 +182,6 @@ for (const theme of THEMES) {
         expect(results.violations).toEqual([])
       })
     }
+    // #endregion sweep
   })
 }

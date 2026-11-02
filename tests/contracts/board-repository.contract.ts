@@ -65,6 +65,7 @@ export function describeBoardRepositoryContract(make: Make) {
       expect(await outbox.pending(10)).toEqual([])
     })
 
+    // #region stale-version
     it('rejects a stale version with ConflictError, writing nothing', async () => {
       const { repository, outbox } = make()
       const saved = await repository.save(aBoard({ version: 0 }), [], origin)
@@ -97,6 +98,7 @@ export function describeBoardRepositoryContract(make: Make) {
         version: 2,
       })
     })
+    // #endregion stale-version
 
     it('saves changed fields and members', async () => {
       const { repository } = make()
