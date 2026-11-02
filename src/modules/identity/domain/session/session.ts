@@ -11,6 +11,7 @@ export type SessionId = Brand<string, 'SessionId'>
 /** The SHA-256 of a session's cookie token. The token itself is never stored. */
 export type TokenHash = Brand<string, 'TokenHash'>
 
+// #region session
 /** One signed-in stretch of a user on one browser. */
 export type Session = {
   readonly id: SessionId
@@ -23,6 +24,7 @@ export type Session = {
   /** Owned by persistence: 0 until first saved (§5). */
   readonly version: number
 }
+// #endregion session
 
 const MINUTE_MS = 60_000
 const DAY_MS = 24 * 60 * MINUTE_MS
