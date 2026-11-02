@@ -6,9 +6,12 @@ import {
   assignTask,
   createBoard,
   createList,
+  createTag,
   createTask,
   getBoard,
   listBoards,
+  listTags,
+  tagTask,
 } from '@/modules/boards/api'
 import { authenticate, signIn, signUp } from '@/modules/identity/api'
 import type { UserId } from '@/shared/kernel/user-id'
@@ -119,6 +122,40 @@ async function comments(
 }
 
 /**
+ * Defines each tag on the board, unless it already has one by that name,
+ * then attaches them to tasks by title. Attaching a tag a task already has
+ * changes nothing.
+ */
+async function tags(
+  actorId: UserId,
+  boardId: string,
+  colors: Readonly<Record<string, string>>,
+  byTask: Readonly<Record<string, readonly string[]>>
+): Promise<void> {
+  const existing = await listTags({ actorId, boardId })
+  if (!existing.ok) throw existing.error
+  const ids = new Map(existing.value.map((tag) => [tag.name, tag.id]))
+  for (const [name, color] of Object.entries(colors)) {
+    if (ids.has(name)) continue
+    const created = await createTag({ actorId, boardId, name, color })
+    if (!created.ok) throw created.error
+    ids.set(name, created.value.tagId)
+  }
+  const board = await getBoard({ actorId, boardId })
+  if (!board.ok) throw board.error
+  for (const task of board.value.lists.flatMap((list) => list.tasks)) {
+    for (const name of byTask[task.title] ?? []) {
+      const tagged = await tagTask({
+        actorId,
+        taskId: task.id,
+        tagId: ids.get(name) ?? '',
+      })
+      if (!tagged.ok) throw tagged.error
+    }
+  }
+}
+
+/**
  * Assigns each task, by title, to the people named, in order. Assigning
  * someone already assigned changes nothing, so re-running is safe.
  */
@@ -177,6 +214,18 @@ export async function seed(): Promise<void> {
     ],
     Done: ['Pick the launch date', 'Set up analytics'],
   })
+  await tags(
+    ada,
+    launchPlan,
+    { Marketing: 'amber', Design: 'violet', Support: 'teal', Blocked: 'red' },
+    {
+      'Write the press release': ['Marketing'],
+      'Plan the launch event': ['Marketing', 'Blocked'],
+      'Update the FAQ': ['Support'],
+      'Design the landing page': ['Design', 'Marketing'],
+      'Brief support': ['Support'],
+    }
+  )
   await assignees(ada, launchPlan, {
     'Write the press release': [ada],
     'Design the landing page': [ben],

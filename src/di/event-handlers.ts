@@ -8,6 +8,10 @@ import {
   recordUserRenamed,
 } from '@/modules/boards/application/handlers/record-user-renamed'
 import {
+  UNTAG_DELETED_TAG,
+  untagDeletedTag,
+} from '@/modules/boards/application/handlers/untag-deleted-tag'
+import {
   REASSIGN_TO_OWNER,
   reassignToOwner,
 } from '@/modules/boards/application/handlers/reassign-to-owner'
@@ -45,6 +49,12 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     eventType: 'boards.MemberLeft',
     version: 1,
     handle: reassignToOwner,
+  }),
+  eventHandler({
+    name: UNTAG_DELETED_TAG,
+    eventType: 'boards.TagDeleted',
+    version: 1,
+    handle: untagDeletedTag,
   }),
   // One per identity and boards v1 contract (ADR 0010).
   ...AUDIT_HANDLERS,

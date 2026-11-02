@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { seed, SEED_PASSWORD } from '@/di/seed/seed'
 import { getActivity } from '@/modules/audit/api'
-import { getBoard, listBoards } from '@/modules/boards/api'
+import { getBoard, listBoards, listTags } from '@/modules/boards/api'
 import { authenticate, signIn } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 
@@ -91,6 +91,38 @@ describe('seed', () => {
       ],
       ['Done', ['Pick the launch date', 'Set up analytics']],
     ])
+  })
+
+  it('defines four tags in distinct Tag colors, attached to several tasks, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = (boards.ok && boards.value[0]?.id) || ''
+    const tags = await listTags({ actorId: ada, boardId })
+    const board = await getBoard({ actorId: ada, boardId })
+    expect(tags.ok && tags.value.map((tag) => [tag.name, tag.color])).toEqual([
+      ['Blocked', 'red'],
+      ['Design', 'violet'],
+      ['Marketing', 'amber'],
+      ['Support', 'teal'],
+    ])
+    expect(
+      board.ok &&
+        Object.fromEntries(
+          board.value.lists
+            .flatMap((list) => list.tasks)
+            .filter((task) => task.tags.length > 0)
+            .map((task) => [task.title, task.tags.map((tag) => tag.name)])
+        )
+    ).toEqual({
+      'Write the press release': ['Marketing'],
+      'Plan the launch event': ['Blocked', 'Marketing'],
+      'Update the FAQ': ['Support'],
+      'Design the landing page': ['Design', 'Marketing'],
+      'Brief support': ['Support'],
+    })
   })
 
   it('assigns several tasks, some to Ben, once however often it runs', async () => {

@@ -8,6 +8,7 @@ import {
   addTaskNamed,
   aNewVisitor,
   addMemberByEmail,
+  addTagNamed,
   createBoardNamed,
   signOut,
   signUp,
@@ -101,6 +102,34 @@ async function openMovePicker(page: Page) {
   await settled(page)
 }
 
+/**
+ * Tasks with two tags defined, both on “Write the brief”. Leaves the page on
+ * the board.
+ */
+async function withTags(page: Page) {
+  await withTasks(page)
+  const boardPath = here(page)
+  await addTagNamed(page, boardPath, 'Urgent', 'Red')
+  await addTagNamed(page, boardPath, 'Design', 'Teal')
+  await page.goto(boardPath)
+  await openTask(page)
+  const dialog = page.getByRole('dialog')
+  for (const name of ['Urgent', 'Design']) {
+    await dialog.getByLabel('Add a tag').selectOption({ label: name })
+    await dialog.getByRole('button', { name: 'Add tag' }).click()
+    await expect(
+      dialog.getByRole('button', { name: `Remove tag ${name}` })
+    ).toBeVisible()
+  }
+  await page.goto(boardPath)
+}
+
+/** Opens the Edit dialog of the tag “Urgent” on the Tags tab. */
+async function openTagEditor(page: Page) {
+  await page.getByRole('button', { name: 'Edit tag Urgent' }).click()
+  await settled(page)
+}
+
 /** In the open task dialog, assigns the visitor themself with the picker. */
 async function assignSelf(page: Page) {
   await openTask(page)
@@ -185,6 +214,24 @@ const SCREENS: Screen[] = [
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
     arrange: withBoard,
+  },
+  {
+    name: 'board tags',
+    path: (page) => `${here(page)}/settings/tags`,
+    arrange: withTags,
+  },
+  {
+    name: 'edit tag dialog',
+    path: (page) => `${here(page)}/settings/tags`,
+    arrange: withTags,
+    act: openTagEditor,
+  },
+  { name: 'board with tagged tasks', path: here, arrange: withTags },
+  {
+    name: 'task dialog with tags',
+    path: here,
+    arrange: withTags,
+    act: openTask,
   },
   {
     name: 'board log (with reorders shown)',

@@ -11,12 +11,18 @@ import type {
   MemberLeftV1,
   MemberRemovedV1,
   OwnershipTransferredV1,
+  TagCreatedV1,
+  TagDeletedV1,
+  TagRecoloredV1,
+  TagRenamedV1,
   TaskAssignedV1,
   TaskCreatedV1,
   TaskDescriptionChangedV1,
   TaskMovedV1,
   TaskRenamedV1,
   TaskReorderedV1,
+  TaskTaggedV1,
+  TaskUntaggedV1,
   TaskUnassignedV1,
 } from '@/modules/boards/contracts'
 import type {
@@ -49,6 +55,12 @@ export type AuditedEvent =
   | TaskDescriptionChangedV1
   | TaskMovedV1
   | TaskReorderedV1
+  | TagCreatedV1
+  | TagRenamedV1
+  | TagRecoloredV1
+  | TagDeletedV1
+  | TaskTaggedV1
+  | TaskUntaggedV1
   | TaskAssignedV1
   | TaskUnassignedV1
   | CommentAddedV1
@@ -297,6 +309,66 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
         ...onTask(e),
         action: 'task.reordered',
         details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+    'boards.TagCreated': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.created',
+        details: {
+          tagId: e.payload.tagId,
+          name: e.payload.name,
+          color: e.payload.color,
+        },
+      },
+      names: [name('tag', e.payload.tagId, e.payload.name, e)],
+    }),
+    'boards.TagRenamed': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.renamed',
+        details: {
+          tagId: e.payload.tagId,
+          from: e.payload.from,
+          to: e.payload.to,
+        },
+      },
+      names: [name('tag', e.payload.tagId, e.payload.to, e)],
+    }),
+    'boards.TagRecolored': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.recolored',
+        details: {
+          tagId: e.payload.tagId,
+          from: e.payload.from,
+          to: e.payload.to,
+        },
+      },
+      names: [],
+    }),
+    'boards.TagDeleted': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.deleted',
+        details: { tagId: e.payload.tagId, name: e.payload.name },
+      },
+      names: [],
+    }),
+    'boards.TaskTagged': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.tagged',
+        details: { tagId: e.payload.tagId },
+      },
+      names: [],
+    }),
+    'boards.TaskUntagged': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.untagged',
+        details: { tagId: e.payload.tagId },
       },
       names: [],
     }),

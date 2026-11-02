@@ -8,12 +8,18 @@ import { toMemberAddedV1 } from '@/modules/boards/application/contracts/member-a
 import { toMemberLeftV1 } from '@/modules/boards/application/contracts/member-left.v1'
 import { toMemberRemovedV1 } from '@/modules/boards/application/contracts/member-removed.v1'
 import { toOwnershipTransferredV1 } from '@/modules/boards/application/contracts/ownership-transferred.v1'
+import { toTagCreatedV1 } from '@/modules/boards/application/contracts/tag-created.v1'
+import { toTagDeletedV1 } from '@/modules/boards/application/contracts/tag-deleted.v1'
+import { toTagRecoloredV1 } from '@/modules/boards/application/contracts/tag-recolored.v1'
+import { toTagRenamedV1 } from '@/modules/boards/application/contracts/tag-renamed.v1'
 import { toTaskAssignedV1 } from '@/modules/boards/application/contracts/task-assigned.v1'
 import { toTaskCreatedV1 } from '@/modules/boards/application/contracts/task-created.v1'
 import { toTaskDescriptionChangedV1 } from '@/modules/boards/application/contracts/task-description-changed.v1'
 import { toTaskMovedV1 } from '@/modules/boards/application/contracts/task-moved.v1'
 import { toTaskRenamedV1 } from '@/modules/boards/application/contracts/task-renamed.v1'
 import { toTaskReorderedV1 } from '@/modules/boards/application/contracts/task-reordered.v1'
+import { toTaskTaggedV1 } from '@/modules/boards/application/contracts/task-tagged.v1'
+import { toTaskUntaggedV1 } from '@/modules/boards/application/contracts/task-untagged.v1'
 import { toTaskUnassignedV1 } from '@/modules/boards/application/contracts/task-unassigned.v1'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
 import type { CommentEvent } from '@/modules/boards/domain/comment/comment.events'
@@ -39,6 +45,14 @@ export function translateBoardEvents(
         return toMemberLeftV1(event)
       case 'OwnershipTransferred':
         return toOwnershipTransferredV1(event)
+      case 'TagCreated':
+        return toTagCreatedV1(event)
+      case 'TagRenamed':
+        return toTagRenamedV1(event)
+      case 'TagRecolored':
+        return toTagRecoloredV1(event)
+      case 'TagDeleted':
+        return toTagDeletedV1(event)
     }
   })
 }
@@ -75,6 +89,10 @@ export function translateTaskEvents(
         return toTaskMovedV1(event)
       case 'TaskReordered':
         return toTaskReorderedV1(event)
+      case 'TaskTagged':
+        return toTaskTaggedV1(event)
+      case 'TaskUntagged':
+        return toTaskUntaggedV1(event)
       case 'TaskAssigned':
         return toTaskAssignedV1(event)
       case 'TaskUnassigned':

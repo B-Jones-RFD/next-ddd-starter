@@ -88,6 +88,7 @@ describe('assignTask', () => {
       {
         id: taskId,
         title: 'Write the brief',
+        tags: [],
         assignees: [
           { userId: ben, displayName: 'Ben' },
           { userId: ada, displayName: 'Ada' },

@@ -13,7 +13,9 @@ import {
   assignTask,
   changeTaskDescription,
   renameTask,
+  tagTask,
   unassignTask,
+  untagTask,
 } from '@/modules/boards/api'
 
 // The task's actions, from its dialog and its page. Bound ids are untrusted:
@@ -114,6 +116,58 @@ export async function unassignTaskAction(
       actorId: actor.value.userId,
       taskId,
       userId,
+    })
+    if (!result.ok) {
+      return { status: 'error', error: toActionError(result.error), values: {} }
+    }
+  } catch (error) {
+    return { status: 'error', error: toActionError(error), values: {} }
+  }
+  refresh()
+  return { status: 'success' }
+}
+
+/** Attaches the chosen board tag to the task, then re-renders it. */
+export async function tagTaskAction(
+  boardId: string,
+  taskId: string,
+  _previous: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const actor = await getActor()
+  if (!actor.ok) redirect(signInPath(taskPath(boardId, taskId)))
+  const values = formValues(formData, ['tagId'])
+
+  try {
+    const result = await tagTask({
+      actorId: actor.value.userId,
+      taskId,
+      ...values,
+    })
+    if (!result.ok) {
+      return { status: 'error', error: toActionError(result.error), values }
+    }
+  } catch (error) {
+    return { status: 'error', error: toActionError(error), values }
+  }
+  refresh()
+  return { status: 'success' }
+}
+
+/** Detaches a tag from the task, then re-renders it. */
+export async function untagTaskAction(
+  boardId: string,
+  taskId: string,
+  tagId: string
+): Promise<ActionState> {
+  const actor = await getActor()
+  if (!actor.ok) redirect(signInPath(taskPath(boardId, taskId)))
+
+  try {
+    const result = await untagTask({
+      actorId: actor.value.userId,
+      taskId,
+      tagId,
     })
     if (!result.ok) {
       return { status: 'error', error: toActionError(result.error), values: {} }

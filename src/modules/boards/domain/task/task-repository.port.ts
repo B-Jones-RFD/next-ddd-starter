@@ -1,3 +1,4 @@
+import type { TagId } from '@/modules/boards/domain/board/tag'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { Task } from '@/modules/boards/domain/task/task'
@@ -19,6 +20,8 @@ export interface ITaskRepository {
    * null if it has none. A new task goes after it.
    */
   findLastInList(listId: ListId): Promise<Task | null>
+  /** Every task carrying the tag, archived ones included, by id. */
+  findTaggedWith(tagId: TagId): Promise<Task[]>
   /**
    * The board's tasks that `userId` is an assignee of, archived ones
    * included, by id.

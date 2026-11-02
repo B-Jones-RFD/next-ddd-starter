@@ -13,6 +13,11 @@ function listName(names: Names, listId: string): string {
   return name ? `“${name}”` : 'a list'
 }
 
+function tagName(names: Names, tagId: string): string {
+  const name = names[tagId]
+  return name ? `“${name}”` : 'a deleted tag'
+}
+
 // #region wording
 /**
  * What an Audit entry says its actor did, after the actor's name: audit's
@@ -61,6 +66,18 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `reordered the task in ${listName(names, entry.details.listId)}`
     case 'comment.added':
       return 'commented'
+    case 'tag.created':
+      return `created the tag “${entry.details.name}”`
+    case 'tag.renamed':
+      return `renamed the tag from “${entry.details.from}” to “${entry.details.to}”`
+    case 'tag.recolored':
+      return `changed the tag ${tagName(names, entry.details.tagId)} from ${entry.details.from} to ${entry.details.to}`
+    case 'tag.deleted':
+      return `deleted the tag “${entry.details.name}”`
+    case 'task.tagged':
+      return `added the tag ${tagName(names, entry.details.tagId)}`
+    case 'task.untagged':
+      return `removed the tag ${tagName(names, entry.details.tagId)}`
     case 'task.assigned':
       return `assigned ${personName(names, entry.details.userId)}`
     case 'task.unassigned':

@@ -1,3 +1,4 @@
+import type { TagDto } from '@/modules/boards/application/dto/tag.dto'
 /** An assignee of a task, as its card and dialog name them. */
 export type AssigneeDto = {
   userId: string
@@ -9,6 +10,8 @@ export type AssigneeDto = {
 export type TaskSummaryDto = {
   id: string
   title: string
+  /** Its tags still on the board, by name. */
+  tags: TagDto[]
   /** In the order they were assigned. */
   assignees: AssigneeDto[]
 }
@@ -23,6 +26,8 @@ export type TaskDto = {
   boardName: string
   listId: string
   listName: string
+  /** Its tags still on the board, by name. */
+  tags: TagDto[]
   /** In the order they were assigned. */
   assignees: AssigneeDto[]
 }

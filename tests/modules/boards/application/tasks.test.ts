@@ -453,6 +453,7 @@ describe('getTask', () => {
         boardName: 'Launch plan',
         listId: backlog,
         listName: 'Backlog',
+        tags: [],
         assignees: [],
       },
     })
