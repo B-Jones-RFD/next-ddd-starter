@@ -19,21 +19,35 @@ describe('seed', () => {
     }
   )
 
-  it('gives Ada her board “Launch plan” as its Owner, once however often it runs', async () => {
+  it('gives Ada her board “Launch plan” as its Owner, with Ben as a Member, once however often it runs', async () => {
     await seed()
     await seed()
 
     const ada = await actorFor('ada@example.com')
+    const ben = await actorFor('ben@example.com')
+    const launchPlan = {
+      id: expect.any(String),
+      name: 'Launch plan',
+      members: [
+        { userId: ada, displayName: 'Ada', role: 'owner' },
+        { userId: ben, displayName: 'Ben', role: 'member' },
+      ],
+    }
     expect(await listBoards({ actorId: ada })).toEqual({
       ok: true,
-      value: [
-        {
-          id: expect.any(String),
-          name: 'Launch plan',
-          members: [{ userId: ada, displayName: 'Ada', role: 'owner' }],
-        },
-      ],
+      value: [launchPlan],
     })
+    expect(await listBoards({ actorId: ben })).toEqual({
+      ok: true,
+      value: [launchPlan],
+    })
+  })
+
+  it('keeps Cy off every board', async () => {
+    await seed()
+
+    const cy = await actorFor('cy@example.com')
+    expect(await listBoards({ actorId: cy })).toEqual({ ok: true, value: [] })
   })
 })
 

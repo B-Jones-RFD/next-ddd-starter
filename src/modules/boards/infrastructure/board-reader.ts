@@ -87,6 +87,22 @@ export class BoardReader implements IBoardReader {
     })
   }
 
+  async roleOf(
+    boardId: string,
+    userId: UserId
+  ): Promise<'owner' | 'member' | null> {
+    const row = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            'SELECT role FROM boards_members WHERE board_id = ? AND user_id = ?'
+          )
+          .get(boardId, userId) as { role: 'owner' | 'member' } | undefined
+    )
+    return row?.role ?? null
+  }
+
   private membersOf(boardIds: string[]): Map<string, BoardMemberDto[]> {
     const rows = this.db
       .prepare(MEMBERS_OF)

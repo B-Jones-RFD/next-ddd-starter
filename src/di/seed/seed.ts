@@ -1,5 +1,5 @@
 import { getInjection } from '@/di/container'
-import { createBoard, listBoards } from '@/modules/boards/api'
+import { addMember, createBoard, listBoards } from '@/modules/boards/api'
 import { authenticate, signIn, signUp } from '@/modules/identity/api'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -8,7 +8,7 @@ export const SEED_PASSWORD = 'password'
 
 type Person = { displayName: string; email: string }
 
-// Ada (Owner), Ben (Member) and Cy (outsider), once membership exists (#60).
+// Ada (Owner), Ben (Member) and Cy (outsider).
 const ADA: Person = { displayName: 'Ada', email: 'ada@example.com' }
 const BEN: Person = { displayName: 'Ben', email: 'ben@example.com' }
 const CY: Person = { displayName: 'Cy', email: 'cy@example.com' }
@@ -27,13 +27,30 @@ async function person(entry: Person): Promise<UserId> {
   return actor.value.userId
 }
 
-/** Creates the board for `actorId`, unless they already have one by that name. */
-async function board(actorId: UserId, name: string): Promise<void> {
+/**
+ * Creates the board for `actorId`, unless they already have one by that
+ * name, and returns its id.
+ */
+async function board(actorId: UserId, name: string): Promise<string> {
   const existing = await listBoards({ actorId })
   if (!existing.ok) throw existing.error
-  if (existing.value.some((b) => b.name === name)) return
+  const found = existing.value.find((b) => b.name === name)
+  if (found) return found.id
   const created = await createBoard({ actorId, name })
   if (!created.ok) throw created.error
+  return created.value.boardId
+}
+
+/** The Owner adds `userId` as a Member, unless they already are one. */
+async function member(
+  ownerId: UserId,
+  boardId: string,
+  userId: UserId
+): Promise<void> {
+  const added = await addMember({ actorId: ownerId, boardId, userId })
+  if (!added.ok && added.error.code !== 'boards.board.already-a-member') {
+    throw added.error
+  }
 }
 
 /**
@@ -42,9 +59,13 @@ async function board(actorId: UserId, name: string): Promise<void> {
  * what already exists.
  */
 export async function seed(): Promise<void> {
+  const relay = await getInjection('IEventRelay')
   const ada = await person(ADA)
-  await person(BEN)
+  const ben = await person(BEN)
   await person(CY)
-  await board(ada, 'Launch plan')
-  await (await getInjection('IEventRelay')).drain()
+  // Boards learns who Ben is from identity's events before he can be added.
+  await relay.drain()
+  const launchPlan = await board(ada, 'Launch plan')
+  await member(ada, launchPlan, ben)
+  await relay.drain()
 }

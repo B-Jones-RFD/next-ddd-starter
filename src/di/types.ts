@@ -1,5 +1,6 @@
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
+import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
 import type { ISignInThrottle } from '@/modules/identity/application/ports/sign-in-throttle.port'
@@ -27,6 +28,7 @@ export type Registry = {
   IPeopleProjection: IPeopleProjection
   IBoardRepository: IBoardRepository
   IBoardReader: IBoardReader
+  IUserDirectory: IUserDirectory
 }
 
 export type Token = keyof Registry

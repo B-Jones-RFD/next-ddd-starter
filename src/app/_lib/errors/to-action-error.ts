@@ -78,6 +78,17 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     message: 'Your current password is incorrect.',
     fields: { currentPassword: 'That isn’t your current password.' },
   }),
+  'boards.board.already-a-member': () => ({
+    message: 'They’re already a member of this board.',
+  }),
+  'boards.board.not-a-member': () => ({
+    message:
+      'They’re no longer a member of this board. Reload the page to see who is.',
+  }),
+  'boards.board.owner-must-transfer-first': () => ({
+    message:
+      'You’re the Owner. Make another member the Owner before you leave.',
+  }),
   unauthenticated: () => ({ message: 'Sign in to continue.' }),
   forbidden: () => ({ message: 'You can’t do that here.' }),
   'not-found': () => ({

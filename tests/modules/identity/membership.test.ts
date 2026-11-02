@@ -22,5 +22,7 @@ describeMembershipProof('identity', api, {
   exempt: {
     authenticate:
       'Takes a session token, not an actor; it only ever reveals the token’s own user.',
+    findUserByEmail:
+      'Identity has no membership to filter by; its caller gates it (boards lets only an Owner search).',
   },
 })
