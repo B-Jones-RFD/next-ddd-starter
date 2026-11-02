@@ -1,3 +1,5 @@
+import { mayChange } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { TagId } from '@/modules/boards/domain/board/tag'
 import {
@@ -19,9 +21,9 @@ import {
 import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
-import {
+import type {
   ForbiddenError,
-  type ValidationError,
+  ValidationError,
 } from '@/shared/kernel/errors/domain-error'
 import { keyBetween } from '@/shared/kernel/key-between'
 import { err, ok, type Result } from '@/shared/kernel/result'
@@ -65,8 +67,12 @@ export function createTask(input: {
   /** The position of the list's last task, or null if it has none. */
   after: string | null
   now: Date
-}): Result<Change, ValidationError | ForbiddenError | ListArchivedError> {
-  if (!input.membership) return err(new ForbiddenError())
+}): Result<
+  Change,
+  ValidationError | ForbiddenError | BoardArchivedError | ListArchivedError
+> {
+  const allowed = mayChange(input.membership)
+  if (!allowed.ok) return allowed
   const list = acceptTasks(input.list)
   if (!list.ok) return list
   const title = parseTaskTitle(input.title)
@@ -107,8 +113,12 @@ export function renameTask(
   task: Task,
   membership: Membership,
   rawTitle: string
-): Result<Change, ValidationError | ForbiddenError | TaskArchivedError> {
-  if (!membership) return err(new ForbiddenError())
+): Result<
+  Change,
+  ValidationError | ForbiddenError | BoardArchivedError | TaskArchivedError
+> {
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   const title = parseTaskTitle(rawTitle)
   if (!title.ok) return title
@@ -138,8 +148,12 @@ export function changeTaskDescription(
   task: Task,
   membership: Membership,
   rawDescription: string
-): Result<Change, ValidationError | ForbiddenError | TaskArchivedError> {
-  if (!membership) return err(new ForbiddenError())
+): Result<
+  Change,
+  ValidationError | ForbiddenError | BoardArchivedError | TaskArchivedError
+> {
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   const description = parseTaskDescription(rawDescription)
   if (!description.ok) return description
@@ -172,9 +186,14 @@ export function reorderTask(
   place: TaskPlace
 ): Result<
   Change,
-  ForbiddenError | TaskArchivedError | NotFoundError | ConflictError
+  | ForbiddenError
+  | BoardArchivedError
+  | TaskArchivedError
+  | NotFoundError
+  | ConflictError
 > {
-  if (!membership) return err(new ForbiddenError())
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   if (!place.after && !place.before) return ok({ state: task, events: [] })
   return placeTask(task, task.listId, place)
@@ -266,8 +285,9 @@ export function placeTask(
 export function archiveTask(
   task: Task,
   membership: Membership
-): Result<Change, ForbiddenError> {
-  if (!membership) return err(new ForbiddenError())
+): Result<Change, ForbiddenError | BoardArchivedError> {
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (task.archived) return ok({ state: task, events: [] })
   return ok({
     state: { ...task, archived: true },

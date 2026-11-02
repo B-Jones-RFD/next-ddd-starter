@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { toTagId } from '@/modules/boards/domain/board/tag'
 import { tagTask as tagTaskOperation } from '@/modules/boards/domain/services/task-tagging.service'
@@ -41,6 +42,7 @@ export async function tagTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | TaskArchivedError
     | ConflictError
   >

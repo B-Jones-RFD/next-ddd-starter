@@ -3,7 +3,7 @@ import type { IAuditLog } from '@/modules/audit/application/ports/audit-log.port
 import type { IBoardAccess } from '@/modules/audit/application/ports/board-access.port'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
-import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
+import type { IPeopleDirectory } from '@/modules/boards/application/ports/people-directory.port'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import type { ICommentRepository } from '@/modules/boards/domain/comment/comment-repository.port'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
@@ -11,6 +11,7 @@ import type { ITaskRepository } from '@/modules/boards/domain/task/task-reposito
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
 import type { ISignInThrottle } from '@/modules/identity/application/ports/sign-in-throttle.port'
 import type { ITokenGenerator } from '@/modules/identity/application/ports/token-generator.port'
+import type { IUserReader } from '@/modules/identity/application/ports/user-reader.port'
 import type { ISessionRepository } from '@/modules/identity/domain/session/session-repository.port'
 import type { IUserRepository } from '@/modules/identity/domain/user/user-repository.port'
 import type { IEventRelay } from '@/shared/kernel/ports/event-relay.port'
@@ -27,6 +28,7 @@ export type Registry = {
   // identity
   IUserRepository: IUserRepository
   ISessionRepository: ISessionRepository
+  IUserReader: IUserReader
   IPasswordHasher: IPasswordHasher
   ITokenGenerator: ITokenGenerator
   ISignInThrottle: ISignInThrottle
@@ -37,7 +39,7 @@ export type Registry = {
   IListRepository: IListRepository
   ITaskRepository: ITaskRepository
   ICommentRepository: ICommentRepository
-  IUserDirectory: IUserDirectory
+  IPeopleDirectory: IPeopleDirectory
   // audit
   IAuditLog: IAuditLog
   IActivityReader: IActivityReader

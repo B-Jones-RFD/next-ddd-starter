@@ -78,7 +78,7 @@ Why:
 - **Authorization can't be forgotten.** If membership is part of the read, a query that skipped the check would return nothing, not someone else's data. Nothing else authorizes a read, so there is one place to look. Each context has one test that calls every query as a non-member (see [Testing](/testing/)).
 - **Commands are authorized in the domain, queries in the read** (§9). `app/` only hides UI.
 
-`listBoards` above shows the shape before there is anything to read: no boards can be created yet, so it returns an empty list. When boards arrive, it reads through a read port that takes the `actorId` and filters by membership.
+`listBoards` above shows the shape: it reads through boards' `IBoardReader`, whose `listForMember` takes the `actorId` and returns only the boards that actor is a Board member of. There is no step after the read that could forget to check.
 
 Queries are read-only. §13 names the one exception, in `authenticate`.
 

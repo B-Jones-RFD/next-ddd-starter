@@ -3,10 +3,7 @@ import type {
   IBoardAccess,
 } from '@/modules/audit/application/ports/board-access.port'
 import { roleOf, ValidationError } from '@/modules/boards/api'
-import {
-  InfrastructureError,
-  PersistenceError,
-} from '@/shared/kernel/errors/infrastructure-error'
+import { askContext } from '@/shared/infrastructure/ask-context'
 import type { UserId } from '@/shared/kernel/user-id'
 
 const PORT = 'IBoardAccess'
@@ -19,22 +16,10 @@ const PORT = 'IBoardAccess'
  * mode, boards' `api.ts` runs on boards' mocks.
  */
 export class BoardAccess implements IBoardAccess {
-  async roleOf(boardId: string, userId: UserId): Promise<BoardRole | null> {
-    let found: Awaited<ReturnType<typeof roleOf>>
-    try {
-      found = await roleOf({ boardId, userId })
-    } catch (error) {
-      if (error instanceof InfrastructureError) {
-        throw new PersistenceError(PORT, {
-          retryable: error.retryable,
-          cause: error,
-        })
-      }
-      throw error
-    }
-
+  async roleOf(boardId: string, actorId: UserId): Promise<BoardRole | null> {
+    const found = await askContext(PORT, () => roleOf({ actorId, boardId }))
     if (found.ok) return found.value
-    // An id boards can't even read names no board the user is on.
+    // An id boards can't even read names no board the actor is on.
     if (found.error instanceof ValidationError) return null
     return found.error satisfies never
   }

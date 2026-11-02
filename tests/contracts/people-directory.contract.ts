@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
-import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
-import { ValidationError } from '@/shared/kernel/errors/domain-error'
-import type { UserId } from '@/shared/kernel/user-id'
+import type { IPeopleDirectory } from '@/modules/boards/application/ports/people-directory.port'
+import {
+  ForbiddenError,
+  ValidationError,
+} from '@/shared/kernel/errors/domain-error'
+import { toUserId, type UserId } from '@/shared/kernel/user-id'
 
-/** What every `IUserDirectory` adapter must do. */
-export function describeUserDirectoryContract(setup: {
-  make: () => IUserDirectory
+/** What every `IPeopleDirectory` adapter must do. */
+export function describePeopleDirectoryContract(setup: {
+  make: () => IPeopleDirectory
   /** Registers a user with identity, returning their id. */
   register: (displayName: string, email: string) => Promise<UserId>
 }) {
-  describe('IUserDirectory contract', () => {
-    it('finds a registered user by email', async () => {
+  describe('IPeopleDirectory contract', () => {
+    it('finds a registered Person by email', async () => {
       const ada = await setup.register('Ada', 'ada@example.com')
       const ben = await setup.register('Ben', 'ben@example.com')
 
@@ -36,6 +39,16 @@ export function describeUserDirectoryContract(setup: {
         ok: false,
         error: new ValidationError({ email: 'invalid' }),
       })
+    })
+
+    it('returns ForbiddenError to an actor with no account', async () => {
+      await setup.register('Ben', 'ben@example.com')
+
+      expect(
+        await setup
+          .make()
+          .findByEmail(toUserId('user-never-registered'), 'ben@example.com')
+      ).toEqual({ ok: false, error: new ForbiddenError() })
     })
   })
 }

@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { restoreTask as restoreTaskOperation } from '@/modules/boards/domain/services/archiving.service'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -38,6 +39,7 @@ export async function restoreTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | ListArchivedError
     | ConflictError
   >
@@ -63,7 +65,7 @@ export async function restoreTask(
 
   const changed = restoreTaskOperation(
     task.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     list.value
   )
   if (!changed.ok) return changed

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import type { UserSearchResultDto } from '@/modules/boards/application/dto/user-search-result.dto'
+import type { PersonSearchResultDto } from '@/modules/boards/application/dto/person-search-result.dto'
 import type { NotFoundError } from '@/shared/kernel/errors/app-error'
 import {
   ForbiddenError,
@@ -10,28 +10,28 @@ import {
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
-const SearchUsersInput = z.object({
+const SearchPeopleInput = z.object({
   actorId: z.string().min(1),
   boardId: z.string().min(1),
   email: z.string(),
 })
 
 /**
- * The registered users with this email, at most one, for the board's Owner
+ * The people registered with this email, at most one, for the board's Owner
  * to add. `ForbiddenError` for anyone else, read through the actor's own
  * membership, and `NotFoundError` if there is no such board.
  */
-export async function searchUsers(input: {
+export async function searchPeople(input: {
   actorId: UserId
   boardId: string
   email: string
 }): Promise<
   Result<
-    UserSearchResultDto[],
+    PersonSearchResultDto[],
     ValidationError | NotFoundError | ForbiddenError
   >
 > {
-  const shape = SearchUsersInput.safeParse(input)
+  const shape = SearchPeopleInput.safeParse(input)
   if (!shape.success) {
     return err(ValidationError.fromShape(input, shape.error.issues))
   }
@@ -45,7 +45,7 @@ export async function searchUsers(input: {
   if (!board.ok) return board
   if (board.value.role !== 'owner') return err(new ForbiddenError())
 
-  const directory = await getInjection('IUserDirectory')
+  const directory = await getInjection('IPeopleDirectory')
   const found = await directory.findByEmail(input.actorId, shape.data.email)
   if (!found.ok) return found
   if (!found.value) return ok([])

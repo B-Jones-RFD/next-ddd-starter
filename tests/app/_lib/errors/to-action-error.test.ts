@@ -24,9 +24,9 @@ import { PersistenceError } from '@/shared/kernel/errors/infrastructure-error'
 import { withTestSpan } from '@tests/fixtures/spans'
 
 describe('toActionError', () => {
-  it('puts identity.email-taken under the email field', () => {
+  it('puts identity.user.email-taken under the email field', () => {
     expect(toActionError(new EmailTakenError())).toEqual({
-      code: 'identity.email-taken',
+      code: 'identity.user.email-taken',
       message: 'That email is already registered.',
       fields: {
         email:
@@ -53,24 +53,24 @@ describe('toActionError', () => {
     })
   })
 
-  it('words identity.invalid-credentials without saying which part was wrong', () => {
+  it('words identity.user.invalid-credentials without saying which part was wrong', () => {
     expect(toActionError(new InvalidCredentialsError())).toEqual({
-      code: 'identity.invalid-credentials',
+      code: 'identity.user.invalid-credentials',
       message: 'That email and password don’t match. Check them and try again.',
     })
   })
 
-  it('words identity.too-many-attempts with when to try again', () => {
+  it('words identity.user.too-many-attempts with when to try again', () => {
     expect(toActionError(new TooManyAttemptsError())).toEqual({
-      code: 'identity.too-many-attempts',
+      code: 'identity.user.too-many-attempts',
       message:
         'Too many failed sign-ins for this email. Wait 15 minutes, then try again.',
     })
   })
 
-  it('puts identity.incorrect-password under the current password field', () => {
+  it('puts identity.user.incorrect-password under the current password field', () => {
     expect(toActionError(new IncorrectPasswordError())).toEqual({
-      code: 'identity.incorrect-password',
+      code: 'identity.user.incorrect-password',
       message: 'Your current password is incorrect.',
       fields: { currentPassword: 'That isn’t your current password.' },
     })

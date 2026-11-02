@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { createList as createListOperation } from '@/modules/boards/domain/list/list'
 import { toListId } from '@/modules/boards/domain/list/list-id'
@@ -34,7 +35,11 @@ export async function createList(
 ): Promise<
   Result<
     { listId: string },
-    ValidationError | NotFoundError | ForbiddenError | ConflictError
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | BoardArchivedError
+    | ConflictError
   >
 > {
   const shape = CreateListInput.safeParse(input)
@@ -53,7 +58,7 @@ export async function createList(
   const created = createListOperation({
     id: toListId(ids.next()),
     boardId: board.value.id,
-    membership: roleOf(board.value, input.actorId),
+    membership: membershipOn(board.value, input.actorId),
     name: shape.data.name,
     after: last?.position ?? null,
     now: new Date(),

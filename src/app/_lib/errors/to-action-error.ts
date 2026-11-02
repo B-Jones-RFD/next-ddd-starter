@@ -80,20 +80,20 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     message: 'Check the fields below.',
     fields: fieldWording(error.fields ?? {}),
   }),
-  'identity.email-taken': () => ({
+  'identity.user.email-taken': () => ({
     message: 'That email is already registered.',
     fields: {
       email: 'That email is already registered. Sign in, or use another email.',
     },
   }),
-  'identity.invalid-credentials': () => ({
+  'identity.user.invalid-credentials': () => ({
     message: 'That email and password don’t match. Check them and try again.',
   }),
-  'identity.too-many-attempts': () => ({
+  'identity.user.too-many-attempts': () => ({
     message:
       'Too many failed sign-ins for this email. Wait 15 minutes, then try again.',
   }),
-  'identity.incorrect-password': () => ({
+  'identity.user.incorrect-password': () => ({
     message: 'Your current password is incorrect.',
     fields: { currentPassword: 'That isn’t your current password.' },
   }),

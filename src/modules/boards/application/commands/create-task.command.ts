@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import { createTask as createTaskOperation } from '@/modules/boards/domain/task/task'
@@ -38,6 +39,7 @@ export async function createTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | ListArchivedError
     | ConflictError
   >
@@ -62,7 +64,7 @@ export async function createTask(
   const created = createTaskOperation({
     id: toTaskId(ids.next()),
     list: list.value,
-    membership: roleOf(board.value, input.actorId),
+    membership: membershipOn(board.value, input.actorId),
     title: shape.data.title,
     after: last?.position ?? null,
     now: new Date(),

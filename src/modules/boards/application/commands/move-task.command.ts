@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import { moveTask as moveTaskOperation } from '@/modules/boards/domain/services/task-placement.service'
@@ -59,6 +60,7 @@ export async function moveTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | TaskArchivedError
     | ConflictError
     | ListArchivedError
@@ -87,7 +89,7 @@ export async function moveTask(
 
   const moved = moveTaskOperation(
     task.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     { toList: toList.value, after: after.value, before: before.value }
   )
   if (!moved.ok) return moved

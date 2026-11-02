@@ -1,4 +1,8 @@
-import type { Board } from '@/modules/boards/domain/board/board'
+import type {
+  Board,
+  Membership,
+  Role,
+} from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import { toUserId } from '@/shared/kernel/user-id'
@@ -21,4 +25,21 @@ export function aBoard(overrides: Partial<Board> = {}): Board {
     version: 1,
     ...overrides,
   }
+}
+
+/** A Board member's Membership on an active board, for domain tests. */
+export function asMember(role: Role = 'member'): Membership {
+  return { role, boardArchived: false }
+}
+
+/** Someone who isn't a Board member, on an active board. */
+export const asOutsider: Membership = {
+  role: undefined,
+  boardArchived: false,
+}
+
+/** A Board member's Membership on an archived board. */
+export const onArchivedBoard: Membership = {
+  role: 'owner',
+  boardArchived: true,
 }

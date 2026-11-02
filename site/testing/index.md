@@ -7,7 +7,7 @@ adrs: ['0003', '0007', '0008', '0011', '0012']
 
 What is tested where, how the mocks are kept honest, and when work is done.
 
-The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the tests the build has landed so far: identity's sign-up, sign-in and sessions, and boards with its Board members and lists. The standards own the rules. This page only explains them.
+The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the repo's own tests: identity's accounts and sessions, boards' boards, lists, tasks, tags, assignees and comments, and audit's Activity and logs. The standards own the rules. This page only explains them.
 
 ## Four seams, chosen on purpose
 
@@ -143,7 +143,7 @@ The SQLite side runs on a fresh database with the same migrations production app
 
 <<< @/../tests/fixtures/database.ts{ts}
 
-A mock can't drift from SQLite without a red test, and that is what lets every other test run on mocks. When the two disagree, the suite says which side is wrong, because its cases describe what the port promises, not what either adapter happens to do. A port whose adapter isn't SQLite gets a suite the same way: boards' `IUserDirectory`, which calls identity's `api.ts`, has one too.
+A mock can't drift from SQLite without a red test, and that is what lets every other test run on mocks. When the two disagree, the suite says which side is wrong, because its cases describe what the port promises, not what either adapter happens to do. A port whose adapter isn't SQLite gets a suite the same way: boards' `IPeopleDirectory`, which calls identity's `api.ts`, has one too.
 
 ## Every query proves membership
 
@@ -159,9 +159,9 @@ Three details make it a proof rather than a check:
 
 - **It reads the exports.** The first case compares the names `api.ts` exports with the names the proof lists. Add a query without a case and the test fails, before anyone has written a test for the query itself.
 - **Someone else's data exists.** Ada's board is created in `beforeEach`, so an empty list means the read filtered, not that there was nothing to find.
-- **An exemption needs a reason.** A query that takes no actor can't be called as a non-member, so it is listed as exempt with why. Identity exempts `authenticate`, which takes a session token, and `findUserByEmail`, which boards lets only an Owner call.
+- **An exemption needs a reason.** A query that takes no actor can't be called as a non-member, so it is listed as exempt with why. Identity exempts only `authenticate`, which takes a session token. Its `findUserByEmail` does take an actor, and in identity membership means being a registered user, so its case calls it with an id nobody registered and expects `ForbiddenError`.
 
-Audit exports nothing yet, and still has its proof file, so its first query fails until it has a case.
+Audit's proof covers `getActivity`, `getBoardLog` and `getUserLog`. Its `isDenied` also accepts an empty page (`entries: []`), the shape audit's views return.
 
 ## E2E: a few critical flows, on a real build
 

@@ -125,7 +125,7 @@ A **command** is authorized by the domain function that makes the change, which 
 
 Here the rule is simple (only users rename themselves), but board rules take the same shape: whether an actor is the Owner, or a Board member at all, is checked by the aggregate's function, with the same `actorId` the action passed in.
 
-A **query** is authorized by what it reads. A board query filters by membership in the read itself, so a board the actor isn't a Board member of never comes back; there is no "load it, then check" step to forget. `listBoards` already takes the `actorId` it will filter by, though no boards can be created yet (see [Application](/application/)).
+A **query** is authorized by what it reads. A board query filters by membership in the read itself, so a board the actor isn't a Board member of never comes back; there is no "load it, then check" step to forget. `listBoards` takes the `actorId` and its read port returns only that actor's boards (see [Application](/application/)).
 
 `app/` only hides UI: it may leave out a button the actor can't use, but that is presentation. A Server Action can be posted to directly, with any form data, so the command it calls has to say no on its own. A hidden button with no rule behind it is no protection.
 

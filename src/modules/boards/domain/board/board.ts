@@ -104,6 +104,33 @@ export function addMember(
 }
 // #endregion add-member
 
+// #region membership
+/**
+ * The actor's standing on a board, read from the loaded Board before an
+ * operation on one of its lists, tasks or comments (a read-check, §3): their
+ * role, or undefined if they aren't a Board member, and whether the board is
+ * archived, which makes everything on it read-only.
+ */
+export type Membership = {
+  readonly role: Role | undefined
+  readonly boardArchived: boolean
+}
+
+/** The actor's Membership on the board. */
+export function membershipOn(board: Board, actorId: UserId): Membership {
+  return { role: roleOf(board, actorId), boardArchived: board.archived }
+}
+
+/** A change to anything on a board needs a Board member and an active board. */
+export function mayChange(
+  membership: Membership
+): Result<void, ForbiddenError | BoardArchivedError> {
+  if (!membership.role) return err(new ForbiddenError())
+  if (membership.boardArchived) return err(new BoardArchivedError())
+  return ok(undefined)
+}
+// #endregion membership
+
 /** The Owner removes a Member. The Owner can't remove themself. */
 export function removeMember(
   board: Board,

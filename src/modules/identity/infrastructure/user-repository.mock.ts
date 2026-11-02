@@ -11,12 +11,17 @@ import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
+/** The mock users, by id, for identity's other mocks to read. */
+export function mockUsers(): Map<string, User> {
+  return mockStore('identity.users', () => new Map<string, User>())
+}
+
 /** In-memory twin of `UserRepository`: same version and uniqueness rules. */
 export class MockUserRepository implements IUserRepository {
   constructor(private readonly outbox: IOutbox) {}
 
   private users(): Map<string, User> {
-    return mockStore('identity.users', () => new Map<string, User>())
+    return mockUsers()
   }
 
   async findById(id: UserId): Promise<Result<User, NotFoundError>> {

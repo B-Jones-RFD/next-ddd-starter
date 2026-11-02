@@ -14,12 +14,17 @@ import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
+/** The mock sessions, by id, for identity's other mocks to read. */
+export function mockSessions(): Map<string, Session> {
+  return mockStore('identity.sessions', () => new Map<string, Session>())
+}
+
 /** In-memory twin of `SessionRepository`. */
 export class MockSessionRepository implements ISessionRepository {
   constructor(private readonly outbox: IOutbox) {}
 
   private sessions(): Map<string, Session> {
-    return mockStore('identity.sessions', () => new Map<string, Session>())
+    return mockSessions()
   }
 
   async findByTokenHash(

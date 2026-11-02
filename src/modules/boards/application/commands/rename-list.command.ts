@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { renameList as renameListOperation } from '@/modules/boards/domain/list/list'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type {
@@ -37,6 +38,7 @@ export async function renameList(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | ListArchivedError
     | ConflictError
   >
@@ -56,7 +58,7 @@ export async function renameList(
 
   const renamed = renameListOperation(
     list.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     shape.data.name
   )
   if (!renamed.ok) return renamed

@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { addComment as addCommentOperation } from '@/modules/boards/domain/comment/comment'
 import { toCommentId } from '@/modules/boards/domain/comment/comment-id'
 import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
@@ -42,6 +43,7 @@ export async function addComment(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | TaskArchivedError
     | ConflictError
   >
@@ -64,7 +66,7 @@ export async function addComment(
   const added = addCommentOperation({
     id: toCommentId(ids.next()),
     task: task.value,
-    membership: roleOf(board.value, input.actorId),
+    membership: membershipOn(board.value, input.actorId),
     authorId: input.actorId,
     text: shape.data.text,
     now: new Date(),

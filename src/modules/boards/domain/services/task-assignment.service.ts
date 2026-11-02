@@ -1,9 +1,17 @@
-import { roleOf, type Board } from '@/modules/boards/domain/board/board'
-import { NotAMemberError } from '@/modules/boards/domain/board/board.errors'
+import {
+  mayChange,
+  membershipOn,
+  roleOf,
+  type Board,
+} from '@/modules/boards/domain/board/board'
+import {
+  type BoardArchivedError,
+  NotAMemberError,
+} from '@/modules/boards/domain/board/board.errors'
 import type { Task } from '@/modules/boards/domain/task/task'
 import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
-import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
+import type { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -21,8 +29,12 @@ export function assignTask(
   board: Board,
   actorId: UserId,
   userId: UserId
-): Result<Change, ForbiddenError | TaskArchivedError | NotAMemberError> {
-  if (!roleOf(board, actorId)) return err(new ForbiddenError())
+): Result<
+  Change,
+  ForbiddenError | BoardArchivedError | TaskArchivedError | NotAMemberError
+> {
+  const allowed = mayChange(membershipOn(board, actorId))
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   if (!roleOf(board, userId)) return err(new NotAMemberError())
   if (task.assignees.includes(userId)) return ok({ state: task, events: [] })
@@ -47,8 +59,9 @@ export function unassignTask(
   board: Board,
   actorId: UserId,
   userId: UserId
-): Result<Change, ForbiddenError | TaskArchivedError> {
-  if (!roleOf(board, actorId)) return err(new ForbiddenError())
+): Result<Change, ForbiddenError | BoardArchivedError | TaskArchivedError> {
+  const allowed = mayChange(membershipOn(board, actorId))
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   return ok(without(task, userId))
 }

@@ -3,10 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   endSession,
   isSessionActive,
-  isTouchDue,
   signOutSession,
   startSession,
-  touchSession,
   type Session,
   type SessionId,
   type TokenHash,
@@ -75,21 +73,6 @@ describe('isSessionActive', () => {
     const session = aSession({ endedAt: at(MINUTE) })
 
     expect(isSessionActive(session, at(2 * MINUTE))).toBe(false)
-  })
-})
-
-describe('touchSession', () => {
-  it('is due at most once a minute', () => {
-    const session = aSession()
-
-    expect(isTouchDue(session, at(MINUTE - 1))).toBe(false)
-    expect(isTouchDue(session, at(MINUTE))).toBe(true)
-  })
-
-  it('marks the session seen now', () => {
-    expect(touchSession(aSession(), at(5 * MINUTE)).lastSeenAt).toEqual(
-      at(5 * MINUTE)
-    )
   })
 })
 

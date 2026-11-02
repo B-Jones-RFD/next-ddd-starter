@@ -9,6 +9,7 @@ import {
   TooManyAttemptsError,
   ValidationError,
 } from '@/modules/identity/api'
+import { MockPasswordHasher } from '@/modules/identity/infrastructure/password-hasher.mock'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 import { UnauthenticatedError } from '@/shared/kernel/errors/app-error'
 
@@ -23,6 +24,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 async function tokenOf(result: Awaited<ReturnType<typeof signIn>>) {
@@ -125,14 +127,19 @@ describe('signIn', () => {
     expect((await authenticate(elsewhere)).ok).toBe(true)
   })
 
-  it('upgrades a hash made with older parameters, and the password still works', async () => {
-    const hasher = await getInjection('IPasswordHasher')
-    vi.spyOn(hasher, 'needsRehash').mockReturnValueOnce(true)
-    const hash = vi.spyOn(hasher, 'hash')
+  it('upgrades a hash made with older parameters once, and the password still works', async () => {
+    const hash = vi.spyOn(await getInjection('IPasswordHasher'), 'hash')
+    // Dee registered back when the hasher used weaker parameters.
+    hash.mockImplementationOnce((password) =>
+      new MockPasswordHasher(1).hash(password)
+    )
+    const dee = { email: 'dee@example.com', password: 'correct horse' }
+    await signUp(aSignUp({ ...dee, displayName: 'Dee' }))
+    hash.mockClear()
 
-    await tokenOf(await signIn(credentials))
+    await tokenOf(await signIn(dee))
+    await tokenOf(await signIn(dee))
 
     expect(hash).toHaveBeenCalledOnce()
-    expect((await signIn(credentials)).ok).toBe(true)
   })
 })

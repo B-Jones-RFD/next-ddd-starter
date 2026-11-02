@@ -1,6 +1,12 @@
 'use client'
 
-import { useActionState, useOptimistic, useRef, type ReactNode } from 'react'
+import {
+  useActionState,
+  useOptimistic,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { TextareaField } from '@/app/_components/form/field'
 import { FormAlert } from '@/app/_components/form/form-alert'
@@ -15,14 +21,16 @@ type PendingComment = { id: string; text: string }
 /**
  * The comment form above the task's Activity entries (`children`, rendered
  * on the server). A posted comment shows at the top at once, through
- * `useOptimistic`, until the refreshed Activity has its entry (§6, §10). A
- * failure takes it out again and puts its text back in the box.
+ * `useOptimistic` while the post runs, then from state until the refreshed
+ * Activity has its entry, matched by the comment's id (§6, §10). A failure
+ * takes it out again and puts its text back in the box.
  */
 export function ActivityEntries({
   boardId,
   taskId,
   authorName,
   hasEntries,
+  commentIds,
   children,
 }: {
   boardId: string
@@ -30,26 +38,34 @@ export function ActivityEntries({
   /** The viewer's display name, shown on a comment they just posted. */
   authorName: string
   hasEntries: boolean
+  /** The ids of the comments the entries already show. */
+  commentIds: readonly string[]
   children?: ReactNode
 }) {
   const formRef = useRef<HTMLFormElement>(null)
-  const [pending, addPending] = useOptimistic(
-    [] as PendingComment[],
+  const [posted, setPosted] = useState<PendingComment[]>([])
+  const [posting, addPosting] = useOptimistic(
+    posted,
     (current, comment: PendingComment) => [comment, ...current]
   )
   const [state, action] = useActionState(
     async (previous: ActionState, formData: FormData) => {
-      const text = formData.get('text')
-      if (typeof text === 'string' && text.trim()) {
-        addPending({ id: crypto.randomUUID(), text: text.trim() })
-      }
+      const raw = formData.get('text')
+      const text = typeof raw === 'string' ? raw.trim() : ''
+      if (text) addPosting({ id: crypto.randomUUID(), text })
       // Optimistic updates and DOM calls apply at once inside the action's
       // transition, so the box empties as the comment appears.
       formRef.current?.reset()
-      return addCommentAction(boardId, taskId, previous, formData)
+      const result = await addCommentAction(boardId, taskId, previous, formData)
+      const id = result.status === 'success' ? result.id : undefined
+      // Set in the same transition, so it takes over from the optimistic
+      // copy without a flicker.
+      if (id && text) setPosted((current) => [{ id, text }, ...current])
+      return result
     },
     IDLE
   )
+  const pending = posting.filter((comment) => !commentIds.includes(comment.id))
   const error = state.status === 'error' ? state.error : undefined
   const values = state.status === 'error' ? state.values : {}
 

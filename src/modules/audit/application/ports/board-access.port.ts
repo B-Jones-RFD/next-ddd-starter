@@ -10,7 +10,7 @@ export type BoardRole = 'owner' | 'member'
  * `PersistenceError` on an outage.
  */
 export interface IBoardAccess {
-  /** `userId`'s role on the board, or null if they aren't a Board member. */
-  roleOf(boardId: string, userId: UserId): Promise<BoardRole | null>
+  /** The actor's own role on the board, or null if they aren't a Board member. */
+  roleOf(boardId: string, actorId: UserId): Promise<BoardRole | null>
 }
 // #endregion port

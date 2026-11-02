@@ -15,7 +15,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockListRepository },
       { MockTaskRepository },
       { MockCommentRepository },
-      { UserDirectory },
+      { PeopleDirectory },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/boards/infrastructure/people-projection.mock'),
@@ -25,7 +25,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       import('@/modules/boards/infrastructure/task-repository.mock'),
       import('@/modules/boards/infrastructure/comment-repository.mock'),
       // No IO of its own: it asks identity's api.ts, which is on mocks too.
-      import('@/modules/boards/infrastructure/user-directory'),
+      import('@/modules/boards/infrastructure/people-directory'),
     ])
     const outbox = new MockOutbox('boards')
     boards
@@ -46,7 +46,9 @@ export async function loadBoardsModule(mode: AdapterMode) {
       .bind('ICommentRepository')
       .toFactory(() => new MockCommentRepository(outbox), 'singleton')
     // #endregion comment-mock
-    boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
+    boards
+      .bind('IPeopleDirectory')
+      .toClass(PeopleDirectory, undefined, 'singleton')
     return boards
   }
 
@@ -59,7 +61,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { ListRepository },
     { TaskRepository },
     { CommentRepository },
-    { UserDirectory },
+    { PeopleDirectory },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
     import('@/shared/infrastructure/outbox/outbox'),
@@ -69,7 +71,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     import('@/modules/boards/infrastructure/list-repository'),
     import('@/modules/boards/infrastructure/task-repository'),
     import('@/modules/boards/infrastructure/comment-repository'),
-    import('@/modules/boards/infrastructure/user-directory'),
+    import('@/modules/boards/infrastructure/people-directory'),
   ])
   boards
     .bind('IPeopleProjection')
@@ -110,6 +112,8 @@ export async function loadBoardsModule(mode: AdapterMode) {
       'singleton'
     )
   // #endregion comment-real
-  boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
+  boards
+    .bind('IPeopleDirectory')
+    .toClass(PeopleDirectory, undefined, 'singleton')
   return boards
 }

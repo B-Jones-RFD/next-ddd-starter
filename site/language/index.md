@@ -14,10 +14,10 @@ The standards give the language one rule, in [§3 Domain](/standards/#_3-domain)
 Each bounded context keeps its own glossary beside its code, in `src/modules/<context>/GLOSSARY.md`, as [§2 Layout](/standards/#_2-layout-and-boundaries) requires. One file at the repo root, `GLOSSARY-MAP.md`, indexes them:
 
 - **[Identity](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/identity/GLOSSARY.md)**: User, Display name, Credentials, Session, Sign-in, Sign-out.
-- **[Boards](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/boards/GLOSSARY.md)**: Board member, Owner, Member, Board, List, Task, Assignee, Tag, Tag color, Archived, Active, Comment.
+- **[Boards](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/boards/GLOSSARY.md)**: Person, Board member, Owner, Member, Board, List, Task, Assignee, Tag, Tag color, Archived, Active, Comment.
 - **[Audit](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/audit/GLOSSARY.md)**: Audit log, Audit entry, Consequence, Activity, Board log, User log.
 
-The map also says how the contexts relate, in their own words: a Board member is a user seen from boards, every boards state change becomes an Audit entry, and `UserId` is the only domain type all three share.
+The map also says how the contexts relate, in their own words: a Person is a user seen from boards and a Board member is a Person an Owner has added, every boards state change becomes an Audit entry, and `UserId` is the only domain type all three share.
 
 ```mermaid
 flowchart TD
@@ -38,7 +38,7 @@ The contexts themselves were cut from this language ([§1](/standards/#_1-scale-
 
 ### Why one glossary per context, not one for the app
 
-The same person is a different thing to each context. To identity, they are a User, someone with Credentials who can sign in. To boards, they matter only as a Board member with a role on one board, and boards' glossary lists "user (within boards)" under _Avoid_. To audit, they are the actor of an Audit entry. One app-wide glossary would have to pick one meaning for each word or give each word several, and either way a reader of the code couldn't trust the name. A glossary per context keeps each word to one meaning inside its context. Translating between contexts is the job of the ports and events in [§6](/contexts/) ([ADR 0006](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0006-contexts-integrate-through-consumer-owned-ports-and-published-events.md)).
+The same person is a different thing to each context. To identity, they are a User, someone with Credentials who can sign in. To boards, they are a Person, and matter on a board only as a Board member with a role there, and boards' glossary lists "user (within boards)" under _Avoid_. To audit, they are the actor of an Audit entry. One app-wide glossary would have to pick one meaning for each word or give each word several, and either way a reader of the code couldn't trust the name. A glossary per context keeps each word to one meaning inside its context. Translating between contexts is the job of the ports and events in [§6](/contexts/) ([ADR 0006](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0006-contexts-integrate-through-consumer-owned-ports-and-published-events.md)).
 
 ## How an entry reads
 
@@ -84,7 +84,7 @@ Tag color is another. The glossary says it is one of a fixed palette of named co
 
 ### One person, a different word in each context
 
-Boards keeps its own copy of each user's Display name, learned from identity's events. Its type is named for what boards needs, not for identity's User:
+Boards keeps its own copy of each Person's Display name, learned from identity's events. Its type is the glossary's Person, named for what boards needs, not for identity's User:
 
 <<< @/../src/modules/boards/application/ports/people-projection.port.ts#person{ts}
 

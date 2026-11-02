@@ -34,7 +34,7 @@ import { getTask as getTaskQuery } from '@/modules/boards/application/queries/ge
 import { listTags as listTagsQuery } from '@/modules/boards/application/queries/list-tags.query'
 import { listBoards as listBoardsQuery } from '@/modules/boards/application/queries/list-boards.query'
 import { roleOf as roleOfQuery } from '@/modules/boards/application/queries/role-of.query'
-import { searchUsers as searchUsersQuery } from '@/modules/boards/application/queries/search-users.query'
+import { searchPeople as searchPeopleQuery } from '@/modules/boards/application/queries/search-people.query'
 import { traced } from '@/shared/infrastructure/tracing'
 
 // Public API of the boards context (§2): its commands and queries, each
@@ -80,7 +80,7 @@ export const restoreTask = traced('boards.restoreTask', restoreTaskCommand)
 export const listBoards = traced('boards.listBoards', listBoardsQuery)
 export const getBoard = traced('boards.getBoard', getBoardQuery)
 export const getTask = traced('boards.getTask', getTaskQuery)
-export const searchUsers = traced('boards.searchUsers', searchUsersQuery)
+export const searchPeople = traced('boards.searchPeople', searchPeopleQuery)
 export const roleOf = traced('boards.roleOf', roleOfQuery)
 export const listTags = traced('boards.listTags', listTagsQuery)
 
@@ -126,7 +126,7 @@ export type {
   TaskDto,
   TaskSummaryDto,
 } from '@/modules/boards/application/dto/task.dto'
-export type { UserSearchResultDto } from '@/modules/boards/application/dto/user-search-result.dto'
+export type { PersonSearchResultDto } from '@/modules/boards/application/dto/person-search-result.dto'
 export {
   AlreadyAMemberError,
   BoardArchivedError,

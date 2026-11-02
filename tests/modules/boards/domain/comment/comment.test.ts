@@ -9,6 +9,7 @@ import {
 } from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
+import { asMember, asOutsider } from '@tests/fixtures/boards'
 import { aTask } from '@tests/fixtures/tasks'
 
 const now = new Date('2026-03-01T10:00:00.000Z')
@@ -23,7 +24,7 @@ describe('addComment', () => {
     addComment({
       id: toCommentId('comment-new'),
       task,
-      membership: 'member',
+      membership: asMember(),
       authorId: ben,
       text: '  Shall we move the date?\nI can’t make the 3rd.  ',
       now,
@@ -59,11 +60,11 @@ describe('addComment', () => {
   })
 
   it('lets the Owner comment', () => {
-    expect(add({ membership: 'owner' }).ok).toBe(true)
+    expect(add({ membership: asMember('owner') }).ok).toBe(true)
   })
 
   it('rejects someone who isn’t a Board member', () => {
-    expect(add({ membership: undefined })).toEqual({
+    expect(add({ membership: asOutsider })).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })

@@ -15,7 +15,7 @@ AppError (abstract, readonly code)          src/shared/kernel/errors/
 ├─ UnauthenticatedError
 └─ InfrastructureError (abstract) { port, retryable }   thrown, never returned
     ├─ PersistenceError
-    └─ ExternalServiceError                 none in this app; the pattern for apps built from it
+    └─ ExternalServiceError                 only the password hasher, when scrypt fails; the pattern for apps built from it
 ```
 
 Rule errors are coded `<context>.<aggregate>.<rule>` (`boards.list.archived`), and the shared errors use bare codes (`validation`, `forbidden`, `not-found`, `conflict`, `unauthenticated`). There is no `UnexpectedError` class: `unexpected` exists only in `app/`'s plain `ActionError`.

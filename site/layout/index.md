@@ -14,7 +14,7 @@ All deployable code is in `src/`, and all tests are in a top-level `tests/` fold
 ```text
 src/
   app/                  the whole presentation layer: routes, Server Actions, _components/, _lib/
-  di/                   the container: container.ts, types.ts, modules/<context>.module.ts
+  di/                   the container: container.ts, types.ts, modules/<context>.module.ts, plus event-handlers.ts, migrations.ts, seed/
   modules/
     identity/           one bounded context per module
     boards/
@@ -22,7 +22,8 @@ src/
   shared/
     kernel/             building blocks with no business meaning, plus UserId
     infrastructure/     adapters for the technical ports every context uses
-  instrumentation.ts    thin Next shim (proxy.ts, the other one, arrives with sign-in)
+  proxy.ts              thin Next shim: the optimistic session-cookie check (§9)
+  instrumentation.ts    thin Next shim: starts the SDK and the relay
   instrumentation.node.ts
 tests/                  mirrors src/ (see §11)
 ```
@@ -134,7 +135,7 @@ A port lives with the code that needs it:
 
 ## The DI container binds adapters only
 
-`src/di/` is the only place that knows which class implements which port. It has three parts.
+`src/di/` is the only place that knows which class implements which port. Three parts bind adapters, described below. Beside them sit the lists the container doesn't bind: `event-handlers.ts` (every outbox handler), `migrations.ts` (the one ordered migration list) and `seed/`.
 
 `types.ts` maps each token to its port with type-only imports. A token is the port's interface name, unique across the repo, so `getInjection('IUserRepository')` is typed by the map:
 

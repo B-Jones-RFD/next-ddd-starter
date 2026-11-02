@@ -8,23 +8,31 @@ function digest(salt: string, password: string): string {
   return createHash('sha256').update(`${salt}:${password}`).digest('base64url')
 }
 
+/** The mock's stand-in for scrypt's parameters: a higher cost is stronger. */
+const COST = 2
+
 /**
- * A cheap salted SHA-256, so tests and seeded users sign in instantly. Never
- * used outside mock mode.
+ * A cheap salted SHA-256, so tests and seeded users sign in instantly, stored
+ * as `mock$cost$salt$hash`. The cost changes nothing but the label, so the
+ * rehash rule works as it does for scrypt. Never used outside mock mode.
  */
 export class MockPasswordHasher implements IPasswordHasher {
+  constructor(private readonly cost: number = COST) {}
+
   async hash(password: Password): Promise<PasswordHash> {
     const salt = randomBytes(8).toString('base64url')
-    return `mock$${salt}$${digest(salt, password)}` as PasswordHash
+    return `mock$${this.cost}$${salt}$${digest(salt, password)}` as PasswordHash
   }
 
   async verify(password: Password, hash: PasswordHash): Promise<boolean> {
-    const [algorithm, salt, expected] = hash.split('$')
+    const [algorithm, , salt, expected] = hash.split('$')
     if (algorithm !== 'mock' || salt === undefined) return false
     return digest(salt, password) === expected
   }
 
+  /** Another algorithm, or a lower cost than the one it hashes with. */
   needsRehash(hash: PasswordHash): boolean {
-    return !hash.startsWith('mock$')
+    const [algorithm, cost] = hash.split('$')
+    return algorithm !== 'mock' || !(Number(cost) >= this.cost)
   }
 }

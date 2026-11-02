@@ -1,5 +1,5 @@
-/** A registered user found by email, as the Members tab offers them. */
-export type UserSearchResultDto = {
+/** A Person found by email, as the Members tab offers them. */
+export type PersonSearchResultDto = {
   userId: string
   displayName: string
   email: string

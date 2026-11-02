@@ -83,6 +83,33 @@ describe('authenticate', () => {
     })
   })
   // #endregion expiry
+
+  describe('recording use', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(start)
+    })
+
+    it('records a use once a minute has passed, restarting the idle limit', async () => {
+      const token = await signedUp()
+
+      vi.setSystemTime(at(MINUTE))
+      expect((await authenticate(token)).ok).toBe(true)
+
+      vi.setSystemTime(at(7 * DAY + MINUTE / 2))
+      expect((await authenticate(token)).ok).toBe(true)
+    })
+
+    it('records nothing for a use within the minute', async () => {
+      const token = await signedUp()
+
+      vi.setSystemTime(at(MINUTE - 1))
+      expect((await authenticate(token)).ok).toBe(true)
+
+      vi.setSystemTime(at(7 * DAY + MINUTE / 2))
+      expect(await authenticate(token)).toEqual(unauthenticated)
+    })
+  })
 })
 
 describe('signOut', () => {

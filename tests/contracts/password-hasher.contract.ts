@@ -10,7 +10,15 @@ import {
 const password = 'correct horse' as Password
 
 /** What every `IPasswordHasher` adapter must do. */
-export function describePasswordHasherContract(make: () => IPasswordHasher) {
+export function describePasswordHasherContract(setup: {
+  /** The adapter with the parameters the app uses. */
+  make: () => IPasswordHasher
+  /** The same algorithm with older, weaker parameters. */
+  older: () => IPasswordHasher
+  /** The same algorithm with stronger parameters than the app uses. */
+  stronger: () => IPasswordHasher
+}) {
+  const { make } = setup
   describe('IPasswordHasher contract', () => {
     it('makes a salted, algorithm-prefixed hash that never contains the password', async () => {
       const hasher = make()
@@ -37,6 +45,20 @@ export function describePasswordHasherContract(make: () => IPasswordHasher) {
       const hasher = make()
 
       expect(hasher.needsRehash(await hasher.hash(password))).toBe(false)
+    })
+
+    it('verifies a hash made with older parameters, and needs it rehashed', async () => {
+      const hash = await setup.older().hash(password)
+
+      expect(await make().verify(password, hash)).toBe(true)
+      expect(make().needsRehash(hash)).toBe(true)
+    })
+
+    it('needs no rehash for a hash made with stronger parameters', async () => {
+      const hash = await setup.stronger().hash(password)
+
+      expect(await make().verify(password, hash)).toBe(true)
+      expect(make().needsRehash(hash)).toBe(false)
     })
 
     it('needs a rehash for a hash made by another algorithm', () => {

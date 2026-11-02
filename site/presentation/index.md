@@ -115,7 +115,7 @@ A button that archives, moves, removes or leaves is a `<form>` whose action has 
 
 <<< @/../src/app/boards/[boardId]/settings/members/member-forms.tsx#button-form{tsx}
 
-`AddMemberForm` passes `addMemberAction.bind(null, boardId, userId)`. The bound ids end up in the page's HTML and come back in the POST, so they are untrusted input like any form field. The action passes them to the command, and the domain checks again that the actor is the board's Owner and that the user is who they claim to be. A forged id gets `ForbiddenError` or `NotFoundError`, not a change.
+`AddMemberForm` passes `addMemberAction.bind(null, boardId, userId)`. The bound ids end up in the page's HTML and come back in the POST, so they are untrusted input like any form field. The action passes them to the command, and the command checks again: the domain refuses an actor who isn't the board's Owner, and the command finds no Person for an unknown user id. A forged id gets `ForbiddenError` or `NotFoundError`, not a change.
 
 The ⋯ menus follow the same rule. A menu item can't hold a form, because the popup unmounts on close, so each move is a hidden `<form>` beside the menu and the menu item is a submit button pointing at it with `form={id}`.
 
@@ -123,9 +123,9 @@ The ⋯ menus follow the same rule. A menu item can't hold a form, because the p
 
 Components are Server Components unless they need the browser, and `'use client'` goes on the smallest part that does. On the board, `BoardLists` lays the columns out on the server, and only the parts with state are Client Components: each list's header with its ⋯ menu, each task card, the add forms and the jump strip. A task's dialog and page share a server `TaskDetails`, which renders the client title and description forms.
 
-A Client Component gets serializable DTOs as props and imports actions from its route's `actions.ts`. It never imports `@/modules`. Every module's `api.ts` starts with `import 'server-only'`, so a client import of one fails the build: a query in a Client Component would put a database read in the browser bundle.
+A Client Component gets serializable DTOs as props and imports actions from its route's `actions.ts`. It never imports `@/modules`. Every module's `api.ts` starts with `import 'server-only'`, so a client import of one fails the build: a query in a Client Component would put a database read in the browser bundle. ESLint can't tell a Client Component's file from a Server Component's, and a type-only import passes the build, so the rule is held by review.
 
-`useOptimistic` is used only where the lag is built in: posting a comment shows it in Activity at once, because Activity trails the command by one relay drain and the action never waits for the relay ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)). Everywhere else the response is the truth. An optimistic move that the domain then rejects would show a board that never existed and snap back.
+`useOptimistic` is used only where the lag is built in: posting a comment shows it in Activity at once, because Activity trails the command by one relay drain and the action never waits for the relay. The optimistic copy lasts only while the action runs, so on success the action returns the new comment's `id`, and the component keeps the comment until a refreshed Activity has an entry with that id ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)). Everywhere else the response is the truth. An optimistic move that the domain then rejects would show a board that never existed and snap back.
 
 ## The task dialog is an intercepted route
 
@@ -175,7 +175,7 @@ The digest is what Next logs with the server-side error, so a user's report of "
 ## Where things go
 
 - **`src/app/_components/`** holds shared UI: shadcn/ui primitives in `ui/`, the form parts in `form/`, and pieces several routes use, such as `AvatarStack` and the refocus hook.
-- **`src/app/_lib/`** holds shared edge code with no UI: `actions/` (`ActionState`), `errors/` (`toActionError`), `auth/` (`getActor`) and `theme/`.
+- **`src/app/_lib/`** holds shared edge code with no UI: `actions/` (`ActionState`), `errors/` (`toActionError`), `auth/` (`getActor`), `audit/` (Audit entry wording and log URL params), `view/` (the Active/Archived view) and `theme/`.
 - **A route's own components** sit beside its `page.tsx`, named for what they are: `board-lists.tsx`, `task-card.tsx`, `task-dialog.tsx`. Nothing is moved to `_components/` until a second route needs it.
 
 ## Accessibility and theming

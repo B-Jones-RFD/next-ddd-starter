@@ -22,6 +22,7 @@ import {
   type ValidationError,
 } from '@/shared/kernel/errors/domain-error'
 
+import { asMember, asOutsider } from '@tests/fixtures/boards'
 import { aList } from '@tests/fixtures/lists'
 import { aTask } from '@tests/fixtures/tasks'
 
@@ -38,7 +39,7 @@ describe('createTask', () => {
     createTask({
       id: toTaskId('task-new'),
       list,
-      membership: 'member',
+      membership: asMember(),
       title: ' Write the brief ',
       after: null,
       now,
@@ -96,7 +97,7 @@ describe('createTask', () => {
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(create({ membership: undefined })).toEqual({
+    expect(create({ membership: asOutsider })).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -114,7 +115,7 @@ describe('renameTask', () => {
   const task = aTask({ title: 'Draft' as TaskTitle })
 
   it('renames the task and raises TaskRenamed with from and to', () => {
-    expect(renameTask(task, 'member', ' Final ')).toEqual({
+    expect(renameTask(task, asMember(), ' Final ')).toEqual({
       ok: true,
       value: {
         state: { ...task, title: 'Final' },
@@ -134,20 +135,20 @@ describe('renameTask', () => {
   })
 
   it('raises nothing for the same title', () => {
-    expect(renameTask(task, 'member', 'Draft ')).toEqual({
+    expect(renameTask(task, asMember(), 'Draft ')).toEqual({
       ok: true,
       value: { state: task, events: [] },
     })
   })
 
   it('rejects an empty title', () => {
-    expect(issues(renameTask(task, 'member', ''))).toEqual({
+    expect(issues(renameTask(task, asMember(), ''))).toEqual({
       title: 'required',
     })
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(renameTask(task, undefined, 'Final')).toEqual({
+    expect(renameTask(task, asOutsider, 'Final')).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -158,7 +159,9 @@ describe('changeTaskDescription', () => {
   const task = aTask({ description: 'Old' as TaskDescription })
 
   it('changes the description and raises TaskDescriptionChanged with from and to', () => {
-    expect(changeTaskDescription(task, 'owner', ' New\nlines ')).toEqual({
+    expect(
+      changeTaskDescription(task, asMember('owner'), ' New\nlines ')
+    ).toEqual({
       ok: true,
       value: {
         state: { ...task, description: 'New\nlines' },
@@ -178,13 +181,13 @@ describe('changeTaskDescription', () => {
   })
 
   it('lets the description be cleared', () => {
-    const changed = changeTaskDescription(task, 'member', '   ')
+    const changed = changeTaskDescription(task, asMember(), '   ')
 
     expect(changed.ok && changed.value.state.description).toBe('')
   })
 
   it('raises nothing for the same description', () => {
-    expect(changeTaskDescription(task, 'member', 'Old')).toEqual({
+    expect(changeTaskDescription(task, asMember(), 'Old')).toEqual({
       ok: true,
       value: { state: task, events: [] },
     })
@@ -192,15 +195,15 @@ describe('changeTaskDescription', () => {
 
   it('rejects a description over 5000 characters, accepting 5000', () => {
     expect(
-      issues(changeTaskDescription(task, 'member', 'x'.repeat(5001)))
+      issues(changeTaskDescription(task, asMember(), 'x'.repeat(5001)))
     ).toEqual({ description: 'too-long' })
-    expect(changeTaskDescription(task, 'member', 'x'.repeat(5000)).ok).toBe(
+    expect(changeTaskDescription(task, asMember(), 'x'.repeat(5000)).ok).toBe(
       true
     )
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(changeTaskDescription(task, undefined, 'New')).toEqual({
+    expect(changeTaskDescription(task, asOutsider, 'New')).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -213,7 +216,10 @@ describe('reorderTask', () => {
   const third = aTask({ position: 'k' })
 
   it('moves the task between its new neighbours and raises TaskReordered', () => {
-    const moved = reorderTask(first, 'member', { after: second, before: third })
+    const moved = reorderTask(first, asMember(), {
+      after: second,
+      before: third,
+    })
 
     expect(moved.ok && moved.value.state.position > 'V').toBe(true)
     expect(moved.ok && moved.value.state.position < 'k').toBe(true)
@@ -226,15 +232,15 @@ describe('reorderTask', () => {
   })
 
   it('moves the task first or last with one neighbour', () => {
-    const top = reorderTask(third, 'member', { before: first })
-    const bottom = reorderTask(first, 'member', { after: third })
+    const top = reorderTask(third, asMember(), { before: first })
+    const bottom = reorderTask(first, asMember(), { after: third })
 
     expect(top.ok && top.value.state.position < 'F').toBe(true)
     expect(bottom.ok && bottom.value.state.position > 'k').toBe(true)
   })
 
   it('raises nothing without neighbours', () => {
-    expect(reorderTask(first, 'member', {})).toEqual({
+    expect(reorderTask(first, asMember(), {})).toEqual({
       ok: true,
       value: { state: first, events: [] },
     })
@@ -243,7 +249,7 @@ describe('reorderTask', () => {
   it('returns NotFoundError for a neighbour in another list', () => {
     const elsewhere = aTask({ listId: toListId('list-other') })
 
-    expect(reorderTask(first, 'member', { after: elsewhere })).toEqual({
+    expect(reorderTask(first, asMember(), { after: elsewhere })).toEqual({
       ok: false,
       error: new NotFoundError('Task', elsewhere.id),
     })
@@ -251,16 +257,16 @@ describe('reorderTask', () => {
 
   it('returns ConflictError for neighbours out of order, or itself as a neighbour', () => {
     expect(
-      reorderTask(first, 'member', { after: third, before: second })
+      reorderTask(first, asMember(), { after: third, before: second })
     ).toEqual({ ok: false, error: new ConflictError('Task', first.id) })
-    expect(reorderTask(first, 'member', { after: first })).toEqual({
+    expect(reorderTask(first, asMember(), { after: first })).toEqual({
       ok: false,
       error: new ConflictError('Task', first.id),
     })
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(reorderTask(first, undefined, { after: second })).toEqual({
+    expect(reorderTask(first, asOutsider, { after: second })).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -271,7 +277,7 @@ describe('archiveTask', () => {
   const task = aTask({ position: 'k' })
 
   it('archives the task in its place and raises TaskArchived', () => {
-    expect(archiveTask(task, 'member')).toEqual({
+    expect(archiveTask(task, asMember())).toEqual({
       ok: true,
       value: {
         state: { ...task, archived: true },
@@ -288,14 +294,14 @@ describe('archiveTask', () => {
   it('raises nothing for a task already archived', () => {
     const archived = aTask({ archived: true })
 
-    expect(archiveTask(archived, 'owner')).toEqual({
+    expect(archiveTask(archived, asMember('owner'))).toEqual({
       ok: true,
       value: { state: archived, events: [] },
     })
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(archiveTask(task, undefined)).toEqual({
+    expect(archiveTask(task, asOutsider)).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -307,18 +313,18 @@ describe('an archived task', () => {
   const other = aTask({ position: 'l' })
 
   it.each([
-    ['renameTask', () => renameTask(task, 'member', 'New title')],
+    ['renameTask', () => renameTask(task, asMember(), 'New title')],
     [
       'changeTaskDescription',
-      () => changeTaskDescription(task, 'member', 'New description'),
+      () => changeTaskDescription(task, asMember(), 'New description'),
     ],
-    ['reorderTask', () => reorderTask(task, 'member', { after: other })],
+    ['reorderTask', () => reorderTask(task, asMember(), { after: other })],
   ])('refuses %s', (_name, change) => {
     expect(change()).toEqual({ ok: false, error: new TaskArchivedError() })
   })
 
   it('still refuses a non-member as forbidden first', () => {
-    expect(renameTask(task, undefined, 'New title')).toEqual({
+    expect(renameTask(task, asOutsider, 'New title')).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })

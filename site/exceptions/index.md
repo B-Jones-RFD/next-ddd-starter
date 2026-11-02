@@ -51,11 +51,11 @@ Don't copy the edge anywhere else. `domain/` never imports the container, and no
 
 The write is `lastSeenAt`, which the 7-day idle limit is measured from ([ADR 0009](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0009-database-sessions-with-opaque-tokens-not-jwts.md)). A session nobody records using can't expire for idleness, so the write has to happen on the one path every request takes. Two things keep it small.
 
-It happens at most once a minute. The domain decides when a touch is due, and the touch is a plain new state with no event:
+It happens at most once a minute. The domain sets the interval, and `authenticate` compares it with the `lastSeenAt` it read:
 
 <<< @/../src/modules/identity/domain/session/session.ts#touch{ts}
 
-And it goes straight through the session repository, not through `save`. There's no version check, no outbox row and no event, so nothing reaches audit, and a sign-out racing with a touch can't fail either one:
+Everything else `authenticate` does is an ordinary query: it reads who the token signs in through identity's `IUserReader` read port, which returns DTOs and loads no aggregate. The write goes straight through the session repository, not through `save`. There's no version check, no outbox row and no event, so nothing reaches audit, and a sign-out racing with a touch can't fail either one:
 
 <<< @/../src/modules/identity/domain/session/session-repository.port.ts#touch{ts}
 
@@ -73,10 +73,22 @@ Three things about it are exceptions, and each has a reason.
 
   <<< @/../src/modules/boards/domain/services/task-assignment.service.ts#hand-over{ts}
 
-- **It writes one task per transaction.** §6 says a handler writes its one aggregate. A member can be assigned to many tasks, so the handler loops and saves each task on its own, reloading and retrying a task that changed under it. If it fails halfway, the redelivery picks up the rest.
+- **It writes one task per transaction.** §6 says a handler writes its one aggregate. A member can be assigned to many tasks, so the handler loops and saves each task on its own through `changeEachTask`, reloading and retrying a task that changed under it. A task that still conflicts after a few tries doesn't stop the others: they are handed over first, then the handler throws a retryable `PersistenceError`, so the relay redelivers the event with backoff. If it fails halfway for any reason, the redelivery picks up the rest.
 - **It writes no inbox row.** §6 has each handler record what it applied in its inbox. This one doesn't need to: a redelivery runs `findAssignedTo` again and finds nothing still assigned to them, so it does nothing. Someone re-added to the board before it runs keeps their assignments, because `handOverToOwner` checks membership against the board as it is now.
 
 It handles the published `boards.MemberRemoved.v1` and `boards.MemberLeft.v1`, not the domain events, so each saved task carries the published event's id as its `causationId`. Audit records each hand-over as an ordinary entry, and Activity names the removal as its cause ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)).
+
+## A deleted tag leaves its tasks the same way
+
+`boards.untagDeletedTag` is the other handler built this way. A tag is deleted from the Board, and its `boards.TagDeleted.v1` strips it from every task that had it, archived ones included, one task per transaction through the same `changeEachTask`:
+
+<<< @/../src/modules/boards/application/handlers/untag-deleted-tag.ts{ts}
+
+It writes no inbox row for the same reason: a redelivery finds no task still carrying the tag, so it does nothing. Both handlers are exceptions to §6's one aggregate and one inbox row per handler, and nothing else may copy them.
+
+## ACL adapters have no mock twin
+
+§2 gives every adapter a `.mock.ts` twin. The two anti-corruption adapters, boards' `PeopleDirectory` and audit's `BoardAccess`, have none. They do no IO of their own: each calls the supplier context's `api.ts`, and in mock mode that runs on the supplier's own mocks, so the same class serves both modes. Each still has a contract suite, run against the class over the supplier's mocks ([§11](/testing/)).
 
 ## Cross-aggregate read-checks can race
 

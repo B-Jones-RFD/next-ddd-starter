@@ -89,9 +89,13 @@ describeMembershipProof('boards', api, {
     getBoard: () =>
       api.getBoard({ actorId: outsider, boardId, view: 'archived' }),
     getTask: () => api.getTask({ actorId: outsider, taskId }),
-    searchUsers: () =>
-      api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),
-    roleOf: () => api.roleOf({ boardId, userId: outsider }),
+    searchPeople: () =>
+      api.searchPeople({
+        actorId: outsider,
+        boardId,
+        email: 'ada@example.com',
+      }),
+    roleOf: () => api.roleOf({ actorId: outsider, boardId }),
     listTags: () => api.listTags({ actorId: outsider, boardId }),
   },
 })

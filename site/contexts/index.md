@@ -9,7 +9,7 @@ How bounded contexts ask through consumer-owned ports and tell through versioned
 
 This page explains the rules in [§6 Between contexts](/standards/#_6-between-contexts) of the standards, using the code that follows them. The standards own the rules. This page only says what they look like and why they exist.
 
-The app has three contexts. **Identity** owns the User and the Session. **Boards** owns the Board, the List and the Task. **Audit** owns the Audit log. They work together in only two ways:
+The app has three contexts. **Identity** owns the User and the Session. **Boards** owns the Board (with its Tags), the List, the Task and the Comment. **Audit** owns the Audit log. They work together in only two ways:
 
 - **Ask.** A context that needs an answer now calls a port it owns, and that port's adapter calls the other context's `api.ts`.
 - **Tell.** A context that changes state publishes an integration event, and any context that cares handles it later.
@@ -23,7 +23,7 @@ flowchart LR
     iout[("identity_outbox")]
   end
   subgraph boards
-    dir["IUserDirectory<br/>(UserDirectory ACL)"]
+    dir["IPeopleDirectory<br/>(PeopleDirectory ACL)"]
     bapi["api.ts"]
     bout[("boards_outbox")]
     people[("boards_people")]
@@ -43,18 +43,18 @@ Solid arrows are calls that wait for an answer. Dotted arrows are events the rel
 
 ## Ask through a port the consumer owns
 
-When a Board member adds someone by email, boards has to ask identity who that is. It doesn't import identity's `findUserByEmail` into a use case. It declares the question in its own words, in its own `application/ports/`:
+When a board's Owner adds someone by email, boards has to ask identity who that is. It doesn't import identity's `findUserByEmail` into a use case. It declares the question in its own words, in its own `application/ports/`:
 
-<<< @/../src/modules/boards/application/ports/user-directory.port.ts{ts}
+<<< @/../src/modules/boards/application/ports/people-directory.port.ts{ts}
 
-The port says what boards needs, a `DirectoryUser` with three fields, and nothing about identity's User aggregate, its DTOs or its error classes. The adapter in boards' `infrastructure/` is the only code in boards that knows identity exists:
+The port says what boards needs, a `DirectoryPerson` with three fields, and nothing about identity's User aggregate, its DTOs or its error classes. The adapter in boards' `infrastructure/` is the only code in boards that knows identity exists:
 
-<<< @/../src/modules/boards/infrastructure/user-directory.ts{ts}
+<<< @/../src/modules/boards/infrastructure/people-directory.ts{ts}
 
 This adapter is an anti-corruption layer. It translates in both directions:
 
 - **Answers.** It copies the three fields boards wants out of identity's DTO, and turns identity's `NotFoundError` into `null`, which is what "nobody has that email" means to boards.
-- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IUserDirectory`, keeping `retryable` and the original as `cause`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
+- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IPeopleDirectory`, keeping `retryable` and the original as `cause`. Every ACL does this through one shared helper, `askContext` in `src/shared/infrastructure/`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
 
 The same shape runs the other way. Audit needs to know whether a reader may see a board's Audit entries, so it owns `IBoardAccess`:
 
@@ -64,7 +64,7 @@ Its adapter, `BoardAccess` in `src/modules/audit/infrastructure/board-access.ts`
 
 ### Why the consumer owns the port
 
-If boards imported identity's API straight into its use cases, every change to identity's DTOs or error classes would ripple through boards' application code. With the port, a change in identity touches one adapter file in boards, and the use cases don't change. The port also makes boards testable on its own terms: `tests/contracts/user-directory.contract.ts` pins down what boards expects of any `IUserDirectory`, whatever identity does inside.
+If boards imported identity's API straight into its use cases, every change to identity's DTOs or error classes would ripple through boards' application code. With the port, a change in identity touches one adapter file in boards, and the use cases don't change. The port also makes boards testable on its own terms: `tests/contracts/people-directory.contract.ts` pins down what boards expects of any `IPeopleDirectory`, whatever identity does inside.
 
 Neither ACL adapter does IO of its own, so the same class serves both adapter modes. In mock mode, the supplier's `api.ts` simply runs on the supplier's mocks.
 
@@ -217,6 +217,6 @@ Order within one outbox matters: a Task's `TaskRenamed` mustn't reach audit befo
 
 A command returns as soon as its transaction commits. Its events are delivered afterwards, so anything built from them, such as boards' copy of a Display name or a task's Activity, catches up one relay drain later. Locally that is a few milliseconds, but it is never zero.
 
-`app/` lives with the gap and never awaits the relay. A rename refreshes the page with the new title at once, and the matching Audit entry appears in Activity on a later render. When the user needs to see their own change immediately, such as a comment they just posted, the component shows it with `useOptimistic` until a refresh picks up the real entry.
+`app/` lives with the gap and never awaits the relay. A rename refreshes the page with the new title at once, and the matching Audit entry appears in Activity on a later render. When the user needs to see their own change immediately, such as a comment they just posted, the component shows it with `useOptimistic`, then keeps it, matched by the id the action returns, until a refresh picks up the real entry.
 
 Awaiting the relay would hide the lag only while every context runs in one process. Once audit runs somewhere else, it can't be awaited at all, and every screen that assumed it could would break. Planning for the lag now keeps that move possible.

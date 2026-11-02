@@ -1,10 +1,5 @@
-import { Time } from '@/app/_components/time'
-import {
-  entrySentence,
-  entryWording,
-  personName,
-  type Names,
-} from '@/app/_lib/audit/entry-wording'
+import { EntryBody } from '@/app/_components/audit/entry-body'
+import type { Names } from '@/app/_lib/audit/entry-wording'
 import type { LogEntryDto } from '@/modules/audit/api'
 
 /** What a Board log entry is about, when that's a list or a task. */
@@ -50,37 +45,7 @@ export function LogEntries({
                 {subject}
               </p>
             ) : null}
-            <p className='break-words'>
-              <span className='font-medium'>
-                {personName(names, entry.actorId)}
-              </span>{' '}
-              {entryWording(entry, names)}
-            </p>
-            {entry.action === 'comment.added' ? (
-              <p className='break-words whitespace-pre-line'>
-                {entry.details.text}
-              </p>
-            ) : null}
-            {entry.action === 'task.description-changed' ? (
-              <dl className='grid grid-cols-[auto_1fr] gap-x-2 text-muted-foreground'>
-                <dt>Before:</dt>
-                <dd className='break-words whitespace-pre-line'>
-                  {entry.details.from || '(empty)'}
-                </dd>
-                <dt>After:</dt>
-                <dd className='break-words whitespace-pre-line'>
-                  {entry.details.to || '(empty)'}
-                </dd>
-              </dl>
-            ) : null}
-            {entry.cause ? (
-              <p className='break-words text-muted-foreground'>
-                Because {entrySentence(entry.cause, names)}
-              </p>
-            ) : null}
-            <p className='text-muted-foreground'>
-              <Time dateTime={entry.occurredAt} />
-            </p>
+            <EntryBody entry={entry} names={names} />
           </li>
         )
       })}

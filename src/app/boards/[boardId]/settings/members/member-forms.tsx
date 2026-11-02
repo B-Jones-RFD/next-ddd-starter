@@ -11,9 +11,7 @@ import {
   removeMemberAction,
   transferOwnershipAction,
 } from '@/app/boards/[boardId]/settings/members/actions'
-
-/** The id of the Members heading, where focus goes when its control goes. */
-export const MEMBERS_HEADING_ID = 'members-heading'
+import { MEMBERS_HEADING_ID } from '@/app/boards/[boardId]/settings/members/members-heading'
 
 // #region button-form
 /**

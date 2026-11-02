@@ -4,6 +4,7 @@ import { getInjection } from '@/di/container'
 import { getActivity } from '@/modules/audit/api'
 import {
   addMember,
+  archiveTask,
   assignTask,
   ConflictError,
   createBoard,
@@ -21,7 +22,6 @@ import {
   unassignTask,
   ValidationError,
 } from '@/modules/boards/api'
-import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -207,18 +207,6 @@ describe('unassignTask', () => {
   })
 })
 
-/** Makes the task archived, as #73's archive will, through its repository. */
-async function archived(id: string) {
-  const tasks = await getInjection('ITaskRepository')
-  const task = await tasks.findById(toTaskId(id))
-  if (!task.ok) throw new Error('setup failed')
-  const saved = await tasks.save({ ...task.value, archived: true }, [], {
-    actorId: ada,
-    causationId: null,
-  })
-  if (!saved.ok) throw new Error('setup failed')
-}
-
 describe('handing assignments over to the Owner', () => {
   let other: string
   let shelved: string
@@ -230,7 +218,8 @@ describe('handing assignments over to the Owner', () => {
     await assignTask({ actorId: ada, taskId: other, userId: ada })
     await assignTask({ actorId: ada, taskId: other, userId: ben })
     await assignTask({ actorId: ada, taskId: shelved, userId: ben })
-    await archived(shelved)
+    const shelf = await archiveTask({ actorId: ada, taskId: shelved })
+    if (!shelf.ok) throw new Error('setup failed')
   })
 
   it.each([
@@ -326,5 +315,52 @@ describe('handing assignments over to the Owner', () => {
       'Write the memo',
       [{ userId: ada, displayName: 'Ada' }],
     ])
+  })
+
+  it('hands over the other tasks past one that keeps changing, and finishes it on redelivery', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const tasks = await getInjection('ITaskRepository')
+    const relay = await getInjection('IEventRelay')
+    // Every time the hand-over loads the task, someone renames it first.
+    let edits = 0
+    let editing = false
+    const findById = tasks.findById.bind(tasks)
+    const findAssignedTo = tasks.findAssignedTo.bind(tasks)
+    const editMeanwhile = async () => {
+      editing = true
+      edits += 1
+      await renameTask({ actorId: ada, taskId, title: `Draft ${edits}` })
+      editing = false
+    }
+    vi.spyOn(tasks, 'findAssignedTo').mockImplementationOnce(
+      async (...args) => {
+        const stale = await findAssignedTo(...args)
+        await editMeanwhile()
+        return stale
+      }
+    )
+    vi.spyOn(tasks, 'findById').mockImplementation(async (id) => {
+      if (editing || id !== taskId) return findById(id)
+      const stale = await findById(id)
+      await editMeanwhile()
+      return stale
+    })
+
+    await removeMember({ actorId: ada, boardId, userId: ben })
+    await relay.drain()
+
+    const owner = [{ userId: ada, displayName: 'Ada' }]
+    expect(await assigneesOf(other)).toEqual(owner)
+    expect(await assigneesOf(shelved)).toEqual(owner)
+    expect(await assigneesOf(taskId)).toEqual([
+      { userId: ben, displayName: 'Ben' },
+    ])
+
+    vi.restoreAllMocks()
+    vi.setSystemTime(Date.now() + 120_000)
+    await relay.drain()
+
+    expect(await assigneesOf(taskId)).toEqual(owner)
+    vi.useRealTimers()
   })
 })

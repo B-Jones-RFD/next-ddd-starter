@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import {
   moveList as moveListOperation,
   type List,
@@ -55,6 +56,7 @@ export async function moveList(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | ListArchivedError
     | ConflictError
   >
@@ -78,7 +80,7 @@ export async function moveList(
 
   const moved = moveListOperation(
     list.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     { after: after.value, before: before.value }
   )
   if (!moved.ok) return moved
