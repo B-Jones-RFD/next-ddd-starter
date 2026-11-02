@@ -1,11 +1,10 @@
 import Link from 'next/link'
 
 import { requireActor } from '@/app/_lib/auth/get-actor'
-import { taskPath } from '@/app/boards/[boardId]/task-places'
+import { tagsHeadingId, taskPath } from '@/app/boards/[boardId]/task-places'
 import {
   TagTaskForm,
   TaskTagChip,
-  tagsHeadingId,
 } from '@/app/boards/[boardId]/tasks/[taskId]/task-tag-forms'
 import { listTags, type TagDto, type TaskDto } from '@/modules/boards/api'
 

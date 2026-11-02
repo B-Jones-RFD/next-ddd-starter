@@ -24,9 +24,7 @@ import {
   deleteTagAction,
   editTagAction,
 } from '@/app/boards/[boardId]/settings/tags/actions'
-
-/** The id of the Tags heading, where focus goes when a deleted tag's row goes. */
-export const TAGS_HEADING_ID = 'tags-heading'
+import { TAGS_HEADING_ID } from '@/app/boards/[boardId]/settings/tags/tags-heading'
 
 type Tag = { id: string; name: string; color: TagColorName }
 

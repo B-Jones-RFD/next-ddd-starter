@@ -41,6 +41,11 @@ export function taskLinkId(taskId: string): string {
   return `task-${taskId}-link`
 }
 
+/** The id of the task's Tags heading, where focus goes when a chip goes. */
+export function tagsHeadingId(taskId: string): string {
+  return `task-${taskId}-tags`
+}
+
 /** The path of a task's dialog and page. */
 export function taskPath(boardId: string, taskId: string): string {
   return `/boards/${boardId}/tasks/${taskId}`

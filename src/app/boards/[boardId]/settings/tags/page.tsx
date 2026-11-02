@@ -10,8 +10,8 @@ import {
   CreateTagForm,
   DeleteTagForm,
   EditTagDialog,
-  TAGS_HEADING_ID,
 } from '@/app/boards/[boardId]/settings/tags/tag-forms'
+import { TAGS_HEADING_ID } from '@/app/boards/[boardId]/settings/tags/tags-heading'
 import { getBoard, listTags } from '@/modules/boards/api'
 
 export const metadata: Metadata = { title: 'Board tags' }

@@ -10,17 +10,13 @@ import type { TagColorName } from '@/app/_components/tags/tag-colors'
 import { Label } from '@/app/_components/ui/label'
 import { Select } from '@/app/_components/ui/select'
 import { IDLE, type ActionState } from '@/app/_lib/actions/action-state'
+import { tagsHeadingId } from '@/app/boards/[boardId]/task-places'
 import {
   tagTaskAction,
   untagTaskAction,
 } from '@/app/boards/[boardId]/tasks/[taskId]/actions'
 
 type Tag = { id: string; name: string; color: TagColorName }
-
-/** The id of the task's Tags heading, where focus goes when a chip goes. */
-export function tagsHeadingId(taskId: string) {
-  return `task-${taskId}-tags`
-}
 
 /**
  * One of the task's tags, with a button to detach it. The button goes with
