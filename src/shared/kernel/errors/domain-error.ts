@@ -3,6 +3,7 @@ import { AppError, type ErrorData } from '@/shared/kernel/errors/app-error'
 /** An expected outcome of a domain rule. Rule errors extend it. */
 export abstract class DomainError extends AppError {}
 
+// #region field-issues
 /**
  * What was wrong with a field. `app/` turns each code into wording for its
  * field.
@@ -11,6 +12,7 @@ export type FieldIssue = 'required' | 'too-short' | 'too-long' | 'invalid'
 
 /** Field name → issue. */
 export type FieldIssues = Readonly<Record<string, FieldIssue>>
+// #endregion field-issues
 
 /** One or more fields failed their parse rules or the input schema. */
 export class ValidationError extends DomainError {

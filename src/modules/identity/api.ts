@@ -15,6 +15,8 @@ export type {
   ActorDto,
   SessionTokenDto,
 } from '@/modules/identity/application/dto/session.dto'
+// #region errors
 export { EmailTakenError } from '@/modules/identity/domain/user/user.errors'
 export { UnauthenticatedError } from '@/shared/kernel/errors/app-error'
 export { ValidationError } from '@/shared/kernel/errors/domain-error'
+// #endregion errors

@@ -3,6 +3,7 @@ export type ErrorData = Readonly<
   Record<string, string | number | boolean | Readonly<Record<string, string>>>
 >
 
+// #region app-error
 /**
  * The root of every error the app raises (§7). `code` is a stable literal that
  * `app/` keys its wording on.
@@ -24,6 +25,7 @@ export abstract class AppError extends Error {
     return {}
   }
 }
+// #endregion app-error
 
 /** Returned by a port when the thing asked for doesn't exist. */
 export class NotFoundError extends AppError {

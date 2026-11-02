@@ -42,6 +42,7 @@ function fieldWording(fields: Readonly<Record<string, string>>) {
   )
 }
 
+// #region wording
 /** Wording for each expected error `code`. Anything else is unexpected. */
 const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
   validation: (error) => ({
@@ -63,6 +64,7 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     message: 'Someone else changed this. Reload the page and try again.',
   }),
 }
+// #endregion wording
 
 function isCoded(error: unknown): error is Coded {
   return (
@@ -73,6 +75,7 @@ function isCoded(error: unknown): error is Coded {
   )
 }
 
+// #region to-action-error
 /**
  * The only place errors become plain objects for `app/` (§7). An expected
  * error gets the wording for its `code`. Anything else, which here means
@@ -94,3 +97,4 @@ export function toActionError(error: unknown): ActionError {
     reference,
   }
 }
+// #endregion to-action-error
