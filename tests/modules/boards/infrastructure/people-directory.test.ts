@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getInjection } from '@/di/container'
-import { UserDirectory } from '@/modules/boards/infrastructure/user-directory'
+import { PeopleDirectory } from '@/modules/boards/infrastructure/people-directory'
 import * as identity from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 import { PersistenceError } from '@/shared/kernel/errors/infrastructure-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
-import { describeUserDirectoryContract } from '@tests/contracts/user-directory.contract'
+import { describePeopleDirectoryContract } from '@tests/contracts/people-directory.contract'
 import { aSignUp } from '@tests/fixtures/identity'
 
 // The adapter's only IO is identity's `api.ts`, which runs on identity's own
@@ -24,8 +24,11 @@ async function register(displayName: string, email: string) {
   return actor.value.userId
 }
 
-describe('UserDirectory (over identity’s api.ts)', () => {
-  describeUserDirectoryContract({ make: () => new UserDirectory(), register })
+describe('PeopleDirectory (over identity’s api.ts)', () => {
+  describePeopleDirectoryContract({
+    make: () => new PeopleDirectory(),
+    register,
+  })
 
   it('translates an outage thrown by identity into its own PersistenceError', async () => {
     const outage = new PersistenceError('IUserReader', { retryable: true })
@@ -34,13 +37,13 @@ describe('UserDirectory (over identity’s api.ts)', () => {
       'findByEmail'
     ).mockRejectedValueOnce(outage)
 
-    const thrown = await new UserDirectory()
+    const thrown = await new PeopleDirectory()
       .findByEmail(toUserId('user-ada'), 'ben@example.com')
       .catch((error: unknown) => error)
 
     expect(thrown).toBeInstanceOf(PersistenceError)
     expect(thrown).toMatchObject({
-      port: 'IUserDirectory',
+      port: 'IPeopleDirectory',
       retryable: true,
       cause: outage,
     })

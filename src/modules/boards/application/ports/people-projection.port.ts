@@ -3,7 +3,7 @@ import type { Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
 // #region person
-/** A user as boards knows them, learned from identity's events. */
+/** A Person: someone with an account, as boards knows them from identity's events. */
 export type Person = {
   readonly userId: UserId
   readonly displayName: string
@@ -17,7 +17,7 @@ export type Receipt = {
 }
 
 /**
- * Boards' copy of each user's display name (`boards_people`), kept by event
+ * Boards' copy of each Person's display name (`boards_people`), kept by event
  * handlers so boards never asks identity on a read. Throws
  * `PersistenceError` on an outage.
  */

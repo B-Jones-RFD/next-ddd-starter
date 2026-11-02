@@ -71,7 +71,7 @@ Agents and developers building a new app from this template copy what they see. 
 
 - **Every contract is a `v1`.** Nothing has a v2, but each contract file carries its version and each handler registers for one, so the first breaking change has somewhere to go ([§6](/contexts/#tell-through-versioned-integration-events)).
 - **Domain events and integration events are separate types**, though today they look alike. One belongs to boards' model and the other to every consumer.
-- **Anti-corruption adapters translate a three-field answer.** `UserDirectory` copies a `DirectoryUser` out of identity's DTO and maps identity's errors, though both contexts live in one process and one database.
+- **Anti-corruption adapters translate a three-field answer.** `PeopleDirectory` copies a `DirectoryPerson` out of identity's DTO and maps identity's errors, though both contexts live in one process and one database.
 - **The relay has one adapter, in-process, behind a port.** A worker process could replace it without touching any context:
 
 <<< @/../src/shared/kernel/ports/event-relay.port.ts#port{ts}

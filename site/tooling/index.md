@@ -109,7 +109,7 @@ src/modules/boards/
   application/commands/rename-task.command.ts        .command
   application/queries/get-task.query.ts               .query
   application/dto/task.dto.ts                         .dto
-  application/ports/user-directory.port.ts            .port
+  application/ports/people-directory.port.ts            .port
   domain/services/task-placement.service.ts           .service
   infrastructure/task-repository.ts                   an adapter (no suffix)
   infrastructure/task-repository.mock.ts              its mock twin, .mock
@@ -140,11 +140,11 @@ An `enum` is a TypeScript-only construct that emits runtime code, can't be strip
 
 ### `type` by default, `interface I<Name>` for ports
 
-Shapes are declared with `type`, with no `I` or `T` prefix. A port is the one exception: it is an `interface` named `I<Name>`, because an adapter class `implements` it, and the prefix tells the port (`IUserDirectory`) from its adapter (`UserDirectory`) when both are in scope ([ADR 0003](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0003-functional-core-class-adapters-and-mock-mode.md)). The name is also the DI token. One port file holds both kinds:
+Shapes are declared with `type`, with no `I` or `T` prefix. A port is the one exception: it is an `interface` named `I<Name>`, because an adapter class `implements` it, and the prefix tells the port (`IPeopleDirectory`) from its adapter (`PeopleDirectory`) when both are in scope ([ADR 0003](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0003-functional-core-class-adapters-and-mock-mode.md)). The name is also the DI token. One port file holds both kinds:
 
-<<< @/../src/modules/boards/application/ports/user-directory.port.ts{ts}
+<<< @/../src/modules/boards/application/ports/people-directory.port.ts{ts}
 
-`DirectoryUser` is data, so it is a `type`. `IUserDirectory` is a port, so it is an `interface`. [Known exceptions](/exceptions/) lists the prefix as deliberate.
+`DirectoryPerson` is data, so it is a `type`. `IPeopleDirectory` is a port, so it is an `interface`. [Known exceptions](/exceptions/) lists the prefix as deliberate.
 
 ## Exports and imports
 

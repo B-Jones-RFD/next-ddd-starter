@@ -1,10 +1,14 @@
 # Boards
 
-Where people organize work as tasks on shared boards. Users from identity appear here only as Board members.
+Where people organize work as tasks on shared boards. Users from identity appear here only as people: a Person, and a Board member once an Owner adds them.
 
 ## Language
 
 ### People and access
+
+**Person**:
+Someone with an account in identity, as boards knows them: their id and display name, learned from identity's events, plus their email when an Owner finds them to add. A person takes part in a board only as a Board member.
+_Avoid_: User (within boards), account
 
 **Board member**:
 A user whom an Owner has added to a board. Every board member has exactly one role on that board.

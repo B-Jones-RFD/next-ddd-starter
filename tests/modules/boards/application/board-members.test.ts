@@ -15,7 +15,7 @@ import {
   OwnerMustTransferFirstError,
   removeMember,
   roleOf,
-  searchUsers,
+  searchPeople,
   transferOwnership,
   ValidationError,
 } from '@/modules/boards/api'
@@ -279,12 +279,12 @@ describe('transferOwnership', () => {
   })
 })
 
-describe('searchUsers', () => {
+describe('searchPeople', () => {
   it('finds a user registered in identity, by email', async () => {
     const dee = await givenUser('Dee', 'dee@example.com')
 
     expect(
-      await searchUsers({ actorId: ada, boardId, email: ' Dee@Example.com ' })
+      await searchPeople({ actorId: ada, boardId, email: ' Dee@Example.com ' })
     ).toEqual({
       ok: true,
       value: [
@@ -302,18 +302,18 @@ describe('searchUsers', () => {
     await givenMember(ben)
 
     expect(
-      await searchUsers({ actorId: ada, boardId, email: 'ben@example.com' })
+      await searchPeople({ actorId: ada, boardId, email: 'ben@example.com' })
     ).toMatchObject({ ok: true, value: [{ userId: ben, isMember: true }] })
   })
 
   it('finds nobody for an email nobody registered', async () => {
     expect(
-      await searchUsers({ actorId: ada, boardId, email: 'nobody@example.com' })
+      await searchPeople({ actorId: ada, boardId, email: 'nobody@example.com' })
     ).toEqual({ ok: true, value: [] })
   })
 
   it('returns ValidationError for an address that isn’t an email', async () => {
-    const result = await searchUsers({ actorId: ada, boardId, email: 'ben' })
+    const result = await searchPeople({ actorId: ada, boardId, email: 'ben' })
 
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -327,13 +327,13 @@ describe('searchUsers', () => {
     await givenMember(ben)
 
     expect(
-      await searchUsers({ actorId: ben, boardId, email: 'cy@example.com' })
+      await searchPeople({ actorId: ben, boardId, email: 'cy@example.com' })
     ).toEqual({ ok: false, error: new ForbiddenError() })
   })
 
   it('returns NotFoundError for a board that doesn’t exist', async () => {
     expect(
-      await searchUsers({
+      await searchPeople({
         actorId: ada,
         boardId: 'nowhere',
         email: 'ben@example.com',
@@ -350,8 +350,8 @@ describe('searchUsers', () => {
     )
 
     await expect(
-      searchUsers({ actorId: ada, boardId, email: 'ben@example.com' })
-    ).rejects.toMatchObject({ port: 'IUserDirectory', retryable: true })
+      searchPeople({ actorId: ada, boardId, email: 'ben@example.com' })
+    ).rejects.toMatchObject({ port: 'IPeopleDirectory', retryable: true })
   })
 })
 

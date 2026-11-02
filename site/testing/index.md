@@ -143,7 +143,7 @@ The SQLite side runs on a fresh database with the same migrations production app
 
 <<< @/../tests/fixtures/database.ts{ts}
 
-A mock can't drift from SQLite without a red test, and that is what lets every other test run on mocks. When the two disagree, the suite says which side is wrong, because its cases describe what the port promises, not what either adapter happens to do. A port whose adapter isn't SQLite gets a suite the same way: boards' `IUserDirectory`, which calls identity's `api.ts`, has one too.
+A mock can't drift from SQLite without a red test, and that is what lets every other test run on mocks. When the two disagree, the suite says which side is wrong, because its cases describe what the port promises, not what either adapter happens to do. A port whose adapter isn't SQLite gets a suite the same way: boards' `IPeopleDirectory`, which calls identity's `api.ts`, has one too.
 
 ## Every query proves membership
 

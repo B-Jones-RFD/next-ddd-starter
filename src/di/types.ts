@@ -3,7 +3,7 @@ import type { IAuditLog } from '@/modules/audit/application/ports/audit-log.port
 import type { IBoardAccess } from '@/modules/audit/application/ports/board-access.port'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
-import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
+import type { IPeopleDirectory } from '@/modules/boards/application/ports/people-directory.port'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import type { ICommentRepository } from '@/modules/boards/domain/comment/comment-repository.port'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
@@ -39,7 +39,7 @@ export type Registry = {
   IListRepository: IListRepository
   ITaskRepository: ITaskRepository
   ICommentRepository: ICommentRepository
-  IUserDirectory: IUserDirectory
+  IPeopleDirectory: IPeopleDirectory
   // audit
   IAuditLog: IAuditLog
   IActivityReader: IActivityReader

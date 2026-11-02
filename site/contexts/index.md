@@ -23,7 +23,7 @@ flowchart LR
     iout[("identity_outbox")]
   end
   subgraph boards
-    dir["IUserDirectory<br/>(UserDirectory ACL)"]
+    dir["IPeopleDirectory<br/>(PeopleDirectory ACL)"]
     bapi["api.ts"]
     bout[("boards_outbox")]
     people[("boards_people")]
@@ -45,16 +45,16 @@ Solid arrows are calls that wait for an answer. Dotted arrows are events the rel
 
 When a Board member adds someone by email, boards has to ask identity who that is. It doesn't import identity's `findUserByEmail` into a use case. It declares the question in its own words, in its own `application/ports/`:
 
-<<< @/../src/modules/boards/application/ports/user-directory.port.ts{ts}
+<<< @/../src/modules/boards/application/ports/people-directory.port.ts{ts}
 
-The port says what boards needs, a `DirectoryUser` with three fields, and nothing about identity's User aggregate, its DTOs or its error classes. The adapter in boards' `infrastructure/` is the only code in boards that knows identity exists:
+The port says what boards needs, a `DirectoryPerson` with three fields, and nothing about identity's User aggregate, its DTOs or its error classes. The adapter in boards' `infrastructure/` is the only code in boards that knows identity exists:
 
-<<< @/../src/modules/boards/infrastructure/user-directory.ts{ts}
+<<< @/../src/modules/boards/infrastructure/people-directory.ts{ts}
 
 This adapter is an anti-corruption layer. It translates in both directions:
 
 - **Answers.** It copies the three fields boards wants out of identity's DTO, and turns identity's `NotFoundError` into `null`, which is what "nobody has that email" means to boards.
-- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IUserDirectory`, keeping `retryable` and the original as `cause`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
+- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IPeopleDirectory`, keeping `retryable` and the original as `cause`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
 
 The same shape runs the other way. Audit needs to know whether a reader may see a board's Audit entries, so it owns `IBoardAccess`:
 
@@ -64,7 +64,7 @@ Its adapter, `BoardAccess` in `src/modules/audit/infrastructure/board-access.ts`
 
 ### Why the consumer owns the port
 
-If boards imported identity's API straight into its use cases, every change to identity's DTOs or error classes would ripple through boards' application code. With the port, a change in identity touches one adapter file in boards, and the use cases don't change. The port also makes boards testable on its own terms: `tests/contracts/user-directory.contract.ts` pins down what boards expects of any `IUserDirectory`, whatever identity does inside.
+If boards imported identity's API straight into its use cases, every change to identity's DTOs or error classes would ripple through boards' application code. With the port, a change in identity touches one adapter file in boards, and the use cases don't change. The port also makes boards testable on its own terms: `tests/contracts/people-directory.contract.ts` pins down what boards expects of any `IPeopleDirectory`, whatever identity does inside.
 
 Neither ACL adapter does IO of its own, so the same class serves both adapter modes. In mock mode, the supplier's `api.ts` simply runs on the supplier's mocks.
 

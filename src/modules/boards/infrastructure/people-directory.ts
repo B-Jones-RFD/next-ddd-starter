@@ -1,7 +1,7 @@
 import type {
-  DirectoryUser,
-  IUserDirectory,
-} from '@/modules/boards/application/ports/user-directory.port'
+  DirectoryPerson,
+  IPeopleDirectory,
+} from '@/modules/boards/application/ports/people-directory.port'
 import {
   findUserByEmail,
   ForbiddenError as IdentityForbiddenError,
@@ -19,7 +19,7 @@ import {
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
-const PORT = 'IUserDirectory'
+const PORT = 'IPeopleDirectory'
 
 /**
  * Boards' anti-corruption layer over identity's `findUserByEmail` (§6). It
@@ -28,11 +28,11 @@ const PORT = 'IUserDirectory'
  * boards. It has no IO of its own, so the same class serves both adapter
  * modes: in mock mode, identity's `api.ts` runs on identity's mocks.
  */
-export class UserDirectory implements IUserDirectory {
+export class PeopleDirectory implements IPeopleDirectory {
   async findByEmail(
     actorId: UserId,
     email: string
-  ): Promise<Result<DirectoryUser | null, ValidationError | ForbiddenError>> {
+  ): Promise<Result<DirectoryPerson | null, ValidationError | ForbiddenError>> {
     let found: Awaited<ReturnType<typeof findUserByEmail>>
     try {
       found = await findUserByEmail({ actorId, email })

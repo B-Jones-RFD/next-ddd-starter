@@ -5,25 +5,25 @@ import type {
 import type { Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
-/** A registered user, as boards finds them to add to a board. */
-export type DirectoryUser = {
+/** A Person with an account, as boards finds them to add to a board. */
+export type DirectoryPerson = {
   readonly userId: UserId
   readonly displayName: string
   readonly email: string
 }
 
 /**
- * Who is registered, asked of identity (§6). Throws `PersistenceError` on an
+ * Who has an account, asked of identity (§6). Throws `PersistenceError` on an
  * outage.
  */
-export interface IUserDirectory {
+export interface IPeopleDirectory {
   /**
-   * The user registered with `email`, or null if nobody is, as `actorId`
+   * The Person registered with `email`, or null if nobody is, as `actorId`
    * may see them. `ValidationError` if `email` isn't an email address, and
-   * `ForbiddenError` if the actor isn't a registered user.
+   * `ForbiddenError` if the actor has no account.
    */
   findByEmail(
     actorId: UserId,
     email: string
-  ): Promise<Result<DirectoryUser | null, ValidationError | ForbiddenError>>
+  ): Promise<Result<DirectoryPerson | null, ValidationError | ForbiddenError>>
 }

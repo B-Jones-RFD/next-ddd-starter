@@ -19,7 +19,7 @@ import { MEMBERS_HEADING_ID } from '@/app/boards/[boardId]/settings/members/memb
 import { SettingsTabs } from '@/app/boards/[boardId]/settings/settings-tabs'
 import {
   getBoard,
-  searchUsers,
+  searchPeople,
   type BoardDto,
   type BoardMemberDto,
 } from '@/modules/boards/api'
@@ -161,7 +161,7 @@ async function AddMember({
   const found =
     email === undefined
       ? undefined
-      : await searchUsers({
+      : await searchPeople({
           actorId,
           boardId: board.id,
           email,
