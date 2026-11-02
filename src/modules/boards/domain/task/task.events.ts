@@ -2,6 +2,7 @@ import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { TaskId } from '@/modules/boards/domain/task/task-id'
 import type { DomainEvent } from '@/shared/kernel/events'
+import type { UserId } from '@/shared/kernel/user-id'
 
 /** A Board member added a task to a list. Translated to `boards.TaskCreated.v1`. */
 export type TaskCreated = DomainEvent<
@@ -43,5 +44,26 @@ export type TaskReordered = DomainEvent<
   { taskId: TaskId; boardId: BoardId; listId: ListId }
 >
 
+/** A Board member made `userId` an assignee. Translated to `boards.TaskAssigned.v1`. */
+export type TaskAssigned = DomainEvent<
+  'TaskAssigned',
+  { taskId: TaskId; boardId: BoardId; userId: UserId }
+>
+
+/**
+ * `userId` stopped being an assignee, because a Board member unassigned them
+ * or because they left the board. Translated to `boards.TaskUnassigned.v1`.
+ */
+export type TaskUnassigned = DomainEvent<
+  'TaskUnassigned',
+  { taskId: TaskId; boardId: BoardId; userId: UserId }
+>
+
 export type TaskEvent =
-  TaskCreated | TaskRenamed | TaskDescriptionChanged | TaskMoved | TaskReordered
+  | TaskCreated
+  | TaskRenamed
+  | TaskDescriptionChanged
+  | TaskMoved
+  | TaskReordered
+  | TaskAssigned
+  | TaskUnassigned

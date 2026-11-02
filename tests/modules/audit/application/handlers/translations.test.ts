@@ -368,6 +368,23 @@ describe('translating task events', () => {
       names: [],
     })
   })
+
+  it.each([
+    ['boards.TaskAssigned', 'task.assigned'],
+    ['boards.TaskUnassigned', 'task.unassigned'],
+  ] as const)('records %s with the assignee', (type, action) => {
+    expect(
+      translate(event(type, 'task-1', { ...task, userId: 'user-ben' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onTask,
+        action,
+        details: { userId: 'user-ben' },
+      },
+      names: [],
+    })
+  })
 })
 
 describe('translating comment events', () => {

@@ -8,11 +8,13 @@ import { toMemberAddedV1 } from '@/modules/boards/application/contracts/member-a
 import { toMemberLeftV1 } from '@/modules/boards/application/contracts/member-left.v1'
 import { toMemberRemovedV1 } from '@/modules/boards/application/contracts/member-removed.v1'
 import { toOwnershipTransferredV1 } from '@/modules/boards/application/contracts/ownership-transferred.v1'
+import { toTaskAssignedV1 } from '@/modules/boards/application/contracts/task-assigned.v1'
 import { toTaskCreatedV1 } from '@/modules/boards/application/contracts/task-created.v1'
 import { toTaskDescriptionChangedV1 } from '@/modules/boards/application/contracts/task-description-changed.v1'
 import { toTaskMovedV1 } from '@/modules/boards/application/contracts/task-moved.v1'
 import { toTaskRenamedV1 } from '@/modules/boards/application/contracts/task-renamed.v1'
 import { toTaskReorderedV1 } from '@/modules/boards/application/contracts/task-reordered.v1'
+import { toTaskUnassignedV1 } from '@/modules/boards/application/contracts/task-unassigned.v1'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
 import type { CommentEvent } from '@/modules/boards/domain/comment/comment.events'
 import type { ListEvent } from '@/modules/boards/domain/list/list.events'
@@ -73,6 +75,10 @@ export function translateTaskEvents(
         return toTaskMovedV1(event)
       case 'TaskReordered':
         return toTaskReorderedV1(event)
+      case 'TaskAssigned':
+        return toTaskAssignedV1(event)
+      case 'TaskUnassigned':
+        return toTaskUnassignedV1(event)
     }
   })
 }

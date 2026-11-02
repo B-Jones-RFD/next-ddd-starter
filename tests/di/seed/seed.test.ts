@@ -93,6 +93,32 @@ describe('seed', () => {
     ])
   })
 
+  it('assigns several tasks, some to Ben, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = boards.ok ? boards.value[0]?.id : undefined
+    const board = await getBoard({ actorId: ada, boardId: boardId ?? '' })
+    const assigned = Object.fromEntries(
+      (board.ok ? board.value.lists : [])
+        .flatMap((list) => list.tasks)
+        .filter((task) => task.assignees.length > 0)
+        .map((task) => [
+          task.title,
+          task.assignees.map((assignee) => assignee.displayName),
+        ])
+    )
+    expect(assigned).toEqual({
+      'Write the press release': ['Ada'],
+      'Design the landing page': ['Ben'],
+      'Record the demo video': ['Ben', 'Ada'],
+      'Brief support': ['Ben'],
+      'Pick the launch date': ['Ada'],
+    })
+  })
+
   it('puts a few comments from Ada and Ben in the tasks’ Activity, once however often it runs', async () => {
     await seed()
     await seed()

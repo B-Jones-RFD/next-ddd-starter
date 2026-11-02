@@ -11,11 +11,13 @@ import type {
   MemberLeftV1,
   MemberRemovedV1,
   OwnershipTransferredV1,
+  TaskAssignedV1,
   TaskCreatedV1,
   TaskDescriptionChangedV1,
   TaskMovedV1,
   TaskRenamedV1,
   TaskReorderedV1,
+  TaskUnassignedV1,
 } from '@/modules/boards/contracts'
 import type {
   UserPasswordChangedV1,
@@ -47,6 +49,8 @@ export type AuditedEvent =
   | TaskDescriptionChangedV1
   | TaskMovedV1
   | TaskReorderedV1
+  | TaskAssignedV1
+  | TaskUnassignedV1
   | CommentAddedV1
 
 /** One event in audit's language: its entry, and any current names it tells. */
@@ -293,6 +297,24 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
         ...onTask(e),
         action: 'task.reordered',
         details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+    // A hand-over to the Owner is a Consequence: its causationId names the
+    // removal or leaving.
+    'boards.TaskAssigned': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.assigned',
+        details: { userId: e.payload.userId },
+      },
+      names: [],
+    }),
+    'boards.TaskUnassigned': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.unassigned',
+        details: { userId: e.payload.userId },
       },
       names: [],
     }),

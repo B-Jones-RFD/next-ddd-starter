@@ -61,6 +61,10 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `reordered the task in ${listName(names, entry.details.listId)}`
     case 'comment.added':
       return 'commented'
+    case 'task.assigned':
+      return `assigned ${personName(names, entry.details.userId)}`
+    case 'task.unassigned':
+      return `unassigned ${personName(names, entry.details.userId)}`
   }
 }
 // #endregion wording
