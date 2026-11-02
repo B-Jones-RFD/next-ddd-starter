@@ -27,6 +27,7 @@ export class TagNameTakenError extends DomainError {
   }
 }
 
+// #region owner-must-transfer-first
 /**
  * The Owner tried to leave, or to remove themself. A board always has
  * exactly one Owner, so they must transfer ownership first.
@@ -38,6 +39,7 @@ export class OwnerMustTransferFirstError extends DomainError {
     super('The Owner must transfer ownership before leaving')
   }
 }
+// #endregion owner-must-transfer-first
 
 /** The board is archived, so it is read-only until the Owner restores it. */
 export class BoardArchivedError extends DomainError {

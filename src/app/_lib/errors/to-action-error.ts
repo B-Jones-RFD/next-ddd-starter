@@ -35,10 +35,12 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
   description: {
     'too-long': 'Use 5000 characters or fewer.',
   },
+  // #region comment-wording
   text: {
     required: 'Write a comment.',
     'too-long': 'Use 2000 characters or fewer.',
   },
+  // #endregion comment-wording
   color: {
     invalid: 'Choose one of the tag colors.',
   },

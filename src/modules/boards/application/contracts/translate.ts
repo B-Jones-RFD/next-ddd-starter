@@ -119,6 +119,7 @@ export function translateTaskEvents(
   })
 }
 
+// #region comment-events
 /** The published translations of a comment's domain events (§6). */
 export function translateCommentEvents(
   events: readonly CommentEvent[]
@@ -130,3 +131,4 @@ export function translateCommentEvents(
     }
   })
 }
+// #endregion comment-events

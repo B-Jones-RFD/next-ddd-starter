@@ -87,7 +87,7 @@ An adapter never lets a raw driver error escape. It translates it into an `Infra
 
 The SQLite adapters do this through one helper in `src/shared/infrastructure/sqlite/`, which marks `SQLITE_BUSY` and `SQLITE_LOCKED` as retryable (see [Infrastructure](/infrastructure/)). A mock adapter that fails throws the same classes as its real twin, so callers never see a failure shape that production can't produce.
 
-`ExternalServiceError` has no user in this app. It is there because apps built from this template will call external services, and the split between "the database failed" and "a service failed" is cheaper to have from the start than to retrofit.
+`ExternalServiceError` has one user in this app: the password hasher throws it when `scrypt` fails (see [Exceptions](/exceptions/)). It is there because apps built from this template will call external services, and the split between "the database failed" and "a service failed" is cheaper to have from the start than to retrofit.
 
 An outage is never returned. Returning it would put it in every port's signature and force every caller to pass it up by hand, which is the cost [ADR 0005](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0005-ports-declare-their-errors-and-composition-catches-the-rest.md) paid and ADR 0008 removed.
 

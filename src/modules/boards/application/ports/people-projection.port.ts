@@ -2,11 +2,13 @@ import type { NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
+// #region person
 /** A user as boards knows them, learned from identity's events. */
 export type Person = {
   readonly userId: UserId
   readonly displayName: string
 }
+// #endregion person
 
 /** Which handler applied which event, for the inbox. */
 export type Receipt = {

@@ -53,6 +53,7 @@ export function unassignTask(
   return ok(without(task, userId))
 }
 
+// #region hand-over
 /**
  * A consequence of a Board member leaving or being removed: their
  * assignment on the task, archived or not, passes to the board's Owner, who
@@ -88,6 +89,7 @@ export function handOverToOwner(
     ],
   }
 }
+// #endregion hand-over
 
 function without(task: Task, userId: UserId): Change {
   if (!task.assignees.includes(userId)) return { state: task, events: [] }

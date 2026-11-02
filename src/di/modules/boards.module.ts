@@ -41,9 +41,11 @@ export async function loadBoardsModule(mode: AdapterMode) {
     boards
       .bind('ITaskRepository')
       .toFactory(() => new MockTaskRepository(outbox), 'singleton')
+    // #region comment-mock
     boards
       .bind('ICommentRepository')
       .toFactory(() => new MockCommentRepository(outbox), 'singleton')
+    // #endregion comment-mock
     boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
     return boards
   }
@@ -96,6 +98,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
         new TaskRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
       'singleton'
     )
+  // #region comment-real
   boards
     .bind('ICommentRepository')
     .toFactory(
@@ -106,6 +109,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
         ),
       'singleton'
     )
+  // #endregion comment-real
   boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
   return boards
 }

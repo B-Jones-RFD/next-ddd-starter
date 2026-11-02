@@ -11,6 +11,7 @@ export type SessionId = Brand<string, 'SessionId'>
 /** The SHA-256 of a session's cookie token. The token itself is never stored. */
 export type TokenHash = Brand<string, 'TokenHash'>
 
+// #region session
 /** One signed-in stretch of a user on one browser. */
 export type Session = {
   readonly id: SessionId
@@ -23,6 +24,7 @@ export type Session = {
   /** Owned by persistence: 0 until first saved (§5). */
   readonly version: number
 }
+// #endregion session
 
 const MINUTE_MS = 60_000
 const DAY_MS = 24 * 60 * MINUTE_MS
@@ -57,6 +59,7 @@ export function startSession(input: {
   }
 }
 
+// #region expiry
 /**
  * Whether the session still signs its user in: not ended, used within the
  * last 7 days, and started less than 30 days ago. Expiry is computed here,
@@ -70,7 +73,9 @@ export function isSessionActive(session: Session, now: Date): boolean {
     time - session.createdAt.getTime() < SESSION_ABSOLUTE_LIMIT_MS
   )
 }
+// #endregion expiry
 
+// #region touch
 /** Whether a use now should record `lastSeenAt`: at most once a minute. */
 export function isTouchDue(session: Session, now: Date): boolean {
   return (
@@ -82,6 +87,7 @@ export function isTouchDue(session: Session, now: Date): boolean {
 export function touchSession(session: Session, now: Date): Session {
   return { ...session, lastSeenAt: now }
 }
+// #endregion touch
 
 /**
  * The user signs out of this session, on its own or as the one they signed
