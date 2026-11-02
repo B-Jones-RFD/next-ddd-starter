@@ -14,12 +14,14 @@ export async function loadIdentityModule(mode: AdapterMode) {
       { MockSessionRepository },
       { MockPasswordHasher },
       { MockTokenGenerator },
+      { MockSignInThrottle },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/identity/infrastructure/user-repository.mock'),
       import('@/modules/identity/infrastructure/session-repository.mock'),
       import('@/modules/identity/infrastructure/password-hasher.mock'),
       import('@/modules/identity/infrastructure/token-generator.mock'),
+      import('@/modules/identity/infrastructure/sign-in-throttle.mock'),
     ])
     const outbox = new MockOutbox('identity')
     identity
@@ -34,6 +36,9 @@ export async function loadIdentityModule(mode: AdapterMode) {
     identity
       .bind('ITokenGenerator')
       .toClass(MockTokenGenerator, undefined, 'singleton')
+    identity
+      .bind('ISignInThrottle')
+      .toClass(MockSignInThrottle, undefined, 'singleton')
     return identity
   }
   // #endregion mock-mode
@@ -45,6 +50,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
     { SessionRepository },
     { PasswordHasher },
     { TokenGenerator },
+    { SignInThrottle },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
     import('@/shared/infrastructure/outbox/outbox'),
@@ -52,6 +58,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
     import('@/modules/identity/infrastructure/session-repository'),
     import('@/modules/identity/infrastructure/password-hasher'),
     import('@/modules/identity/infrastructure/token-generator'),
+    import('@/modules/identity/infrastructure/sign-in-throttle'),
   ])
   identity
     .bind('IUserRepository')
@@ -79,5 +86,8 @@ export async function loadIdentityModule(mode: AdapterMode) {
   identity
     .bind('ITokenGenerator')
     .toClass(TokenGenerator, undefined, 'singleton')
+  identity
+    .bind('ISignInThrottle')
+    .toClass(SignInThrottle, undefined, 'singleton')
   return identity
 }

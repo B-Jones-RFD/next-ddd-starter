@@ -7,12 +7,20 @@ export default function Home() {
       <p className='text-muted-foreground'>
         Organize work as tasks on shared boards.
       </p>
-      <Link
-        href='/sign-up'
-        className='rounded-sm font-medium text-foreground underline underline-offset-4'
-      >
-        Create an account
-      </Link>
+      <div className='flex gap-6'>
+        <Link
+          href='/sign-up'
+          className='rounded-sm font-medium text-foreground underline underline-offset-4'
+        >
+          Create an account
+        </Link>
+        <Link
+          href='/sign-in'
+          className='rounded-sm font-medium text-foreground underline underline-offset-4'
+        >
+          Sign in
+        </Link>
+      </div>
     </div>
   )
 }

@@ -24,6 +24,14 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
     'too-short': 'Use at least 8 characters.',
     'too-long': 'Use 128 characters or fewer.',
   },
+  currentPassword: {
+    required: 'Enter your current password.',
+  },
+  newPassword: {
+    required: 'Enter a new password.',
+    'too-short': 'Use at least 8 characters.',
+    'too-long': 'Use 128 characters or fewer.',
+  },
 }
 
 const ISSUE_WORDING: Record<string, string> = {
@@ -54,6 +62,17 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     fields: {
       email: 'That email is already registered. Sign in, or use another email.',
     },
+  }),
+  'identity.invalid-credentials': () => ({
+    message: 'That email and password don’t match. Check them and try again.',
+  }),
+  'identity.too-many-attempts': () => ({
+    message:
+      'Too many failed sign-ins for this email. Wait 15 minutes, then try again.',
+  }),
+  'identity.incorrect-password': () => ({
+    message: 'Your current password is incorrect.',
+    fields: { currentPassword: 'That isn’t your current password.' },
   }),
   unauthenticated: () => ({ message: 'Sign in to continue.' }),
   forbidden: () => ({ message: 'You can’t do that here.' }),

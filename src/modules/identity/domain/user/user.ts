@@ -9,7 +9,10 @@ import {
 } from '@/modules/identity/domain/user/password'
 import type { PasswordHash } from '@/modules/identity/domain/user/password-hash'
 import type { UserEvent } from '@/modules/identity/domain/user/user.events'
-import { ValidationError } from '@/shared/kernel/errors/domain-error'
+import {
+  ForbiddenError,
+  ValidationError,
+} from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -82,4 +85,60 @@ export function registerUser(input: {
       },
     ],
   }
+}
+
+type Change = { state: User; events: UserEvent[] }
+
+/** The user changes their own display name. The same name raises nothing. */
+export function renameUser(
+  user: User,
+  actorId: UserId,
+  rawDisplayName: string
+): Result<Change, ValidationError | ForbiddenError> {
+  if (actorId !== user.id) return err(new ForbiddenError())
+  const displayName = parseDisplayName(rawDisplayName)
+  if (!displayName.ok) return displayName
+  if (displayName.value === user.displayName) {
+    return ok({ state: user, events: [] })
+  }
+  return ok({
+    state: { ...user, displayName: displayName.value },
+    events: [
+      {
+        type: 'UserRenamed',
+        payload: {
+          userId: user.id,
+          from: user.displayName,
+          to: displayName.value,
+        },
+      },
+    ],
+  })
+}
+
+/**
+ * The user replaces their password. The caller has checked the current one
+ * and hashed the new one.
+ */
+export function changeUserPassword(
+  user: User,
+  actorId: UserId,
+  passwordHash: PasswordHash
+): Result<Change, ForbiddenError> {
+  if (actorId !== user.id) return err(new ForbiddenError())
+  return ok({
+    state: { ...user, passwordHash },
+    events: [{ type: 'UserPasswordChanged', payload: { userId: user.id } }],
+  })
+}
+
+/**
+ * Stores a stronger hash of the same password at sign-in (ADR 0009). The
+ * password didn't change, so nothing is raised.
+ */
+export function rehashUserPassword(
+  user: User,
+  passwordHash: PasswordHash
+): Change {
+  return { state: { ...user, passwordHash }, events: [] }
 }

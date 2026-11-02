@@ -3,12 +3,21 @@ import { describe, expect, it } from 'vitest'
 import { parseDisplayName } from '@/modules/identity/domain/user/display-name'
 import { parseEmail } from '@/modules/identity/domain/user/email'
 import { parsePassword } from '@/modules/identity/domain/user/password'
-import { parsePasswordHash } from '@/modules/identity/domain/user/password-hash'
 import {
+  parsePasswordHash,
+  type PasswordHash,
+} from '@/modules/identity/domain/user/password-hash'
+import {
+  changeUserPassword,
   parseRegistration,
   registerUser,
+  rehashUserPassword,
+  renameUser,
 } from '@/modules/identity/domain/user/user'
-import type { ValidationError } from '@/shared/kernel/errors/domain-error'
+import {
+  ForbiddenError,
+  type ValidationError,
+} from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
 import { aRegistration } from '@tests/fixtures/identity'
@@ -143,5 +152,99 @@ describe('registerUser', () => {
         payload: { userId: 'user-1', displayName: 'Ada' },
       },
     ])
+  })
+})
+
+function aSavedUser() {
+  return {
+    ...registerUser({
+      id: toUserId('user-1'),
+      ...aRegistration({ displayName: 'Ada' }),
+      now: new Date('2026-01-01T10:00:00.000Z'),
+    }).state,
+    version: 1,
+  }
+}
+
+describe('renameUser', () => {
+  it('changes the display name and raises UserRenamed with from and to', () => {
+    const user = aSavedUser()
+
+    const result = renameUser(user, user.id, ' Ada Lovelace ')
+
+    expect(result).toEqual({
+      ok: true,
+      value: {
+        state: { ...user, displayName: 'Ada Lovelace' },
+        events: [
+          {
+            type: 'UserRenamed',
+            payload: { userId: 'user-1', from: 'Ada', to: 'Ada Lovelace' },
+          },
+        ],
+      },
+    })
+  })
+
+  it('raises nothing when the name doesn’t change', () => {
+    const user = aSavedUser()
+
+    expect(renameUser(user, user.id, 'Ada')).toEqual({
+      ok: true,
+      value: { state: user, events: [] },
+    })
+  })
+
+  it('returns ValidationError for an invalid name', () => {
+    const user = aSavedUser()
+
+    expect(issues(renameUser(user, user.id, ' '))).toEqual({
+      displayName: 'required',
+    })
+  })
+
+  it('returns ForbiddenError for anyone but the user', () => {
+    const result = renameUser(aSavedUser(), toUserId('user-2'), 'Eve')
+
+    expect(result).toEqual({ ok: false, error: new ForbiddenError() })
+  })
+})
+
+describe('changeUserPassword', () => {
+  it('stores the new hash and raises UserPasswordChanged', () => {
+    const user = aSavedUser()
+    const newHash = 'mock$new' as PasswordHash
+
+    expect(changeUserPassword(user, user.id, newHash)).toEqual({
+      ok: true,
+      value: {
+        state: { ...user, passwordHash: newHash },
+        events: [
+          { type: 'UserPasswordChanged', payload: { userId: 'user-1' } },
+        ],
+      },
+    })
+  })
+
+  it('returns ForbiddenError for anyone but the user', () => {
+    const result = changeUserPassword(
+      aSavedUser(),
+      toUserId('user-2'),
+      'mock$new' as PasswordHash
+    )
+
+    expect(result).toEqual({ ok: false, error: new ForbiddenError() })
+  })
+})
+
+describe('rehashUserPassword', () => {
+  it('stores the stronger hash of the same password, raising nothing', () => {
+    const user = aSavedUser()
+    const newHash = 'scrypt$stronger' as PasswordHash
+
+    expect(rehashUserPassword(user, newHash)).toEqual({
+      state: { ...user, passwordHash: newHash },
+      events: [],
+    })
   })
 })

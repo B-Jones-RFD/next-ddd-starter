@@ -24,3 +24,22 @@ export async function signUp(
   await expect(page).toHaveURL('/boards')
   return visitor
 }
+
+/** Fills and submits the sign-in form on the current page. */
+export async function signInWith(
+  page: Page,
+  credentials: { email: string; password: string }
+) {
+  await page.getByLabel('Email').fill(credentials.email)
+  await page.getByLabel('Password').fill(credentials.password)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+}
+
+/** Signs out through the account menu and waits for `/sign-in`. */
+export async function signOut(page: Page, displayName: string) {
+  await page
+    .getByRole('button', { name: `Account menu for ${displayName}` })
+    .click()
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL('/sign-in')
+}

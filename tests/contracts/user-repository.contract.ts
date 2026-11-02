@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
+import type { DisplayName } from '@/modules/identity/domain/user/display-name'
 import type { Email } from '@/modules/identity/domain/user/email'
+import type { PasswordHash } from '@/modules/identity/domain/user/password-hash'
 import type { IUserRepository } from '@/modules/identity/domain/user/user-repository.port'
 import type { UserEvent } from '@/modules/identity/domain/user/user.events'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
@@ -116,6 +118,48 @@ export function describeUserRepositoryContract(make: Make) {
         causationId: null,
         payload: { userId: user.id, displayName: user.displayName },
       })
+    })
+
+    it('saves changed fields and publishes a rename with from and to, and a password change', async () => {
+      const { repository, outbox } = make()
+      const user = aUser()
+      const origin = { actorId: user.id, causationId: null }
+      const saved = await repository.save(user, [], origin)
+      if (!saved.ok) throw new Error('setup failed')
+      const changed = {
+        ...saved.value,
+        displayName: 'Ada Lovelace' as DisplayName,
+        passwordHash: 'mock$changed' as PasswordHash,
+      }
+
+      const result = await repository.save(
+        changed,
+        [
+          {
+            type: 'UserRenamed',
+            payload: {
+              userId: user.id,
+              from: user.displayName,
+              to: 'Ada Lovelace',
+            },
+          },
+          { type: 'UserPasswordChanged', payload: { userId: user.id } },
+        ],
+        origin
+      )
+
+      expect(result).toEqual({ ok: true, value: { ...changed, version: 2 } })
+      expect(await repository.findById(user.id)).toEqual(result)
+      const published = (await outbox.pending(10))
+        .filter((row) => row.scope === 'integration')
+        .map((row) => [row.envelope.type, row.envelope.payload])
+      expect(published).toEqual([
+        [
+          'identity.UserRenamed',
+          { userId: user.id, from: user.displayName, to: 'Ada Lovelace' },
+        ],
+        ['identity.UserPasswordChanged', { userId: user.id }],
+      ])
     })
   })
 }

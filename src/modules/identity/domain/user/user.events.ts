@@ -7,4 +7,19 @@ export type UserRegistered = DomainEvent<
   { userId: UserId; displayName: string }
 >
 
-export type UserEvent = UserRegistered
+/** A user changed their display name. Translated to `identity.UserRenamed.v1`. */
+export type UserRenamed = DomainEvent<
+  'UserRenamed',
+  { userId: UserId; from: string; to: string }
+>
+
+/**
+ * A user changed their password. Translated to
+ * `identity.UserPasswordChanged.v1`.
+ */
+export type UserPasswordChanged = DomainEvent<
+  'UserPasswordChanged',
+  { userId: UserId }
+>
+
+export type UserEvent = UserRegistered | UserRenamed | UserPasswordChanged

@@ -18,7 +18,7 @@ import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { EventOrigin } from '@/shared/kernel/events'
 import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
-import { toUserId } from '@/shared/kernel/user-id'
+import { toUserId, type UserId } from '@/shared/kernel/user-id'
 
 const PORT = 'ISessionRepository'
 
@@ -28,6 +28,7 @@ type Row = {
   token_hash: string
   created_at: string
   last_seen_at: string
+  ended_at: string | null
   version: number
 }
 
@@ -38,6 +39,7 @@ function toSession(row: Row): Session {
     tokenHash: row.token_hash as TokenHash,
     createdAt: new Date(row.created_at),
     lastSeenAt: new Date(row.last_seen_at),
+    endedAt: row.ended_at === null ? null : new Date(row.ended_at),
     version: row.version,
   }
 }
@@ -64,6 +66,17 @@ export class SessionRepository implements ISessionRepository {
       : err(new NotFoundError('Session', 'by-token'))
   }
 
+  async findByUserId(userId: UserId): Promise<Session[]> {
+    const rows = query(
+      PORT,
+      () =>
+        this.db
+          .prepare('SELECT * FROM identity_sessions WHERE user_id = ?')
+          .all(userId) as Row[]
+    )
+    return rows.map(toSession)
+  }
+
   async save(
     session: Session,
     events: readonly SessionEvent[],
@@ -77,6 +90,7 @@ export class SessionRepository implements ISessionRepository {
       domainEvents: events,
       integrationEvents: translateSessionEvents(events),
     })
+    const endedAt = session.endedAt?.toISOString() ?? null
 
     const written = transaction(this.db, PORT, () => {
       const { changes } =
@@ -84,8 +98,9 @@ export class SessionRepository implements ISessionRepository {
           ? this.db
               .prepare(
                 `INSERT INTO identity_sessions
-                   (id, user_id, token_hash, created_at, last_seen_at, version)
-                 VALUES (?, ?, ?, ?, ?, 1)
+                   (id, user_id, token_hash, created_at, last_seen_at,
+                    ended_at, version)
+                 VALUES (?, ?, ?, ?, ?, ?, 1)
                  ON CONFLICT DO NOTHING`
               )
               .run(
@@ -93,16 +108,18 @@ export class SessionRepository implements ISessionRepository {
                 session.userId,
                 session.tokenHash,
                 session.createdAt.toISOString(),
-                session.lastSeenAt.toISOString()
+                session.lastSeenAt.toISOString(),
+                endedAt
               )
           : this.db
               .prepare(
                 `UPDATE identity_sessions
-                 SET last_seen_at = ?, version = version + 1
+                 SET last_seen_at = ?, ended_at = ?, version = version + 1
                  WHERE id = ? AND version = ?`
               )
               .run(
                 session.lastSeenAt.toISOString(),
+                endedAt,
                 session.id,
                 session.version
               )
@@ -115,5 +132,13 @@ export class SessionRepository implements ISessionRepository {
       return err(new ConflictError('Session', session.id))
     }
     return ok({ ...session, version })
+  }
+
+  async touch(id: SessionId, lastSeenAt: Date): Promise<void> {
+    query(PORT, () =>
+      this.db
+        .prepare('UPDATE identity_sessions SET last_seen_at = ? WHERE id = ?')
+        .run(lastSeenAt.toISOString(), id)
+    )
   }
 }

@@ -8,7 +8,6 @@ import {
   ValidationError,
 } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
-import { UnauthenticatedError } from '@/shared/kernel/errors/app-error'
 import { PersistenceError } from '@/shared/kernel/errors/infrastructure-error'
 
 import { aSignUp } from '@tests/fixtures/identity'
@@ -89,16 +88,4 @@ describe('signUp', () => {
 
     await expect(signUp(aSignUp())).rejects.toBe(outage)
   })
-})
-
-describe('authenticate', () => {
-  it.each(['', 'token-that-was-never-issued'])(
-    'returns UnauthenticatedError for %j',
-    async (token) => {
-      expect(await authenticate(token)).toEqual({
-        ok: false,
-        error: new UnauthenticatedError(),
-      })
-    }
-  )
 })

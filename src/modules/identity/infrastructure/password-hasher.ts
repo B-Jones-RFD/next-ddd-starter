@@ -66,4 +66,14 @@ export class PasswordHasher implements IPasswordHasher {
     const stored = Buffer.from(expected, 'base64url')
     return stored.length === key.length && timingSafeEqual(stored, key)
   }
+
+  needsRehash(hash: PasswordHash): boolean {
+    const [algorithm, n, r, p] = hash.split('$')
+    return (
+      algorithm !== 'scrypt' ||
+      Number(n) !== PARAMS.N ||
+      Number(r) !== PARAMS.r ||
+      Number(p) !== PARAMS.p
+    )
+  }
 }

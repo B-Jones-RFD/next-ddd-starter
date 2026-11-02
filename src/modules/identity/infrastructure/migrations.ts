@@ -50,3 +50,11 @@ export const identity001: Migration = {
     CREATE INDEX identity_outbox_status ON identity_outbox (status, seq);
   `,
 }
+
+export const identity002: Migration = {
+  context: 'identity',
+  name: '002-session-ended-at',
+  sql: `
+    ALTER TABLE identity_sessions ADD COLUMN ended_at TEXT;
+  `,
+}

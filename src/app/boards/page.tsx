@@ -24,7 +24,7 @@ export default function BoardsPage() {
 }
 
 async function Boards() {
-  const actor = await requireActor()
+  const actor = await requireActor('/boards')
   const boards = await listBoards({ actorId: actor.userId })
   // The actor id comes from a valid session, so this is a bug if it happens.
   if (!boards.ok) throw boards.error

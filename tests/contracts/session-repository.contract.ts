@@ -12,6 +12,8 @@ import { toUserId } from '@/shared/kernel/user-id'
 
 type Make = () => { repository: ISessionRepository; outbox: IOutbox }
 
+const later = new Date('2026-01-02T10:00:00.000Z')
+
 let sequence = 0
 function aSession(): Session {
   sequence += 1
@@ -22,6 +24,7 @@ function aSession(): Session {
     tokenHash: `hash-${sequence}` as TokenHash,
     createdAt: now,
     lastSeenAt: now,
+    endedAt: null,
     version: 0,
   }
 }
@@ -65,20 +68,111 @@ export function describeSessionRepositoryContract(make: Make) {
       })
     })
 
-    it('writes its events as domain rows', async () => {
+    it('writes each event as a domain row and its translation as an integration row', async () => {
       const { repository, outbox } = make()
       const session = aSession()
+      const origin = { actorId: session.userId, causationId: null }
 
-      await repository.save(
+      const saved = await repository.save(
         session,
         [{ type: 'SessionStarted', payload: { userId: session.userId } }],
-        { actorId: session.userId, causationId: null }
+        origin
+      )
+      if (!saved.ok) throw new Error('setup failed')
+      await repository.save(
+        { ...saved.value, endedAt: later },
+        [
+          {
+            type: 'SessionSignedOut',
+            payload: { userId: session.userId, everywhere: true },
+          },
+        ],
+        origin
       )
 
       const rows = await outbox.pending(10)
       expect(rows.map((row) => [row.scope, row.envelope.type])).toEqual([
         ['domain', 'SessionStarted'],
+        ['integration', 'identity.UserSignedIn'],
+        ['domain', 'SessionSignedOut'],
+        ['integration', 'identity.UserSignedOut'],
       ])
+      expect(rows.map((row) => row.envelope.payload)).toEqual([
+        { userId: session.userId },
+        { userId: session.userId },
+        { userId: session.userId, everywhere: true },
+        { userId: session.userId, everywhere: true },
+      ])
+    })
+
+    it('publishes nothing for a session ended as a consequence', async () => {
+      const { repository, outbox } = make()
+      const session = aSession()
+
+      await repository.save(
+        session,
+        [
+          {
+            type: 'SessionEnded',
+            payload: { userId: session.userId, reason: 'password-changed' },
+          },
+        ],
+        { actorId: session.userId, causationId: null }
+      )
+
+      const rows = await outbox.pending(10)
+      expect(rows.map((row) => row.scope)).toEqual(['domain'])
+    })
+
+    it('keeps an ended session, with when it ended', async () => {
+      const { repository } = make()
+      const session = aSession()
+      const origin = { actorId: session.userId, causationId: null }
+      const saved = await repository.save(session, [], origin)
+      if (!saved.ok) throw new Error('setup failed')
+
+      await repository.save({ ...saved.value, endedAt: later }, [], origin)
+
+      expect(await repository.findByTokenHash(session.tokenHash)).toEqual({
+        ok: true,
+        value: { ...session, endedAt: later, version: 2 },
+      })
+    })
+
+    it('finds every session of a user', async () => {
+      const { repository } = make()
+      const first = aSession()
+      const second = { ...aSession(), userId: first.userId }
+      const stranger = aSession()
+      for (const session of [first, second, stranger]) {
+        await repository.save(session, [], {
+          actorId: session.userId,
+          causationId: null,
+        })
+      }
+
+      const found = await repository.findByUserId(first.userId)
+
+      expect(found.map((session) => session.id).sort()).toEqual(
+        [first.id, second.id].sort()
+      )
+    })
+
+    it('touches lastSeenAt without changing the version or writing events', async () => {
+      const { repository, outbox } = make()
+      const session = aSession()
+      await repository.save(session, [], {
+        actorId: session.userId,
+        causationId: null,
+      })
+
+      await repository.touch(session.id, later)
+
+      expect(await repository.findByTokenHash(session.tokenHash)).toEqual({
+        ok: true,
+        value: { ...session, lastSeenAt: later, version: 1 },
+      })
+      expect(await outbox.pending(10)).toEqual([])
     })
   })
 }
