@@ -15,6 +15,7 @@ import {
 import { keyBetween } from '@/shared/kernel/key-between'
 import { err, ok, type Result } from '@/shared/kernel/result'
 
+// #region list
 /** A named, ordered column on a board that holds tasks. */
 export type List = {
   readonly id: ListId
@@ -33,6 +34,7 @@ export type List = {
  * the operation (a read-check), or undefined if they aren't a Board member.
  */
 export type Membership = Role | undefined
+// #endregion list
 
 type Change = { state: List; events: ListEvent[] }
 
