@@ -16,6 +16,7 @@ export async function signUpAction(
   // Everything but the password is echoed back to refill the form.
   const values = { displayName: input.displayName, email: input.email }
 
+  // #region errors
   let token: string
   try {
     const result = await signUp(input)
@@ -30,4 +31,5 @@ export async function signUpAction(
   await setSessionCookie(token)
   // `redirect` throws, so it stays outside the try.
   redirect('/boards')
+  // #endregion errors
 }

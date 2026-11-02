@@ -6,6 +6,7 @@ type InfrastructureErrorOptions = {
   message?: string
 }
 
+// #region infrastructure-error
 /**
  * An outage, translated by an adapter. It is thrown, never returned (§7).
  * `port` names the port whose adapter failed, and `retryable` says whether
@@ -36,6 +37,7 @@ export class PersistenceError extends InfrastructureError {
     super(port, `${port} failed to reach the database`, options)
   }
 }
+// #endregion infrastructure-error
 
 /**
  * An external service failed. Unused here: it is the pattern for apps that
