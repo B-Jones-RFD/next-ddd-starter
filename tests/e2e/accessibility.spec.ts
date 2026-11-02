@@ -3,17 +3,26 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
-import { signUp } from '@tests/fixtures/visitors'
+import { createBoardNamed, signUp } from '@tests/fixtures/visitors'
 
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
-// the sweep checks it in both themes. `path` is visited as-is, after `arrange`
-// (which signs a visitor up, for screens behind a session).
+// the sweep checks it in both themes. `path` is visited after `arrange` (which
+// signs a visitor up, for screens behind a session); a function path is
+// worked out from where `arrange` left the page.
 type Screen = {
   name: string
-  path: string
+  path: string | ((page: Page) => string)
   status?: number
   arrange?: (page: Page) => Promise<unknown>
 }
+
+/** Signs up and creates a board, leaving the page on it. */
+async function withBoard(page: Page) {
+  await signUp(page)
+  await createBoardNamed(page, 'Launch plan')
+}
+
+const here = (page: Page) => new URL(page.url()).pathname
 
 const SCREENS: Screen[] = [
   { name: 'home', path: '/' },
@@ -22,6 +31,13 @@ const SCREENS: Screen[] = [
   { name: 'sign in', path: '/sign-in' },
   { name: 'boards (empty)', path: '/boards', arrange: signUp },
   { name: 'account', path: '/account', arrange: signUp },
+  { name: 'boards (grid)', path: '/boards', arrange: withBoard },
+  { name: 'board', path: here, arrange: withBoard },
+  {
+    name: 'board settings',
+    path: (page) => `${here(page)}/settings`,
+    arrange: withBoard,
+  },
 ]
 
 const THEMES = ['light', 'dark'] as const
@@ -44,7 +60,9 @@ for (const theme of THEMES) {
     for (const screen of SCREENS) {
       test(`${screen.name} has no WCAG 2.2 AA violations`, async ({ page }) => {
         await screen.arrange?.(page)
-        const response = await page.goto(screen.path)
+        const path =
+          typeof screen.path === 'string' ? screen.path : screen.path(page)
+        const response = await page.goto(path)
         expect(response?.status()).toBe(screen.status ?? 200)
         const html = page.locator('html')
         await expect(html).toHaveAttribute('data-theme', theme)

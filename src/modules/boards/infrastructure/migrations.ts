@@ -44,3 +44,26 @@ export const boards001: Migration = {
     CREATE INDEX boards_outbox_status ON boards_outbox (status, seq);
   `,
 }
+
+export const boards002: Migration = {
+  context: 'boards',
+  name: '002-boards-members',
+  sql: `
+    CREATE TABLE boards_boards (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      version INTEGER NOT NULL
+    );
+
+    CREATE TABLE boards_members (
+      board_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'member')),
+      position INTEGER NOT NULL,
+      PRIMARY KEY (board_id, user_id)
+    );
+    CREATE INDEX boards_members_user_id ON boards_members (user_id);
+  `,
+}

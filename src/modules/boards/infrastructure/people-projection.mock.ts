@@ -13,13 +13,18 @@ type Store = {
   inbox: Set<string>
 }
 
+/** The mock people store, shared with `MockBoardReader`. */
+export function mockPeople(): Store {
+  return mockStore('boards.people', () => ({
+    people: new Map(),
+    inbox: new Set<string>(),
+  }))
+}
+
 /** In-memory twin of `PeopleProjection`: same inbox and version rules. */
 export class MockPeopleProjection implements IPeopleProjection {
   private store(): Store {
-    return mockStore('boards.people', () => ({
-      people: new Map(),
-      inbox: new Set<string>(),
-    }))
+    return mockPeople()
   }
 
   async record(
