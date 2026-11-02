@@ -86,6 +86,7 @@ describe('createBoard', () => {
   })
 })
 
+// #region rename-board
 describe('renameBoard', () => {
   const owner = toUserId('user-owner')
   const member = toUserId('user-member')
@@ -139,6 +140,7 @@ describe('renameBoard', () => {
     })
   })
 })
+// #endregion rename-board
 
 describe('Board membership', () => {
   const owner = toUserId('user-owner')
