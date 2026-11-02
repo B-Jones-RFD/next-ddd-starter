@@ -19,6 +19,7 @@ import {
 // The board's actions. Bound ids are untrusted: the domain checks the actor
 // is a Board member of the list's or task's board.
 
+// #region create-list-action
 /** Adds a list to the end of the board, then re-renders it. */
 export async function createListAction(
   boardId: string,
@@ -44,6 +45,7 @@ export async function createListAction(
   refresh()
   return { status: 'success' }
 }
+// #endregion create-list-action
 
 /** Renames a list, then re-renders the board. */
 export async function renameListAction(
