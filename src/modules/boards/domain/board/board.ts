@@ -23,6 +23,7 @@ import {
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
+// #region member
 /** A Board member's role. A board has exactly one Owner. */
 export type Role = 'owner' | 'member'
 
@@ -31,6 +32,7 @@ export type BoardMember = {
   readonly userId: UserId
   readonly role: Role
 }
+// #endregion member
 
 /** A shared space, visible only to its Board members, that holds lists. */
 export type Board = {
