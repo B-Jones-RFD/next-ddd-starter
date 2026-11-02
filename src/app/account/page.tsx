@@ -10,6 +10,7 @@ import {
 
 export const metadata: Metadata = { title: 'Your account' }
 
+// #region account-page
 export default function AccountPage() {
   return (
     <div className='mx-auto flex w-full max-w-md flex-col gap-8'>
@@ -29,6 +30,7 @@ export default function AccountPage() {
 
 async function AccountSections() {
   const actor = await requireActor('/account')
+  // #endregion account-page
 
   return (
     <>

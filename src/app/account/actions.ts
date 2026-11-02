@@ -19,6 +19,7 @@ import {
 
 const SIGN_IN = signInPath('/account')
 
+// #region rename-action
 /** Changes the signed-in user's display name, then re-renders the page. */
 export async function renameAction(
   _previous: ActionState,
@@ -39,6 +40,7 @@ export async function renameAction(
   refresh()
   return { status: 'success' }
 }
+// #endregion rename-action
 
 /**
  * Changes the signed-in user's password. Their other sessions end, and this

@@ -89,6 +89,7 @@ export function registerUser(input: {
 
 type Change = { state: User; events: UserEvent[] }
 
+// #region rename-user
 /** The user changes their own display name. The same name raises nothing. */
 export function renameUser(
   user: User,
@@ -115,6 +116,7 @@ export function renameUser(
     ],
   })
 }
+// #endregion rename-user
 
 /**
  * The user replaces their password. The caller has checked the current one
