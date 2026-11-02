@@ -56,7 +56,7 @@ async function Tags({ params }: Pick<Props, 'params'>) {
         </Link>
         <h1 className='font-heading text-2xl font-semibold'>Board settings</h1>
       </div>
-      <SettingsTabs boardId={id} current='tags' />
+      <SettingsTabs boardId={id} current='tags' role={board.value.role} />
       <section
         aria-labelledby={TAGS_HEADING_ID}
         className='flex max-w-2xl flex-col gap-4'

@@ -130,6 +130,14 @@ export class EventRelay implements IEventRelay {
     return run
   }
 
+  async replayFailed(): Promise<number> {
+    let replayed = 0
+    for (const outbox of this.outboxes) {
+      replayed += await outbox.replayFailed()
+    }
+    return replayed
+  }
+
   /** One pass over every outbox. Returns how many rows it processed. */
   private async cycle(): Promise<number> {
     const now = Date.now()
