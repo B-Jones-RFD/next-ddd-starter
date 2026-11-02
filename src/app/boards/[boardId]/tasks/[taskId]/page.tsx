@@ -53,7 +53,7 @@ async function Task({
       </h1>
       <TaskDetails
         task={task.value}
-        formKey={actor.userId}
+        actorId={actor.userId}
         searchParams={searchParams}
       />
     </div>

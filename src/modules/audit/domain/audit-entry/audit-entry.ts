@@ -56,6 +56,8 @@ export type AuditEntry =
   | Entry<'task', 'task.description-changed', Change>
   | Entry<'task', 'task.moved', { fromListId: string; toListId: string }>
   | Entry<'task', 'task.reordered', { listId: string }>
+  | Entry<'task', 'task.assigned', { userId: string }>
+  | Entry<'task', 'task.unassigned', { userId: string }>
 // #endregion audit-entry
 
 export type AuditAction = AuditEntry['action']
