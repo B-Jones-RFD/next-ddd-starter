@@ -84,7 +84,7 @@ async function Members({ params, searchParams }: Props) {
         >
           Members
         </h2>
-        <AvatarStack members={members} />
+        <AvatarStack people={members} />
         <ul className='flex flex-col divide-y divide-border rounded-xl border border-border'>
           {members.map((member) => (
             <li

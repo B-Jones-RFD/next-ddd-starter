@@ -20,6 +20,7 @@ export function aTask(overrides: Partial<Task> = {}): Task {
     title: `Task ${sequence}` as TaskTitle,
     description: '' as TaskDescription,
     position: 'V',
+    assignees: [],
     archived: false,
     createdAt: new Date('2026-01-01T10:00:00.000Z'),
     version: 1,

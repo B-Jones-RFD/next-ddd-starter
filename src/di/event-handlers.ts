@@ -8,6 +8,10 @@ import {
   recordUserRenamed,
 } from '@/modules/boards/application/handlers/record-user-renamed'
 import {
+  REASSIGN_TO_OWNER,
+  reassignToOwner,
+} from '@/modules/boards/application/handlers/reassign-to-owner'
+import {
   eventHandler,
   type EventHandler,
 } from '@/shared/kernel/ports/event-relay.port'
@@ -28,6 +32,19 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     eventType: 'identity.UserRenamed',
     version: 1,
     handle: recordUserRenamed,
+  }),
+  // The published events, so causationId names an Audit entry (ADR 0010).
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'boards.MemberRemoved',
+    version: 1,
+    handle: reassignToOwner,
+  }),
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'boards.MemberLeft',
+    version: 1,
+    handle: reassignToOwner,
   }),
   // One per identity and boards v1 contract (ADR 0010).
   ...AUDIT_HANDLERS,

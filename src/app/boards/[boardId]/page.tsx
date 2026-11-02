@@ -40,7 +40,7 @@ async function Board({
           <h1 className='font-heading text-2xl font-semibold break-words'>
             {board.value.name}
           </h1>
-          <AvatarStack members={board.value.members} />
+          <AvatarStack people={board.value.members} />
         </div>
         <nav aria-label='Board'>
           <Link

@@ -160,6 +160,7 @@ export class EventRelay implements IEventRelay {
       async (span) => {
         setAppAttributes(span, { [APP_OUTBOX_ROWS]: claimed })
         try {
+          // #region streams
           let processed = 0
           for (const { outbox, rows } of batches) {
             for (const row of rows) {
@@ -168,6 +169,7 @@ export class EventRelay implements IEventRelay {
               if ((await this.deliver(outbox, row)) === 'retrying') break
             }
           }
+          // #endregion streams
           return processed
         } finally {
           span.end()
@@ -176,6 +178,7 @@ export class EventRelay implements IEventRelay {
     )
   }
 
+  // #region handlers-for
   private handlersFor(outbox: IOutbox, row: PendingOutboxRow): EventHandler[] {
     return this.handlers.filter(
       (handler) =>
@@ -185,6 +188,7 @@ export class EventRelay implements IEventRelay {
           handler.name.startsWith(`${outbox.name}.`))
     )
   }
+  // #endregion handlers-for
 
   private async deliver(
     outbox: IOutbox,
@@ -261,6 +265,7 @@ export class EventRelay implements IEventRelay {
     )
   }
 
+  // #region record-failure
   private async recordFailure(
     outbox: IOutbox,
     row: PendingOutboxRow,
@@ -297,4 +302,5 @@ export class EventRelay implements IEventRelay {
     logger.error('outbox.row.failed', { ...fields, attempts, err: error })
     return 'failed'
   }
+  // #endregion record-failure
 }

@@ -82,6 +82,23 @@ async function openMovePicker(page: Page) {
   await settled(page)
 }
 
+/** In the open task dialog, assigns the visitor themself with the picker. */
+async function assignSelf(page: Page) {
+  await openTask(page)
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: /^Unassign / })).toBeVisible()
+}
+
+/** A task with an assignee, leaving the page on the board. */
+async function withAssignee(page: Page) {
+  await withTasks(page)
+  await assignSelf(page)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('img', { name: /^Assignees: / })).toBeVisible()
+}
+
 const PHONE = { width: 390, height: 844 }
 
 /**
@@ -130,6 +147,13 @@ const SCREENS: Screen[] = [
     act: openTask,
     viewport: PHONE,
   },
+  {
+    name: 'assignee picker with an assignee',
+    path: here,
+    arrange: withTasks,
+    act: assignSelf,
+  },
+  { name: 'board with an assigned task', path: here, arrange: withAssignee },
   // A direct load of the task's path is its full page.
   { name: 'task page', path: here, arrange: withTaskOpen },
   {
