@@ -181,6 +181,7 @@ function without(board: Board, userId: UserId): Board {
   }
 }
 
+// #region rename-board
 /** The Owner renames the board. The same name raises nothing. */
 export function renameBoard(
   board: Board,
@@ -202,6 +203,7 @@ export function renameBoard(
     ],
   })
 }
+// #endregion rename-board
 
 // #region archive-board
 /**
