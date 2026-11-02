@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+/* #region dark-variant */
 /* Theme (ADR 0018): an explicit choice sets `data-theme` on <html>. With no
    `data-theme`, the theme follows `prefers-color-scheme`, so System works
    before hydration and without JS. */
@@ -15,6 +16,7 @@
     }
   }
 }
+/* #endregion dark-variant */
 
 @theme inline {
   --color-background: var(--background);
@@ -147,6 +149,7 @@
   }
 }
 
+/* #region reduced-motion */
 /* Reduced motion (§10): dialogs, sheets and menus become instant, and smooth
    scrolling turns off. Components add `motion-safe:` to any motion they use. */
 @media (prefers-reduced-motion: reduce) {
@@ -159,3 +162,4 @@
     scroll-behavior: auto !important;
   }
 }
+/* #endregion reduced-motion */

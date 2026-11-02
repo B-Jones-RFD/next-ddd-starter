@@ -68,12 +68,12 @@ Site: [Domain](https://b-jones-rfd.github.io/next-ddd-starter/domain/)
 - **Return `{ state, events }` from every operation that changes state.** The domain raises events. It never saves, publishes or writes the audit log. `type`
 
   ```ts
-  renameTask(task, actor, title, now): Result<{ state: Task; events: TaskEvent[] }, DomainError>
+  renameTask(task, membership, title): Result<{ state: Task; events: TaskEvent[] }, DomainError>
   ```
 
 - **Keep aggregates small, and refer between them by id only.** One aggregate holding everything would lock it all for every edit. `review`
 - **Give each aggregate its own folder** in `domain/`, holding the root, its value objects, `<aggregate>.events.ts`, `<aggregate>.errors.ts` and `<aggregate>-repository.port.ts`. Logic spanning aggregates goes in `domain/services/*.service.ts`. The repository interface is part of the aggregate's language. `review`
-- **Check permissions inside the operation.** An operation that needs a role takes the actor and returns `ForbiddenError` itself, so authorization never depends on the caller remembering. `test`
+- **Check permissions inside the operation.** An operation that needs a role takes the actor, or the actor's role read from another aggregate (a read-check), and returns `ForbiddenError` itself, so authorization never depends on the caller remembering. `test`
 - **Build every field as a value object through a parse function** that trims, enforces limits and returns `ValidationError`. The domain owns the rules. Zod only checks shape (§4). `test`
 - **Pass `now` and new ids into domain functions as arguments.** The domain stays deterministic, and there is no clock port. `review`
 - **Give every aggregate a `version`.** Persistence owns it (§5). `review`

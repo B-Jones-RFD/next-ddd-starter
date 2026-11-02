@@ -14,12 +14,14 @@ const DARK_QUERY = '(prefers-color-scheme: dark)'
 
 const listeners = new Set<() => void>()
 
+// #region theme-script
 /**
  * Runs in `<head>` before first paint. It sets `data-theme` only for an
  * explicit Light or Dark, and leaves System to `prefers-color-scheme` in CSS,
  * so the system theme works without JS.
  */
 export const themeScript = `(function(){try{var t=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`
+// #endregion theme-script
 
 function isExplicit(value: string | null): value is Theme {
   return value === 'light' || value === 'dark'

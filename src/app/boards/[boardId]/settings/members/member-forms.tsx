@@ -15,6 +15,7 @@ import {
 /** The id of the Members heading, where focus goes when its control goes. */
 export const MEMBERS_HEADING_ID = 'members-heading'
 
+// #region button-form
 /**
  * One button in its own form, with its alert. The control that was pressed
  * goes away on success (its row, or the Owner's controls), so focus moves to
@@ -45,6 +46,7 @@ function ButtonForm({
     </form>
   )
 }
+// #endregion button-form
 
 /** Adds the user the Owner found by email. */
 export function AddMemberForm({

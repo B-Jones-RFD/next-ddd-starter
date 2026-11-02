@@ -47,6 +47,7 @@ type Change = { state: Task; events: TaskEvent[] }
 /** The tasks a task will sit between: give one to put it first or last. */
 export type TaskPlace = { after?: Task; before?: Task }
 
+// #region create-task
 /** A Board member adds a task to the end of an active list, after `after`. */
 export function createTask(input: {
   id: TaskId
@@ -89,7 +90,9 @@ export function createTask(input: {
     ],
   })
 }
+// #endregion create-task
 
+// #region rename-task
 /** A Board member renames a task. The same title raises nothing. */
 export function renameTask(
   task: Task,
@@ -115,6 +118,7 @@ export function renameTask(
     ],
   })
 }
+// #endregion rename-task
 
 /**
  * A Board member changes a task's description, or clears it. The same
