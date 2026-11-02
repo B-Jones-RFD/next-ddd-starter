@@ -1,27 +1,33 @@
 import { Suspense } from 'react'
 
 import { ArchivedBadge } from '@/app/_components/archived-badge'
+import { TagBadge } from '@/app/_components/tags/tag-badge'
+import { assigneesHeadingId } from '@/app/boards/[boardId]/task-places'
+import { AssigneeForms } from '@/app/boards/[boardId]/tasks/[taskId]/assignee-forms'
 import { TaskActivity } from '@/app/boards/[boardId]/tasks/[taskId]/task-activity'
 import {
   TaskDescriptionForm,
   TaskTitleForm,
 } from '@/app/boards/[boardId]/tasks/[taskId]/task-forms'
-import type { TaskDto } from '@/modules/boards/api'
+import { TaskTags } from '@/app/boards/[boardId]/tasks/[taskId]/task-tags'
+import { getBoard, type TaskDto } from '@/modules/boards/api'
+import type { ActorDto } from '@/modules/identity/api'
 
 /**
  * The task's body, shared by its dialog and its page, under the heading
  * each gives it: where it sits, its title and description forms, then its
- * Activity in its own `<Suspense>`. An archived task, or any task on an
- * archived board, is read-only: it shows its description instead of forms.
+ * sections, each in its own `<Suspense>`, with Activity last. An archived
+ * task, or any task on an archived board, is read-only: it shows its
+ * description, assignees and tags instead of their forms.
  */
 export function TaskDetails({
   task,
-  formKey,
+  actorId,
   searchParams,
 }: {
   task: TaskDto
-  /** Keys the forms, so a sign-out never leaves half-typed text. */
-  formKey: string
+  /** The reader. It also keys the forms, so a sign-out never leaves half-typed text. */
+  actorId: ActorDto['userId']
   /** The route's query, which pages the Activity. */
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
@@ -38,15 +44,44 @@ export function TaskDetails({
       ) : (
         <>
           <TaskTitleForm
-            key={`${formKey}-title`}
+            key={`${actorId}-title`}
             boardId={task.boardId}
             task={task}
           />
           <TaskDescriptionForm
-            key={`${formKey}-description`}
+            key={`${actorId}-description`}
             boardId={task.boardId}
             task={task}
           />
+          <section
+            aria-labelledby={assigneesHeadingId(task.id)}
+            className='flex flex-col gap-3'
+          >
+            {/* Focusable only by script: focus lands here after an unassign. */}
+            <h2
+              id={assigneesHeadingId(task.id)}
+              tabIndex={-1}
+              className='rounded-sm font-heading text-lg font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring'
+            >
+              Assignees
+            </h2>
+            <Suspense
+              fallback={
+                <p role='status' className='text-sm text-muted-foreground'>
+                  Loading assignees…
+                </p>
+              }
+            >
+              <Assignees key={actorId} task={task} actorId={actorId} />
+            </Suspense>
+          </section>
+          <Suspense
+            fallback={
+              <p className='text-sm text-muted-foreground'>Loading tags…</p>
+            }
+          >
+            <TaskTags task={task} />
+          </Suspense>
         </>
       )}
       <Suspense
@@ -76,7 +111,7 @@ function ReadOnlyTask({ task }: { task: TaskDto }) {
       <section aria-labelledby={`task-${task.id}-description-heading`}>
         <h2
           id={`task-${task.id}-description-heading`}
-          className='text-sm font-medium'
+          className='font-heading text-lg font-semibold'
         >
           Description
         </h2>
@@ -84,6 +119,66 @@ function ReadOnlyTask({ task }: { task: TaskDto }) {
           {task.description || 'No description.'}
         </p>
       </section>
+      <section aria-labelledby={assigneesHeadingId(task.id)}>
+        <h2
+          id={assigneesHeadingId(task.id)}
+          className='font-heading text-lg font-semibold'
+        >
+          Assignees
+        </h2>
+        {task.assignees.length === 0 ? (
+          <p className='mt-1.5 text-sm text-muted-foreground'>
+            No one is assigned.
+          </p>
+        ) : (
+          <ul className='mt-1.5 flex flex-col gap-1 text-sm'>
+            {task.assignees.map((assignee) => (
+              <li key={assignee.userId}>{assignee.displayName ?? 'Someone'}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section aria-labelledby={`task-${task.id}-tags-heading`}>
+        <h2
+          id={`task-${task.id}-tags-heading`}
+          className='font-heading text-lg font-semibold'
+        >
+          Tags
+        </h2>
+        {task.tags.length === 0 ? (
+          <p className='mt-1.5 text-sm text-muted-foreground'>No tags.</p>
+        ) : (
+          <ul className='mt-1.5 flex flex-wrap gap-1'>
+            {task.tags.map((tag) => (
+              <li key={tag.id}>
+                <TagBadge tag={tag} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
+  )
+}
+
+/** The assignee picker, offering the board's members. */
+async function Assignees({
+  task,
+  actorId,
+}: {
+  task: TaskDto
+  actorId: ActorDto['userId']
+}) {
+  const board = await getBoard({ actorId, boardId: task.boardId })
+  // The task's read already proved membership; a board gone since shows nothing.
+  if (!board.ok) return null
+
+  return (
+    <AssigneeForms
+      boardId={task.boardId}
+      taskId={task.id}
+      assignees={task.assignees}
+      members={board.value.members}
+    />
   )
 }

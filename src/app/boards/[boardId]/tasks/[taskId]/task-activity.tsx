@@ -1,24 +1,23 @@
-import Link from 'next/link'
-
 import {
   entrySentence,
   entryWording,
   personName,
   type Names,
 } from '@/app/_lib/audit/entry-wording'
+import { LogPager, ReordersToggle } from '@/app/_components/audit/log-nav'
 import { Time } from '@/app/_components/time'
+import { readLogParams } from '@/app/_lib/audit/log-params'
 import { requireActor } from '@/app/_lib/auth/get-actor'
 import { taskPath } from '@/app/boards/[boardId]/task-places'
+import { ActivityEntries } from '@/app/boards/[boardId]/tasks/[taskId]/activity-entries'
 import { getActivity, type ActivityEntryDto } from '@/modules/audit/api'
 
 const HEADING_ID = 'task-activity-heading'
 
-const linkClass =
-  'rounded-sm text-sm font-medium text-foreground underline underline-offset-4'
-
 /**
- * The task's Activity, newest first, 50 at a time (ADR 0010). It trails the
- * board by one relay drain, and it isn't a live region (§10).
+ * The task's Activity, newest first, 50 at a time, with reorders behind a
+ * toggle (ADR 0010). It trails the board by one relay drain, and it isn't a
+ * live region (§10).
  */
 export async function TaskActivity({
   boardId,
@@ -31,12 +30,12 @@ export async function TaskActivity({
 }) {
   const path = taskPath(boardId, taskId)
   const actor = await requireActor(path)
-  const { before } = await searchParams
-  const cursor = typeof before === 'string' && before ? before : undefined
+  const params = readLogParams(await searchParams)
   const page = await getActivity({
     actorId: actor.userId,
     taskId,
-    ...(cursor ? { before: cursor } : {}),
+    includeReorders: params.includeReorders,
+    ...(params.before ? { before: params.before } : {}),
   })
 
   return (
@@ -44,14 +43,19 @@ export async function TaskActivity({
       <h2 id={HEADING_ID} className='font-heading text-lg font-semibold'>
         Activity
       </h2>
+      {page.ok ? <ReordersToggle path={path} params={params} /> : null}
       {!page.ok ? (
         <p className='text-sm text-muted-foreground'>
           Activity isn’t available.
         </p>
-      ) : page.value.entries.length === 0 ? (
-        <p className='text-sm text-muted-foreground'>No activity yet.</p>
       ) : (
-        <ol className='flex flex-col gap-3'>
+        <ActivityEntries
+          key={actor.userId}
+          boardId={boardId}
+          taskId={taskId}
+          authorName={actor.displayName}
+          hasEntries={page.value.entries.length > 0}
+        >
           {page.value.entries.map((entry) => (
             <ActivityItem
               key={entry.id}
@@ -59,25 +63,16 @@ export async function TaskActivity({
               names={page.value.names}
             />
           ))}
-        </ol>
+        </ActivityEntries>
       )}
-      {page.ok && (cursor || page.value.olderBefore) ? (
-        <nav aria-label='Activity pages' className='flex gap-4'>
-          {cursor ? (
-            <Link href={path} scroll={false} className={linkClass}>
-              Show newest activity
-            </Link>
-          ) : null}
-          {page.value.olderBefore ? (
-            <Link
-              href={`${path}?before=${encodeURIComponent(page.value.olderBefore)}`}
-              scroll={false}
-              className={linkClass}
-            >
-              Show older activity
-            </Link>
-          ) : null}
-        </nav>
+      {page.ok ? (
+        <LogPager
+          label='Activity pages'
+          noun='activity'
+          path={path}
+          params={params}
+          olderBefore={page.value.olderBefore}
+        />
       ) : null}
     </section>
   )
@@ -96,6 +91,9 @@ function ActivityItem({
         <span className='font-medium'>{personName(names, entry.actorId)}</span>{' '}
         {entryWording(entry, names)}
       </p>
+      {entry.action === 'comment.added' ? (
+        <p className='break-words whitespace-pre-line'>{entry.details.text}</p>
+      ) : null}
       {entry.action === 'task.description-changed' ? (
         <dl className='grid grid-cols-[auto_1fr] gap-x-2 text-muted-foreground'>
           <dt>Before:</dt>

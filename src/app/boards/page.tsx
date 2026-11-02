@@ -96,7 +96,7 @@ function BoardTile({ board, view }: { board: BoardSummaryDto; view: View }) {
         </h2>
         {view === 'archived' && <ArchivedBadge />}
       </div>
-      <AvatarStack members={board.members} />
+      <AvatarStack people={board.members} />
     </article>
   )
 }

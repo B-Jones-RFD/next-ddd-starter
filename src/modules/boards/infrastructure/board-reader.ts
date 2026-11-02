@@ -6,9 +6,11 @@ import type {
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 import type {
+  AssigneeDto,
   TaskDto,
   TaskSummaryDto,
 } from '@/modules/boards/application/dto/task.dto'
+import type { TagDto } from '@/modules/boards/application/dto/tag.dto'
 import type {
   IBoardReader,
   View,
@@ -28,6 +30,16 @@ type MemberRow = {
   role: 'owner' | 'member'
 }
 
+// A task's tags still on its board, by name ignoring case.
+const TASK_TAGS = `
+  SELECT tt.task_id, g.id, g.name, g.color
+  FROM boards_task_tags tt
+  JOIN boards_tasks t ON t.id = tt.task_id
+  JOIN boards_tags g ON g.id = tt.tag_id AND g.board_id = t.board_id`
+const BY_NAME = 'ORDER BY g.name COLLATE NOCASE, g.id'
+
+type TaskTagRow = TagDto & { task_id: string }
+
 // Owner first, then in the order they joined.
 const MEMBERS_OF = `
   SELECT m.board_id, m.user_id, p.display_name, m.role
@@ -39,10 +51,17 @@ const MEMBERS_OF = `
 function archivedFlag(view: View): 0 | 1 {
   return view === 'archived' ? 1 : 0
 }
+// In the order they were assigned.
+const ASSIGNEES_OF = `
+  SELECT a.task_id, a.user_id, p.display_name
+  FROM boards_task_assignees a
+  LEFT JOIN boards_people p ON p.user_id = a.user_id
+  WHERE a.task_id IN (SELECT value FROM json_each(?))
+  ORDER BY a.task_id, a.position`
 
 /**
  * Boards' read side over `boards_boards`, `boards_members`, `boards_people`,
- * `boards_lists` and `boards_tasks`.
+ * `boards_lists`, `boards_tasks` and `boards_task_assignees`.
  */
 export class BoardReader implements IBoardReader {
   constructor(private readonly db: DatabaseSync) {}
@@ -124,10 +143,25 @@ export class BoardReader implements IBoardReader {
             JSON.stringify(tasks.map((task) => task.list_id))
           ) as { id: string; name: string; archived: number }[]
     )
+    const tags = query(PORT, () =>
+      this.tagsByTask(
+        this.db
+          .prepare(`${TASK_TAGS} WHERE t.board_id = ? ${BY_NAME}`)
+          .all(row.id) as TaskTagRow[]
+      )
+    )
+    const assignees = query(PORT, () =>
+      this.assigneesOf(tasks.map((task) => task.id))
+    )
     const byList = new Map<string, TaskSummaryDto[]>()
     for (const task of tasks) {
       const inList = byList.get(task.list_id) ?? []
-      inList.push({ id: task.id, title: task.title })
+      inList.push({
+        id: task.id,
+        title: task.title,
+        tags: tags.get(task.id) ?? [],
+        assignees: assignees.get(task.id) ?? [],
+      })
       byList.set(task.list_id, inList)
     }
     return ok({
@@ -182,6 +216,14 @@ export class BoardReader implements IBoardReader {
     )
     if (!row) return err(new NotFoundError('Task', taskId))
     if (!row.role) return err(new ForbiddenError())
+    const tags = query(PORT, () =>
+      this.tagsByTask(
+        this.db
+          .prepare(`${TASK_TAGS} WHERE tt.task_id = ? ${BY_NAME}`)
+          .all(row.id) as TaskTagRow[]
+      )
+    )
+    const assignees = query(PORT, () => this.assigneesOf([row.id]))
     return ok({
       id: row.id,
       title: row.title,
@@ -192,7 +234,43 @@ export class BoardReader implements IBoardReader {
       boardArchived: row.board_archived === 1,
       listId: row.list_id,
       listName: row.list_name,
+      tags: tags.get(row.id) ?? [],
+      assignees: assignees.get(row.id) ?? [],
     })
+  }
+
+  async tagsForMember(
+    boardId: string,
+    userId: UserId
+  ): Promise<Result<TagDto[], NotFoundError | ForbiddenError>> {
+    const found = query(PORT, () => {
+      const board = this.db
+        .prepare(
+          `SELECT me.role FROM boards_boards b
+           LEFT JOIN boards_members me ON me.board_id = b.id AND me.user_id = ?
+           WHERE b.id = ?`
+        )
+        .get(userId, boardId) as { role: string | null } | undefined
+      if (!board) return undefined
+      if (!board.role) return 'forbidden'
+      return this.db
+        .prepare(
+          `SELECT id, name, color FROM boards_tags g
+           WHERE board_id = ? ${BY_NAME}`
+        )
+        .all(boardId) as TagDto[]
+    })
+    if (found === undefined) return err(new NotFoundError('Board', boardId))
+    if (found === 'forbidden') return err(new ForbiddenError())
+    return ok(found.map(({ id, name, color }) => ({ id, name, color })))
+  }
+
+  private tagsByTask(rows: readonly TaskTagRow[]): Map<string, TagDto[]> {
+    const byTask = new Map<string, TagDto[]>()
+    for (const { task_id, id, name, color } of rows) {
+      byTask.set(task_id, [...(byTask.get(task_id) ?? []), { id, name, color }])
+    }
+    return byTask
   }
 
   async roleOf(
@@ -209,6 +287,21 @@ export class BoardReader implements IBoardReader {
           .get(boardId, userId) as { role: 'owner' | 'member' } | undefined
     )
     return row?.role ?? null
+  }
+
+  private assigneesOf(taskIds: string[]): Map<string, AssigneeDto[]> {
+    const rows = this.db.prepare(ASSIGNEES_OF).all(JSON.stringify(taskIds)) as {
+      task_id: string
+      user_id: string
+      display_name: string | null
+    }[]
+    const byTask = new Map<string, AssigneeDto[]>()
+    for (const row of rows) {
+      const list = byTask.get(row.task_id) ?? []
+      list.push({ userId: row.user_id, displayName: row.display_name })
+      byTask.set(row.task_id, list)
+    }
+    return byTask
   }
 
   private membersOf(boardIds: string[]): Map<string, BoardMemberDto[]> {

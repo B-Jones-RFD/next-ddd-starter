@@ -107,6 +107,32 @@ export function describeOutboxContract(makeOutbox: () => IOutbox) {
       })
     })
 
+    it('replays failed rows: pending again, in their place, as if never tried, leaving the rest alone', async () => {
+      const outbox = makeOutbox()
+      const [delivered, failed, pending] = [
+        anOutboxEntry(),
+        anOutboxEntry(),
+        anOutboxEntry(),
+      ]
+      outbox.append([delivered, failed, pending])
+      await outbox.markDelivered(delivered.envelope.id)
+      await outbox.markRetrying(failed.envelope.id, {
+        error: 'persistence',
+        failedAt: new Date('2026-01-01T10:00:00.000Z'),
+        nextAttemptAt: new Date('2026-01-01T10:00:01.000Z'),
+      })
+      await outbox.markFailed(failed.envelope.id, { error: 'bug' })
+
+      expect(await outbox.replayFailed()).toBe(1)
+
+      expect(await outbox.pending(10)).toEqual([
+        { ...failed, attempts: 2, nextAttemptAt: null, firstFailedAt: null },
+        { ...pending, attempts: 0, nextAttemptAt: null, firstFailedAt: null },
+      ])
+      expect((await outbox.backlog()).failed).toBe(0)
+      expect(await outbox.replayFailed()).toBe(0)
+    })
+
     it('reports the backlog: pending and retrying rows, the oldest pending age, failed rows', async () => {
       const outbox = makeOutbox()
       expect(await outbox.backlog()).toEqual({

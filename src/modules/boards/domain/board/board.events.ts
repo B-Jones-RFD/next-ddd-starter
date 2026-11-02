@@ -1,4 +1,6 @@
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
+import type { TagId } from '@/modules/boards/domain/board/tag'
+import type { TagColor } from '@/modules/boards/domain/board/tag-color'
 import type { DomainEvent } from '@/shared/kernel/events'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -46,6 +48,33 @@ export type BoardArchived = DomainEvent<'BoardArchived', { boardId: BoardId }>
 
 /** The Owner restored an archived board. Translated to `boards.BoardRestored.v1`. */
 export type BoardRestored = DomainEvent<'BoardRestored', { boardId: BoardId }>
+/** A Board member defined a tag. Translated to `boards.TagCreated.v1`. */
+export type TagCreated = DomainEvent<
+  'TagCreated',
+  { boardId: BoardId; tagId: TagId; name: string; color: TagColor }
+>
+
+/** A Board member renamed a tag. Translated to `boards.TagRenamed.v1`. */
+export type TagRenamed = DomainEvent<
+  'TagRenamed',
+  { boardId: BoardId; tagId: TagId; from: string; to: string }
+>
+
+/** A Board member recolored a tag. Translated to `boards.TagRecolored.v1`. */
+export type TagRecolored = DomainEvent<
+  'TagRecolored',
+  { boardId: BoardId; tagId: TagId; from: TagColor; to: TagColor }
+>
+
+/**
+ * A Board member deleted a tag. Boards' `boards.untagDeletedTag` handler
+ * strips it from every task as a Consequence. Translated to
+ * `boards.TagDeleted.v1`.
+ */
+export type TagDeleted = DomainEvent<
+  'TagDeleted',
+  { boardId: BoardId; tagId: TagId; name: string }
+>
 
 export type BoardEvent =
   | BoardCreated
@@ -56,3 +85,7 @@ export type BoardEvent =
   | MemberRemoved
   | MemberLeft
   | OwnershipTransferred
+  | TagCreated
+  | TagRenamed
+  | TagRecolored
+  | TagDeleted

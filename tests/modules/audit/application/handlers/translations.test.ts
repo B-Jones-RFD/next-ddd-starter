@@ -408,6 +408,23 @@ describe('translating task events', () => {
   })
 
   it.each([
+    ['boards.TaskAssigned', 'task.assigned'],
+    ['boards.TaskUnassigned', 'task.unassigned'],
+  ] as const)('records %s with the assignee', (type, action) => {
+    expect(
+      translate(event(type, 'task-1', { ...task, userId: 'user-ben' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onTask,
+        action,
+        details: { userId: 'user-ben' },
+      },
+      names: [],
+    })
+  })
+
+  it.each([
     ['boards.TaskArchived', 'task.archived'],
     ['boards.TaskRestored', 'task.restored'],
   ])('records %s as %s, in its list', (type, action) => {
@@ -419,6 +436,133 @@ describe('translating task events', () => {
         ...onTask,
         action,
         details: { listId: 'list-1' },
+      },
+      names: [],
+    })
+  })
+})
+
+describe('translating tag events', () => {
+  const onBoard = {
+    subject: 'board',
+    subjectId: 'board-1',
+    boardId: 'board-1',
+    taskId: null,
+  }
+  const tag = { boardId: 'board-1', tagId: 'tag-1' }
+
+  it('records a new tag on its board, and its name', () => {
+    const type = 'boards.TagCreated'
+    expect(
+      translate(
+        event(type, 'board-1', { ...tag, name: 'Urgent', color: 'red' })
+      )
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onBoard,
+        action: 'tag.created',
+        details: { tagId: 'tag-1', name: 'Urgent', color: 'red' },
+      },
+      names: [
+        { kind: 'tag', id: 'tag-1', name: 'Urgent', aggregateVersion: 3 },
+      ],
+    })
+  })
+
+  it('records a tag rename with from and to, and the new name', () => {
+    const type = 'boards.TagRenamed'
+    expect(
+      translate(event(type, 'board-1', { ...tag, from: 'A', to: 'B' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onBoard,
+        action: 'tag.renamed',
+        details: { tagId: 'tag-1', from: 'A', to: 'B' },
+      },
+      names: [{ kind: 'tag', id: 'tag-1', name: 'B', aggregateVersion: 3 }],
+    })
+  })
+
+  it('records a recolor with from and to', () => {
+    const type = 'boards.TagRecolored'
+    expect(
+      translate(event(type, 'board-1', { ...tag, from: 'red', to: 'blue' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onBoard,
+        action: 'tag.recolored',
+        details: { tagId: 'tag-1', from: 'red', to: 'blue' },
+      },
+      names: [],
+    })
+  })
+
+  it('records a deleted tag with the name it had', () => {
+    const type = 'boards.TagDeleted'
+    expect(
+      translate(event(type, 'board-1', { ...tag, name: 'Urgent' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onBoard,
+        action: 'tag.deleted',
+        details: { tagId: 'tag-1', name: 'Urgent' },
+      },
+      names: [],
+    })
+  })
+
+  it.each([
+    ['boards.TaskTagged', 'task.tagged'],
+    ['boards.TaskUntagged', 'task.untagged'],
+  ])('records %s on the task', (type, action) => {
+    expect(
+      translate(
+        event(type, 'task-1', {
+          taskId: 'task-1',
+          boardId: 'board-1',
+          tagId: 'tag-1',
+        })
+      )
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        subject: 'task',
+        subjectId: 'task-1',
+        boardId: 'board-1',
+        taskId: 'task-1',
+        action,
+        details: { tagId: 'tag-1' },
+      },
+      names: [],
+    })
+  })
+})
+
+describe('translating comment events', () => {
+  it('records a comment on its task, with its text', () => {
+    const type = 'boards.CommentAdded'
+    const payload = {
+      commentId: 'comment-1',
+      taskId: 'task-1',
+      boardId: 'board-1',
+      text: 'Can we keep it to one page?',
+    }
+    expect(translate(event(type, 'comment-1', payload, 1))).toEqual({
+      entry: {
+        ...meta(type),
+        subject: 'task',
+        subjectId: 'task-1',
+        boardId: 'board-1',
+        taskId: 'task-1',
+        action: 'comment.added',
+        details: {
+          commentId: 'comment-1',
+          text: 'Can we keep it to one page?',
+        },
       },
       names: [],
     })

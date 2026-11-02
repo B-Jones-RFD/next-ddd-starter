@@ -6,6 +6,7 @@ import type {
   BoardRenamedV1,
   BoardRestoredV1,
   ListArchivedV1,
+  CommentAddedV1,
   ListCreatedV1,
   ListRenamedV1,
   ListReorderedV1,
@@ -15,12 +16,20 @@ import type {
   MemberRemovedV1,
   OwnershipTransferredV1,
   TaskArchivedV1,
+  TagCreatedV1,
+  TagDeletedV1,
+  TagRecoloredV1,
+  TagRenamedV1,
+  TaskAssignedV1,
   TaskCreatedV1,
   TaskDescriptionChangedV1,
   TaskMovedV1,
   TaskRenamedV1,
   TaskReorderedV1,
   TaskRestoredV1,
+  TaskTaggedV1,
+  TaskUntaggedV1,
+  TaskUnassignedV1,
 } from '@/modules/boards/contracts'
 import type {
   UserPasswordChangedV1,
@@ -58,6 +67,15 @@ export type AuditedEvent =
   | TaskReorderedV1
   | TaskArchivedV1
   | TaskRestoredV1
+  | TagCreatedV1
+  | TagRenamedV1
+  | TagRecoloredV1
+  | TagDeletedV1
+  | TaskTaggedV1
+  | TaskUntaggedV1
+  | TaskAssignedV1
+  | TaskUnassignedV1
+  | CommentAddedV1
 
 /** One event in audit's language: its entry, and any current names it tells. */
 export type Translation = {
@@ -335,6 +353,94 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
         ...onTask(e),
         action: 'task.restored',
         details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+
+    'boards.TagCreated': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.created',
+        details: {
+          tagId: e.payload.tagId,
+          name: e.payload.name,
+          color: e.payload.color,
+        },
+      },
+      names: [name('tag', e.payload.tagId, e.payload.name, e)],
+    }),
+    'boards.TagRenamed': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.renamed',
+        details: {
+          tagId: e.payload.tagId,
+          from: e.payload.from,
+          to: e.payload.to,
+        },
+      },
+      names: [name('tag', e.payload.tagId, e.payload.to, e)],
+    }),
+    'boards.TagRecolored': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.recolored',
+        details: {
+          tagId: e.payload.tagId,
+          from: e.payload.from,
+          to: e.payload.to,
+        },
+      },
+      names: [],
+    }),
+    'boards.TagDeleted': (e) => ({
+      entry: {
+        ...onBoard(e),
+        action: 'tag.deleted',
+        details: { tagId: e.payload.tagId, name: e.payload.name },
+      },
+      names: [],
+    }),
+    'boards.TaskTagged': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.tagged',
+        details: { tagId: e.payload.tagId },
+      },
+      names: [],
+    }),
+    'boards.TaskUntagged': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.untagged',
+        details: { tagId: e.payload.tagId },
+      },
+      names: [],
+    }),
+    // A hand-over to the Owner is a Consequence: its causationId names the
+    // removal or leaving.
+    'boards.TaskAssigned': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.assigned',
+        details: { userId: e.payload.userId },
+      },
+      names: [],
+    }),
+    'boards.TaskUnassigned': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.unassigned',
+        details: { userId: e.payload.userId },
+      },
+      names: [],
+    }),
+    // A comment is filed on its task, so it shows in the task's Activity.
+    'boards.CommentAdded': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'comment.added',
+        details: { commentId: e.payload.commentId, text: e.payload.text },
       },
       names: [],
     }),

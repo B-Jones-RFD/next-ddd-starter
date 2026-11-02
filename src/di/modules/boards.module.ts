@@ -14,6 +14,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockBoardReader },
       { MockListRepository },
       { MockTaskRepository },
+      { MockCommentRepository },
       { UserDirectory },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
@@ -22,6 +23,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       import('@/modules/boards/infrastructure/board-reader.mock'),
       import('@/modules/boards/infrastructure/list-repository.mock'),
       import('@/modules/boards/infrastructure/task-repository.mock'),
+      import('@/modules/boards/infrastructure/comment-repository.mock'),
       // No IO of its own: it asks identity's api.ts, which is on mocks too.
       import('@/modules/boards/infrastructure/user-directory'),
     ])
@@ -39,6 +41,9 @@ export async function loadBoardsModule(mode: AdapterMode) {
     boards
       .bind('ITaskRepository')
       .toFactory(() => new MockTaskRepository(outbox), 'singleton')
+    boards
+      .bind('ICommentRepository')
+      .toFactory(() => new MockCommentRepository(outbox), 'singleton')
     boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
     return boards
   }
@@ -51,6 +56,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { BoardReader },
     { ListRepository },
     { TaskRepository },
+    { CommentRepository },
     { UserDirectory },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
@@ -60,6 +66,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     import('@/modules/boards/infrastructure/board-reader'),
     import('@/modules/boards/infrastructure/list-repository'),
     import('@/modules/boards/infrastructure/task-repository'),
+    import('@/modules/boards/infrastructure/comment-repository'),
     import('@/modules/boards/infrastructure/user-directory'),
   ])
   boards
@@ -87,6 +94,16 @@ export async function loadBoardsModule(mode: AdapterMode) {
     .toFactory(
       () =>
         new TaskRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
+      'singleton'
+    )
+  boards
+    .bind('ICommentRepository')
+    .toFactory(
+      () =>
+        new CommentRepository(
+          getDatabase(),
+          new Outbox(getDatabase(), 'boards')
+        ),
       'singleton'
     )
   boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')

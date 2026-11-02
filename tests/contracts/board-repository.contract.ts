@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
+import { toTagId } from '@/modules/boards/domain/board/tag'
+import type { TagName } from '@/modules/boards/domain/board/tag-name'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { toUserId } from '@/shared/kernel/user-id'
@@ -118,6 +120,64 @@ export function describeBoardRepositoryContract(make: Make) {
 
       expect(result).toEqual({ ok: true, value: { ...changed, version: 2 } })
       expect(await repository.findById(changed.id)).toEqual(result)
+    })
+
+    it('saves tags in the order they were defined, and their changes', async () => {
+      const { repository } = make()
+      const tags = [
+        { id: toTagId('tag-z'), name: 'Urgent' as TagName, color: 'red' },
+        { id: toTagId('tag-a'), name: 'Design' as TagName, color: 'teal' },
+      ] as const
+      const saved = await repository.save(
+        aBoard({ version: 0, tags }),
+        [],
+        origin
+      )
+      if (!saved.ok) throw new Error('setup failed')
+      expect(await repository.findById(saved.value.id)).toEqual(saved)
+
+      const changed = {
+        ...saved.value,
+        tags: [{ ...tags[1], name: 'UX' as TagName, color: 'violet' as const }],
+      }
+      const result = await repository.save(changed, [], origin)
+
+      expect(result).toEqual({ ok: true, value: { ...changed, version: 2 } })
+      expect(await repository.findById(changed.id)).toEqual(result)
+    })
+
+    it('publishes tag events with their payloads', async () => {
+      const { repository, outbox } = make()
+      const board = aBoard({ version: 0 })
+      const ids = { boardId: board.id, tagId: toTagId('tag-1') }
+      await repository.save(
+        board,
+        [
+          {
+            type: 'TagCreated',
+            payload: { ...ids, name: 'Urgent', color: 'red' },
+          },
+          { type: 'TagRenamed', payload: { ...ids, from: 'a', to: 'b' } },
+          {
+            type: 'TagRecolored',
+            payload: { ...ids, from: 'red', to: 'blue' },
+          },
+          { type: 'TagDeleted', payload: { ...ids, name: 'b' } },
+        ],
+        origin
+      )
+
+      const rows = await outbox.pending(20)
+      expect(
+        rows
+          .filter((row) => row.scope === 'integration')
+          .map((row) => [row.envelope.type, row.envelope.payload])
+      ).toEqual([
+        ['boards.TagCreated', { ...ids, name: 'Urgent', color: 'red' }],
+        ['boards.TagRenamed', { ...ids, from: 'a', to: 'b' }],
+        ['boards.TagRecolored', { ...ids, from: 'red', to: 'blue' }],
+        ['boards.TagDeleted', { ...ids, name: 'b' }],
+      ])
     })
 
     it('writes each event as a domain row and publishes its translation', async () => {

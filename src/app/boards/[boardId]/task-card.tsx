@@ -14,9 +14,12 @@ import Link from 'next/link'
 import { useActionState, useCallback, useId, useRef, useState } from 'react'
 
 import { ArchivedBadge } from '@/app/_components/archived-badge'
+import { AvatarStack } from '@/app/_components/avatar-stack'
 import { FormAlert } from '@/app/_components/form/form-alert'
 import { SubmitButton } from '@/app/_components/form/submit-button'
 import { useRefocus } from '@/app/_components/refocus'
+import { TagBadge } from '@/app/_components/tags/tag-badge'
+import type { TagColorName } from '@/app/_components/tags/tag-colors'
 import { Button } from '@/app/_components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/app/_components/ui/dialog'
 import { Label } from '@/app/_components/ui/label'
@@ -55,7 +58,12 @@ const MOVES = [
   { move: 'last', label: 'Move last', Icon: ChevronsDown },
 ] as const satisfies readonly { move: ListMove; label: string; Icon: unknown }[]
 
-type Task = { id: string; title: string }
+type Task = {
+  id: string
+  title: string
+  tags: { id: string; name: string; color: TagColorName }[]
+  assignees: { userId: string; displayName: string | null }[]
+}
 type List = { id: string; name: string; tasks: Task[] }
 
 /** The task's own place in its list, or the bottom of another. */
@@ -69,7 +77,8 @@ function initial(choices: readonly { current: boolean }[]): number {
  * dialog, and its "⋯" menu to move it up, down, first or last, or to another
  * list, or to archive it (§10). After a move, focus returns to this ⋯ in the
  * task's new place, and after an archive, to the next task or the column
- * heading. In the Archived view it has a text badge and only "Restore task".
+ * heading. Its assignees show as one avatar stack. In the Archived view it
+ * has a text badge and only "Restore task".
  */
 export function TaskCard({
   boardId,
@@ -188,6 +197,18 @@ export function TaskCard({
           </Menu>
         )}
       </div>
+      {task.tags.length > 0 && (
+        <ul aria-label='Tags' className='flex flex-wrap gap-1 px-1'>
+          {task.tags.map((tag) => (
+            <li key={tag.id} className='max-w-full'>
+              <TagBadge tag={tag} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {task.assignees.length > 0 && (
+        <AvatarStack label='Assignees' people={task.assignees} size='sm' />
+      )}
       <FormAlert error={state.status === 'error' ? state.error : undefined} />
       <FormAlert
         error={archiveState.status === 'error' ? archiveState.error : undefined}

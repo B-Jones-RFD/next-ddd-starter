@@ -35,6 +35,13 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
   description: {
     'too-long': 'Use 5000 characters or fewer.',
   },
+  text: {
+    required: 'Write a comment.',
+    'too-long': 'Use 2000 characters or fewer.',
+  },
+  color: {
+    invalid: 'Choose one of the tag colors.',
+  },
   currentPassword: {
     required: 'Enter your current password.',
   },
@@ -105,6 +112,13 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
   'boards.board.name-mismatch': () => ({
     message: 'The name you typed doesn’t match the board’s name.',
     fields: { confirmName: 'Type the board’s name exactly as shown.' },
+  }),
+
+  'boards.board.tag-name-taken': () => ({
+    message: 'That tag name is taken.',
+    fields: {
+      name: 'This board already has a tag with that name. Choose another.',
+    },
   }),
   'boards.list.archived': () => ({
     message:

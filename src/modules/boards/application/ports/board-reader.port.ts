@@ -1,5 +1,6 @@
 import type { BoardSummaryDto } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
+import type { TagDto } from '@/modules/boards/application/dto/tag.dto'
 import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
 import type { NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { ForbiddenError } from '@/shared/kernel/errors/domain-error'
@@ -38,6 +39,15 @@ export interface IBoardReader {
     taskId: string,
     userId: UserId
   ): Promise<Result<TaskDto, NotFoundError | ForbiddenError>>
+  /**
+   * The board's tags by name, ignoring case, if `userId` is a Board member of
+   * it. `NotFoundError` if there is no such board, and `ForbiddenError` if
+   * they aren't a Board member.
+   */
+  tagsForMember(
+    boardId: string,
+    userId: UserId
+  ): Promise<Result<TagDto[], NotFoundError | ForbiddenError>>
   /** `userId`'s role on the board, or null if they aren't a Board member of it. */
   roleOf(boardId: string, userId: UserId): Promise<'owner' | 'member' | null>
 }

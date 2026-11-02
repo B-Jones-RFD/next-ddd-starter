@@ -4,6 +4,9 @@ import {
   boards002,
   boards003,
   boards004,
+  boards005,
+  boards006,
+  boards007,
 } from '@/modules/boards/infrastructure/migrations'
 import {
   identity001,
@@ -23,4 +26,7 @@ export const MIGRATIONS: readonly Migration[] = [
   boards003,
   boards004,
   audit001,
+  boards005,
+  boards006,
+  boards007,
 ]

@@ -49,7 +49,7 @@ async function Board({ params, searchParams }: PageProps<'/boards/[boardId]'>) {
             </h1>
             {archived && <ArchivedBadge />}
           </div>
-          <AvatarStack members={board.value.members} />
+          <AvatarStack people={board.value.members} />
         </div>
         <nav aria-label='Board'>
           <Link

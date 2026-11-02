@@ -5,6 +5,7 @@ import type { IBoardReader } from '@/modules/boards/application/ports/board-read
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
 import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
+import type { ICommentRepository } from '@/modules/boards/domain/comment/comment-repository.port'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
 import type { ITaskRepository } from '@/modules/boards/domain/task/task-repository.port'
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
@@ -35,6 +36,7 @@ export type Registry = {
   IBoardReader: IBoardReader
   IListRepository: IListRepository
   ITaskRepository: ITaskRepository
+  ICommentRepository: ICommentRepository
   IUserDirectory: IUserDirectory
   // audit
   IAuditLog: IAuditLog

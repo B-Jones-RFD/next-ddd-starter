@@ -129,3 +129,24 @@ export async function archiveBoardNamed(
   await dialog.getByRole('button', { name: 'Archive board' }).click()
   await expect(page).toHaveURL('/boards')
 }
+
+/**
+ * Defines a tag on the board's Tags tab, choosing its Tag color by name.
+ * Leaves the page on the tab.
+ */
+export async function addTagNamed(
+  page: Page,
+  boardPath: string,
+  name: string,
+  color: string
+) {
+  if (!page.url().endsWith(`${boardPath}/settings/tags`)) {
+    await page.goto(`${boardPath}/settings/tags`)
+  }
+  await page.getByLabel('Tag name').fill(name)
+  await page.getByRole('radio', { name: color, exact: true }).check()
+  await page.getByRole('button', { name: 'Add tag' }).click()
+  await expect(
+    page.getByRole('button', { name: `Delete tag ${name}` })
+  ).toBeVisible()
+}

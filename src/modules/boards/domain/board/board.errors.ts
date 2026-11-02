@@ -18,6 +18,15 @@ export class NotAMemberError extends DomainError {
   }
 }
 
+/** Another tag on the board already has this name, ignoring case. */
+export class TagNameTakenError extends DomainError {
+  readonly code = 'boards.board.tag-name-taken'
+
+  constructor() {
+    super('Another tag on the board has this name')
+  }
+}
+
 /**
  * The Owner tried to leave, or to remove themself. A board always has
  * exactly one Owner, so they must transfer ownership first.

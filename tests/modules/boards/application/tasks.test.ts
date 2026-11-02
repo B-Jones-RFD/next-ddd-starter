@@ -454,6 +454,8 @@ describe('getTask', () => {
         boardArchived: false,
         listId: backlog,
         listName: 'Backlog',
+        tags: [],
+        assignees: [],
       },
     })
   })

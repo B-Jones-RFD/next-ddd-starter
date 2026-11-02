@@ -43,6 +43,13 @@ beforeEach(async () => {
   })
   if (!archived.ok) throw new Error('setup failed')
   await api.archiveTask({ actorId: ada, taskId: archived.value.taskId })
+  const tag = await api.createTag({
+    actorId: ada,
+    boardId,
+    name: 'Urgent',
+    color: 'red',
+  })
+  if (!tag.ok) throw new Error('setup failed')
 })
 
 describeMembershipProof('boards', api, {
@@ -57,6 +64,9 @@ describeMembershipProof('boards', api, {
     'changeTaskDescription',
     'reorderTask',
     'moveTask',
+    'addComment',
+    'assignTask',
+    'unassignTask',
     'addMember',
     'removeMember',
     'leaveBoard',
@@ -67,6 +77,12 @@ describeMembershipProof('boards', api, {
     'restoreList',
     'archiveTask',
     'restoreTask',
+    'createTag',
+    'renameTag',
+    'recolorTag',
+    'deleteTag',
+    'tagTask',
+    'untagTask',
   ],
   queries: {
     listBoards: () => api.listBoards({ actorId: outsider, view: 'archived' }),
@@ -76,5 +92,6 @@ describeMembershipProof('boards', api, {
     searchUsers: () =>
       api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),
     roleOf: () => api.roleOf({ boardId, userId: outsider }),
+    listTags: () => api.listTags({ actorId: outsider, boardId }),
   },
 })

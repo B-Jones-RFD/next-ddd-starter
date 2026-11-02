@@ -10,6 +10,7 @@ import {
   addMemberByEmail,
   archiveBoardNamed,
   archiveTaskNamed,
+  addTagNamed,
   createBoardNamed,
   signOut,
   signUp,
@@ -75,6 +76,25 @@ async function withTaskOpen(page: Page) {
   await openTask(page)
 }
 
+/**
+ * Posts a comment until Activity has its entry, then posts an empty one, so
+ * the sweep sees a comment and a field error.
+ */
+async function commentAndFail(page: Page) {
+  const activity = page.getByRole('region', { name: 'Activity' })
+  await page.getByLabel('Comment').fill('Can we keep it to one page?')
+  await page.getByRole('button', { name: 'Post comment' }).click()
+  await expect(page.getByRole('status')).toHaveText('Comment posted')
+  await expect(async () => {
+    await page.reload()
+    await expect(
+      activity.getByText('Can we keep it to one page?')
+    ).toBeVisible()
+  }).toPass()
+  await page.getByRole('button', { name: 'Post comment' }).click()
+  await expect(page.getByText('Write a comment.')).toBeVisible()
+}
+
 /** Opens a task's "Move to list…" picker from its ⋯ menu. */
 async function openMovePicker(page: Page) {
   await page
@@ -82,6 +102,51 @@ async function openMovePicker(page: Page) {
     .click()
   await page.getByRole('menuitem', { name: 'Move to list…' }).click()
   await settled(page)
+}
+
+/**
+ * Tasks with two tags defined, both on “Write the brief”. Leaves the page on
+ * the board.
+ */
+async function withTags(page: Page) {
+  await withTasks(page)
+  const boardPath = here(page)
+  await addTagNamed(page, boardPath, 'Urgent', 'Red')
+  await addTagNamed(page, boardPath, 'Design', 'Teal')
+  await page.goto(boardPath)
+  await openTask(page)
+  const dialog = page.getByRole('dialog')
+  for (const name of ['Urgent', 'Design']) {
+    await dialog.getByLabel('Add a tag').selectOption({ label: name })
+    await dialog.getByRole('button', { name: 'Add tag' }).click()
+    await expect(
+      dialog.getByRole('button', { name: `Remove tag ${name}` })
+    ).toBeVisible()
+  }
+  await page.goto(boardPath)
+}
+
+/** Opens the Edit dialog of the tag “Urgent” on the Tags tab. */
+async function openTagEditor(page: Page) {
+  await page.getByRole('button', { name: 'Edit tag Urgent' }).click()
+  await settled(page)
+}
+
+/** In the open task dialog, assigns the visitor themself with the picker. */
+async function assignSelf(page: Page) {
+  await openTask(page)
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
+  await expect(dialog.getByRole('button', { name: /^Unassign / })).toBeVisible()
+}
+
+/** A task with an assignee, leaving the page on the board. */
+async function withAssignee(page: Page) {
+  await withTasks(page)
+  await assignSelf(page)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('img', { name: /^Assignees: / })).toBeVisible()
 }
 
 const PHONE = { width: 390, height: 844 }
@@ -135,6 +200,7 @@ const SCREENS: Screen[] = [
   { name: 'sign up', path: '/sign-up' },
   { name: 'sign in', path: '/sign-in' },
   { name: 'boards (empty)', path: '/boards', arrange: signUp },
+  // With the User log of the sign-up.
   { name: 'account', path: '/account', arrange: signUp },
   { name: 'boards (grid)', path: '/boards', arrange: withBoard },
   { name: 'board', path: here, arrange: withBoard },
@@ -160,8 +226,21 @@ const SCREENS: Screen[] = [
     act: openTask,
     viewport: PHONE,
   },
+  {
+    name: 'assignee picker with an assignee',
+    path: here,
+    arrange: withTasks,
+    act: assignSelf,
+  },
+  { name: 'board with an assigned task', path: here, arrange: withAssignee },
   // A direct load of the task's path is its full page.
   { name: 'task page', path: here, arrange: withTaskOpen },
+  {
+    name: 'task page with a comment, and a comment error',
+    path: here,
+    arrange: withTaskOpen,
+    act: commentAndFail,
+  },
   {
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
@@ -182,6 +261,29 @@ const SCREENS: Screen[] = [
     name: 'board (archived view)',
     path: (page) => `${here(page)}?view=archived`,
     arrange: withArchivedWork,
+  },
+  {
+    name: 'board tags',
+    path: (page) => `${here(page)}/settings/tags`,
+    arrange: withTags,
+  },
+  {
+    name: 'edit tag dialog',
+    path: (page) => `${here(page)}/settings/tags`,
+    arrange: withTags,
+    act: openTagEditor,
+  },
+  { name: 'board with tagged tasks', path: here, arrange: withTags },
+  {
+    name: 'task dialog with tags',
+    path: here,
+    arrange: withTags,
+    act: openTask,
+  },
+  {
+    name: 'board log (with reorders shown)',
+    path: (page) => `${here(page)}/settings/log?reorders=1`,
+    arrange: withTasks,
   },
   {
     name: 'board members (Owner, with a Member and a search)',

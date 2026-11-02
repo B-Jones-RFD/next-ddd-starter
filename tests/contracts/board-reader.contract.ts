@@ -6,6 +6,8 @@ import type { Board } from '@/modules/boards/domain/board/board'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
+import { toTagId, type Tag } from '@/modules/boards/domain/board/tag'
+import type { TagName } from '@/modules/boards/domain/board/tag-name'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type { ListName } from '@/modules/boards/domain/list/list-name'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
@@ -30,6 +32,12 @@ type Make = () => {
 }
 
 const ada = toUserId('user-ada')
+
+const TAGS: Tag[] = [
+  { id: toTagId('tag-urgent'), name: 'Urgent' as TagName, color: 'red' },
+  { id: toTagId('tag-design'), name: 'design' as TagName, color: 'teal' },
+  { id: toTagId('tag-later'), name: 'Later' as TagName, color: 'gray' },
+]
 const ben = toUserId('user-ben')
 const cy = toUserId('user-cy')
 
@@ -258,13 +266,27 @@ export function describeBoardReaderContract(make: Make) {
           id: backlog.id,
           name: backlog.name,
           archived: false,
-          tasks: [{ id: expect.any(String), title: 'Dropped' }],
+          tasks: [
+            {
+              id: expect.any(String),
+              title: 'Dropped',
+              tags: [],
+              assignees: [],
+            },
+          ],
         },
         {
           id: done.id,
           name: done.name,
           archived: true,
-          tasks: [{ id: expect.any(String), title: 'Shipped' }],
+          tasks: [
+            {
+              id: expect.any(String),
+              title: 'Shipped',
+              tags: [],
+              assignees: [],
+            },
+          ],
         },
       ])
     })
@@ -292,6 +314,7 @@ export function describeBoardReaderContract(make: Make) {
         id: toTaskId('task-b'),
         title: 'Second' as TaskTitle,
         position: 'V',
+        assignees: [ada],
       })
       await on({
         id: toTaskId('task-a'),
@@ -308,22 +331,35 @@ export function describeBoardReaderContract(make: Make) {
           name: backlog.name,
           archived: false,
           tasks: [
-            { id: 'task-a', title: 'First' },
-            { id: 'task-b', title: 'Second' },
-            { id: expect.any(String), title: 'Third' },
+            { id: 'task-a', title: 'First', tags: [], assignees: [] },
+            {
+              id: 'task-b',
+              title: 'Second',
+              tags: [],
+              assignees: [{ userId: ada, displayName: null }],
+            },
+            { id: expect.any(String), title: 'Third', tags: [], assignees: [] },
           ],
         },
         {
           id: done.id,
           name: done.name,
           archived: false,
-          tasks: [{ id: expect.any(String), title: 'Shipped' }],
+          tasks: [
+            {
+              id: expect.any(String),
+              title: 'Shipped',
+              tags: [],
+              assignees: [],
+            },
+          ],
         },
       ])
     })
 
-    it('gets a task for a Board member, with its board and list', async () => {
-      const { reader, boards, lists, tasks } = make()
+    it('gets a task for a Board member, with its board, list and assignees by name in the order assigned', async () => {
+      const { reader, boards, lists, tasks, people } = make()
+      await knownAs(people, ada, 'Ada')
       const board = await given(
         boards,
         aBoard({
@@ -343,6 +379,7 @@ export function describeBoardReaderContract(make: Make) {
         listId: list.id,
         title: 'Write the brief' as TaskTitle,
         description: 'One page.' as TaskDescription,
+        assignees: [ben, ada],
         version: 0,
       })
       await tasks.save(task, [], origin)
@@ -359,8 +396,118 @@ export function describeBoardReaderContract(make: Make) {
           boardArchived: false,
           listId: list.id,
           listName: 'Backlog',
+          tags: [],
+          assignees: [
+            { userId: ben, displayName: null },
+            { userId: ada, displayName: 'Ada' },
+          ],
         },
       })
+    })
+
+    it('lists a board’s tags by name, ignoring case, for a Board member', async () => {
+      const { reader, boards } = make()
+      const board = await given(
+        boards,
+        aBoard({
+          members: [
+            { userId: ada, role: 'owner' },
+            { userId: ben, role: 'member' },
+          ],
+          tags: TAGS,
+        })
+      )
+      await given(
+        boards,
+        aBoard({
+          tags: [
+            { id: toTagId('x'), name: 'Elsewhere' as TagName, color: 'red' },
+          ],
+        })
+      )
+
+      expect(await reader.tagsForMember(board.id, ben)).toEqual({
+        ok: true,
+        value: [
+          { id: 'tag-design', name: 'design', color: 'teal' },
+          { id: 'tag-later', name: 'Later', color: 'gray' },
+          { id: 'tag-urgent', name: 'Urgent', color: 'red' },
+        ],
+      })
+    })
+
+    it('returns ForbiddenError for the tags of a board the user isn’t a Board member of', async () => {
+      const { reader, boards } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }], tags: TAGS })
+      )
+
+      expect(await reader.tagsForMember(board.id, cy)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+      expect(await reader.tagsForMember('nowhere', ada)).toEqual({
+        ok: false,
+        error: new NotFoundError('Board', 'nowhere'),
+      })
+    })
+
+    it('gives each task its tags by name, on the board and on its own', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }], tags: TAGS })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const list = aList({ boardId: board.id, version: 0 })
+      await lists.save(list, [], origin)
+      const task = aTask({
+        boardId: board.id,
+        listId: list.id,
+        tagIds: [toTagId('tag-urgent'), toTagId('tag-design')],
+        version: 0,
+      })
+      await tasks.save(task, [], origin)
+      const expected = [
+        { id: 'tag-design', name: 'design', color: 'teal' },
+        { id: 'tag-urgent', name: 'Urgent', color: 'red' },
+      ]
+
+      const found = await reader.getForMember(board.id, ada, 'active')
+      const one = await reader.getTaskForMember(task.id, ada)
+
+      expect(found.ok && found.value.lists[0]?.tasks[0]?.tags).toEqual(expected)
+      expect(one.ok && one.value.tags).toEqual(expected)
+    })
+
+    it('leaves out a tag deleted from the board before its tasks lose it', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }], tags: TAGS })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const list = aList({ boardId: board.id, version: 0 })
+      await lists.save(list, [], origin)
+      const task = aTask({
+        boardId: board.id,
+        listId: list.id,
+        tagIds: [toTagId('tag-urgent'), toTagId('tag-design')],
+        version: 0,
+      })
+      await tasks.save(task, [], origin)
+      await boards.save(
+        { ...board, tags: TAGS.filter((tag) => tag.id !== 'tag-urgent') },
+        [],
+        origin
+      )
+
+      const one = await reader.getTaskForMember(task.id, ada)
+
+      expect(one.ok && one.value.tags).toEqual([
+        { id: 'tag-design', name: 'design', color: 'teal' },
+      ])
     })
 
     it('returns ForbiddenError for a task on a board the user isn’t a Board member of', async () => {

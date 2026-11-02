@@ -10,6 +10,7 @@ import {
   NotAMemberError,
   OwnerMustTransferFirstError,
   TaskArchivedError,
+  TagNameTakenError,
 } from '@/modules/boards/api'
 import {
   EmailTakenError,
@@ -135,6 +136,22 @@ describe('toActionError', () => {
     ).toEqual({ title: 'Use 200 characters or fewer.' })
   })
 
+  it('puts boards.board.tag-name-taken under the name field', () => {
+    expect(toActionError(new TagNameTakenError())).toEqual({
+      code: 'boards.board.tag-name-taken',
+      message: 'That tag name is taken.',
+      fields: {
+        name: 'This board already has a tag with that name. Choose another.',
+      },
+    })
+  })
+
+  it('words an invalid Tag color', () => {
+    expect(
+      toActionError(new ValidationError({ color: 'invalid' })).fields
+    ).toEqual({ color: 'Choose one of the tag colors.' })
+  })
+
   it('words boards.list.archived', () => {
     expect(toActionError(new ListArchivedError())).toEqual({
       code: 'boards.list.archived',
@@ -177,6 +194,15 @@ describe('toActionError', () => {
     expect(
       toActionError(new ValidationError({ confirmName: 'required' })).fields
     ).toEqual({ confirmName: 'Type the board’s name to confirm.' })
+  })
+
+  it('words an empty or too-long comment under its field', () => {
+    expect(
+      toActionError(new ValidationError({ text: 'required' })).fields
+    ).toEqual({ text: 'Write a comment.' })
+    expect(
+      toActionError(new ValidationError({ text: 'too-long' })).fields
+    ).toEqual({ text: 'Use 2000 characters or fewer.' })
   })
 
   it('turns anything thrown into unexpected, with the trace id as its reference', async () => {
