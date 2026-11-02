@@ -24,6 +24,7 @@ import {
 // processor and reader from the validated config, so NodeSDK never picks
 // from env itself, and no sampler is set here.
 
+// #region span-processor
 function spanProcessor(config: ObservabilityConfig) {
   switch (config.tracesExporter) {
     case 'otlp':
@@ -35,6 +36,7 @@ function spanProcessor(config: ObservabilityConfig) {
       return new NoopSpanProcessor()
   }
 }
+// #endregion span-processor
 
 function metricReaders(config: ObservabilityConfig) {
   const options = {
@@ -101,6 +103,7 @@ export async function start(): Promise<void> {
     await seed()
   }
 
+  // #region app-started
   const level =
     process.env.NODE_ENV === 'production' && config.tracesExporter === 'none'
       ? 'warn'
@@ -112,4 +115,5 @@ export async function start(): Promise<void> {
     logsExported,
     logLevel: config.logLevel,
   })
+  // #endregion app-started
 }

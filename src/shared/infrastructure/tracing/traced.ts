@@ -23,6 +23,7 @@ function isFailedResult(
   )
 }
 
+// #region traced
 /**
  * Wraps a use case in a span named `<module>.<exportName>` (§8). It sets
  * `app.module`, records an expected error's code, records a thrown error with
@@ -50,3 +51,4 @@ export function traced<Args extends unknown[], R>(
       }
     })
 }
+// #endregion traced
