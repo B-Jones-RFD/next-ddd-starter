@@ -12,6 +12,8 @@ export type TaskDto = {
   archived: boolean
   boardId: string
   boardName: string
+  /** An archived board is read-only, its active tasks included. */
+  boardArchived: boolean
   listId: string
   listName: string
 }

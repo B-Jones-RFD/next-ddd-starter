@@ -155,7 +155,8 @@ export class BoardReader implements IBoardReader {
         this.db
           .prepare(
             `SELECT t.id, t.title, t.description, t.archived, t.board_id,
-                    b.name AS board_name, t.list_id, l.name AS list_name,
+                    b.name AS board_name, b.archived AS board_archived,
+                    t.list_id, l.name AS list_name,
                     me.role
              FROM boards_tasks t
              JOIN boards_boards b ON b.id = t.board_id
@@ -172,6 +173,7 @@ export class BoardReader implements IBoardReader {
               archived: number
               board_id: string
               board_name: string
+              board_archived: number
               list_id: string
               list_name: string
               role: string | null
@@ -187,6 +189,7 @@ export class BoardReader implements IBoardReader {
       archived: row.archived === 1,
       boardId: row.board_id,
       boardName: row.board_name,
+      boardArchived: row.board_archived === 1,
       listId: row.list_id,
       listName: row.list_name,
     })

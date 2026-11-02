@@ -356,6 +356,7 @@ export function describeBoardReaderContract(make: Make) {
           archived: false,
           boardId: board.id,
           boardName: 'Launch plan',
+          boardArchived: false,
           listId: list.id,
           listName: 'Backlog',
         },

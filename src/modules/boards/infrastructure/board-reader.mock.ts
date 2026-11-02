@@ -107,6 +107,7 @@ export class MockBoardReader implements IBoardReader {
       archived: task.archived,
       boardId: board.id,
       boardName: board.name,
+      boardArchived: board.archived,
       listId: list.id,
       listName: list.name,
     })
