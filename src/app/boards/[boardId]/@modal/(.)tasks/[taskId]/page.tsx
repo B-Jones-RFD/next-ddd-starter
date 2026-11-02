@@ -13,18 +13,20 @@ import { getTask } from '@/modules/boards/api'
  */
 export default function TaskModal({
   params,
+  searchParams,
 }: PageProps<'/boards/[boardId]/tasks/[taskId]'>) {
   // The dialog opens once the task has loaded, so it opens on its heading.
   return (
     <Suspense fallback={null}>
-      <Task params={params} />
+      <Task params={params} searchParams={searchParams} />
     </Suspense>
   )
 }
 
 async function Task({
   params,
-}: Pick<PageProps<'/boards/[boardId]/tasks/[taskId]'>, 'params'>) {
+  searchParams,
+}: PageProps<'/boards/[boardId]/tasks/[taskId]'>) {
   const { boardId, taskId } = await params
   const actor = await requireActor(taskPath(boardId, taskId))
   const task = await getTask({ actorId: actor.userId, taskId })
@@ -36,7 +38,7 @@ async function Task({
       <TaskDetails
         task={task.value}
         formKey={actor.userId}
-        actorId={actor.userId}
+        searchParams={searchParams}
       />
     </TaskDialog>
   )

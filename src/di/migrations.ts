@@ -1,3 +1,4 @@
+import { audit001 } from '@/modules/audit/infrastructure/migrations'
 import {
   boards001,
   boards002,
@@ -23,4 +24,5 @@ export const MIGRATIONS: readonly Migration[] = [
   boards003,
   boards004,
   boards005,
+  audit001,
 ]

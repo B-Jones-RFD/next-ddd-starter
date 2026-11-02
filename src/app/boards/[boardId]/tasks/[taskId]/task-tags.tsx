@@ -1,26 +1,22 @@
 import Link from 'next/link'
 
+import { requireActor } from '@/app/_lib/auth/get-actor'
+import { taskPath } from '@/app/boards/[boardId]/task-places'
 import {
   TagTaskForm,
   TaskTagChip,
   tagsHeadingId,
 } from '@/app/boards/[boardId]/tasks/[taskId]/task-tag-forms'
 import { listTags, type TagDto, type TaskDto } from '@/modules/boards/api'
-import type { ActorDto } from '@/modules/identity/api'
 
 /**
  * The task's Tags section: its tags, each with a remove button, and a
  * picker of the board's other tags. Reads the board's tags itself, inside
  * its own `<Suspense>`.
  */
-export async function TaskTags({
-  actorId,
-  task,
-}: {
-  actorId: ActorDto['userId']
-  task: TaskDto
-}) {
-  const tags = await listTags({ actorId, boardId: task.boardId })
+export async function TaskTags({ task }: { task: TaskDto }) {
+  const actor = await requireActor(taskPath(task.boardId, task.id))
+  const tags = await listTags({ actorId: actor.userId, boardId: task.boardId })
   // The task's own read just passed, so the board's tags are readable too,
   // unless access changed in between: then show the task's tags only.
   const board: TagDto[] = tags.ok ? tags.value : []
@@ -32,13 +28,13 @@ export async function TaskTags({
       aria-labelledby={tagsHeadingId(task.id)}
       className='flex flex-col gap-3'
     >
-      <h3
+      <h2
         id={tagsHeadingId(task.id)}
         tabIndex={-1}
-        className='text-sm font-medium outline-none'
+        className='font-heading text-lg font-semibold outline-none'
       >
         Tags
-      </h3>
+      </h2>
       {task.tags.length === 0 ? (
         <p className='text-sm text-muted-foreground'>No tags yet.</p>
       ) : (

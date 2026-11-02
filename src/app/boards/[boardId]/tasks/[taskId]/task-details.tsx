@@ -1,28 +1,28 @@
 import { Suspense } from 'react'
 
+import { TaskActivity } from '@/app/boards/[boardId]/tasks/[taskId]/task-activity'
 import {
   TaskDescriptionForm,
   TaskTitleForm,
 } from '@/app/boards/[boardId]/tasks/[taskId]/task-forms'
 import { TaskTags } from '@/app/boards/[boardId]/tasks/[taskId]/task-tags'
 import type { TaskDto } from '@/modules/boards/api'
-import type { ActorDto } from '@/modules/identity/api'
 
 /**
  * The task's body, shared by its dialog and its page, under the heading
- * each gives it: where it sits, then its title and description forms, then
- * its sections, each in its own `<Suspense>`.
+ * each gives it: where it sits, its title and description forms, then its
+ * Tags and its Activity, each in its own `<Suspense>`.
  */
 export function TaskDetails({
   task,
   formKey,
-  actorId,
+  searchParams,
 }: {
   task: TaskDto
   /** Keys the forms, so a sign-out never leaves half-typed text. */
   formKey: string
-  /** The reader, for the sections that read on their own. */
-  actorId: ActorDto['userId']
+  /** The route's query, which pages the Activity. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   return (
     <div className='flex flex-col gap-6'>
@@ -41,12 +41,21 @@ export function TaskDetails({
       />
       <Suspense
         fallback={
-          <p role='status' className='text-sm text-muted-foreground'>
-            Loading tags…
-          </p>
+          <p className='text-sm text-muted-foreground'>Loading tags…</p>
         }
       >
-        <TaskTags actorId={actorId} task={task} />
+        <TaskTags task={task} />
+      </Suspense>
+      <Suspense
+        fallback={
+          <p className='text-sm text-muted-foreground'>Loading activity…</p>
+        }
+      >
+        <TaskActivity
+          boardId={task.boardId}
+          taskId={task.id}
+          searchParams={searchParams}
+        />
       </Suspense>
     </div>
   )

@@ -1,3 +1,4 @@
+import { AUDIT_HANDLERS } from '@/modules/audit/application/handlers/audit-handlers'
 import {
   RECORD_USER_REGISTERED,
   recordUserRegistered,
@@ -16,7 +17,7 @@ import {
 } from '@/shared/kernel/ports/event-relay.port'
 
 /** The modules that own an outbox, which the relay drains in this order. */
-export const OUTBOX_NAMES = ['identity', 'boards'] as const
+export const OUTBOX_NAMES = ['identity', 'boards', 'audit'] as const
 
 /** Every outbox handler, registered with the relay (§6). */
 export const EVENT_HANDLERS: readonly EventHandler[] = [
@@ -39,4 +40,6 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     version: 1,
     handle: untagDeletedTag,
   }),
+  // One per identity and boards v1 contract (ADR 0010).
+  ...AUDIT_HANDLERS,
 ]

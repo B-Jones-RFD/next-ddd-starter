@@ -1,6 +1,5 @@
 import { createModule } from '@evyweb/ioctopus'
 
-import { EVENT_HANDLERS, OUTBOX_NAMES } from '@/di/event-handlers'
 import type { AdapterMode, Registry } from '@/di/types'
 
 /**
@@ -9,8 +8,11 @@ import type { AdapterMode, Registry } from '@/di/types'
  */
 export async function loadSharedModule(mode: AdapterMode) {
   const shared = createModule<Registry>()
-  const { EventRelay } =
-    await import('@/shared/infrastructure/outbox/event-relay')
+  // Handlers import the container, so the list loads only once it's built.
+  const [{ EventRelay }, { EVENT_HANDLERS, OUTBOX_NAMES }] = await Promise.all([
+    import('@/shared/infrastructure/outbox/event-relay'),
+    import('@/di/event-handlers'),
+  ])
 
   if (mode === 'mock') {
     const [{ MockIdGenerator }, { MockOutbox }] = await Promise.all([

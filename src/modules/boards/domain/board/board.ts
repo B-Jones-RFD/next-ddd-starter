@@ -73,6 +73,7 @@ export function createBoard(input: {
   })
 }
 
+// #region add-member
 /** The actor's role on the board, if they are a Board member. */
 export function roleOf(board: Board, userId: UserId): Role | undefined {
   return board.members.find((member) => member.userId === userId)?.role
@@ -94,6 +95,7 @@ export function addMember(
     events: [{ type: 'MemberAdded', payload: { boardId: board.id, userId } }],
   })
 }
+// #endregion add-member
 
 /** The Owner removes a Member. The Owner can't remove themself. */
 export function removeMember(
