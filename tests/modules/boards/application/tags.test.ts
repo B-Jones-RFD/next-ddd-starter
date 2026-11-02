@@ -16,12 +16,14 @@ import {
   NotFoundError,
   recolorTag,
   renameTag,
+  renameTask,
   TagNameTakenError,
   tagTask,
   untagTask,
   ValidationError,
 } from '@/modules/boards/api'
 import { untagDeletedTag } from '@/modules/boards/application/handlers/untag-deleted-tag'
+import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 import { MockOutbox } from '@/shared/infrastructure/outbox/outbox.mock'
 import type { UserId } from '@/shared/kernel/user-id'
@@ -424,6 +426,61 @@ describe('deleteTag', () => {
 
     expect(saves).not.toHaveBeenCalled()
     expect(await taskTags()).toEqual({ 'Write the brief': [] })
+  })
+
+  it('strips the other tasks past one that keeps changing, and finishes it on redelivery', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    const urgent = await givenTag('Urgent')
+    const busy = await givenTask('Write the brief')
+    const venue = await givenTask('Book the venue')
+    await tagTask({ actorId: ada, taskId: busy, tagId: urgent })
+    await tagTask({ actorId: ada, taskId: venue, tagId: urgent })
+    const tasks = await getInjection('ITaskRepository')
+    const relay = await getInjection('IEventRelay')
+    await relay.drain()
+    // Every time the Consequence loads the busy task, someone edits it first.
+    let edits = 0
+    let editing = false
+    const editMeanwhile = async () => {
+      editing = true
+      edits += 1
+      await renameTask({ actorId: ada, taskId: busy, title: `Draft ${edits}` })
+      editing = false
+    }
+    const findById = tasks.findById.bind(tasks)
+    const findTaggedWith = tasks.findTaggedWith.bind(tasks)
+    vi.spyOn(tasks, 'findTaggedWith').mockImplementationOnce(
+      async (...args) => {
+        const stale = await findTaggedWith(...args)
+        await editMeanwhile()
+        return stale
+      }
+    )
+    vi.spyOn(tasks, 'findById').mockImplementation(async (id) => {
+      if (editing || id !== busy) return findById(id)
+      const stale = await findById(id)
+      await editMeanwhile()
+      return stale
+    })
+
+    await deleteTag({ actorId: ada, boardId, tagId: urgent })
+    await relay.drain()
+
+    // Reads hide a deleted tag, so look at what each task still carries.
+    const carried = async () => {
+      const found = await Promise.all(
+        [busy, venue].map((id) => findById(toTaskId(id)))
+      )
+      return found.map((task) => (task.ok ? task.value.tagIds : null))
+    }
+    expect(await carried()).toEqual([[urgent], []])
+
+    vi.restoreAllMocks()
+    vi.setSystemTime(Date.now() + 120_000)
+    await relay.drain()
+
+    expect(await carried()).toEqual([[], []])
+    vi.useRealTimers()
   })
 
   it('returns NotFoundError for a tag that doesn’t exist', async () => {

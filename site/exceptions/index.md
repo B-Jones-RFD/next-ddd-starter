@@ -73,7 +73,7 @@ Three things about it are exceptions, and each has a reason.
 
   <<< @/../src/modules/boards/domain/services/task-assignment.service.ts#hand-over{ts}
 
-- **It writes one task per transaction.** §6 says a handler writes its one aggregate. A member can be assigned to many tasks, so the handler loops and saves each task on its own, reloading and retrying a task that changed under it. If it fails halfway, the redelivery picks up the rest.
+- **It writes one task per transaction.** §6 says a handler writes its one aggregate. A member can be assigned to many tasks, so the handler loops and saves each task on its own through `changeEachTask`, reloading and retrying a task that changed under it. A task that still conflicts after a few tries doesn't stop the others: they are handed over first, then the handler throws a retryable `PersistenceError`, so the relay redelivers the event with backoff. If it fails halfway for any reason, the redelivery picks up the rest.
 - **It writes no inbox row.** §6 has each handler record what it applied in its inbox. This one doesn't need to: a redelivery runs `findAssignedTo` again and finds nothing still assigned to them, so it does nothing. Someone re-added to the board before it runs keeps their assignments, because `handOverToOwner` checks membership against the board as it is now.
 
 It handles the published `boards.MemberRemoved.v1` and `boards.MemberLeft.v1`, not the domain events, so each saved task carries the published event's id as its `causationId`. Audit records each hand-over as an ordinary entry, and Activity names the removal as its cause ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)).
