@@ -56,6 +56,11 @@ export function LogEntries({
               </span>{' '}
               {entryWording(entry, names)}
             </p>
+            {entry.action === 'comment.added' ? (
+              <p className='break-words whitespace-pre-line'>
+                {entry.details.text}
+              </p>
+            ) : null}
             {entry.action === 'task.description-changed' ? (
               <dl className='grid grid-cols-[auto_1fr] gap-x-2 text-muted-foreground'>
                 <dt>Before:</dt>
