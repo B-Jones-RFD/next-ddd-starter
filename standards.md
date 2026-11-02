@@ -287,16 +287,17 @@ Site: [Testing](https://b-jones-rfd.github.io/next-ddd-starter/testing/)
 
 Site: [Tooling](https://b-jones-rfd.github.io/next-ddd-starter/tooling/)
 
-- **Run Node `>=26`** (`engines`, `.nvmrc`), for `node:sqlite`'s `Database`. `review`
+- **Run Node `>=26`** (`engines`, `.nvmrc`), for `node:sqlite`'s `Database`. Import it as `DatabaseSync`, its alias, until `@types/node` declares `Database`. `review`
 - **Format with Prettier:** no semicolons, single quotes, 2 spaces, `es5` trailing commas and the Tailwind plugin. `lint`
 - **Lint with `eslint-config-next`** (`core-web-vitals`, `typescript`), the type-aware `no-floating-promises`, `no-misused-promises`, `consistent-type-imports` and `switch-exhaustiveness-check` rules, `import/order` (builtin, external, `@/`, relative, separated by blank lines) and `eslint-config-prettier`. Boundary blocks are generated per context, with no custom rules. `lint`
 - **Compile with `strict`** plus `noUncheckedIndexedAccess`, `noImplicitOverride` and `noFallthroughCasesInSwitch`, with no decorators. `type`
-- **Name files and folders in kebab-case**, with a role suffix: `.port`, `.command`, `.query`, `.dto`, `.mock`, `.events`, `.errors`, `.service`, `.contract`, `.test`. Adapters, aggregates, value objects, components and `actions.ts` take none. `review`
+- **Name files and folders in kebab-case**, with a role suffix: `.port`, `.command`, `.query`, `.dto`, `.mock`, `.events`, `.errors`, `.service`, `.contract`, `.test`. Adapters, aggregates, value objects, components and `actions.ts` take none. A dynamic route segment holds its camelCase param name (`[boardId]`). `review`
 - **Use camelCase for values and functions, PascalCase for types, components and classes**, and SCREAMING_CASE only for true module constants. `review`
 - **Prefer `type` to `interface`, with no `I` or `T` prefix.** The exception is a port, which is `interface I<Name>`. `review`
 - **Use string-literal unions, never `enum`.** `review`
 - **Use named exports only**, and default exports only where Next requires one. `review`
-- **Import through `@/` (which maps to `src/`), use `./` only for siblings, and never write `../`.** Built-ins take the `node:` prefix. `lint`
+- **Import through `@/` (which maps to `src/`), use `./` only for siblings, and never write `../`.** `lint`
+- **Import Node built-ins with the `node:` prefix.** `review`
 - **Don't add pre-commit hooks.** `npm run check` is the gate. `review`
 
 ## 13. Known exceptions and local-only simplifications

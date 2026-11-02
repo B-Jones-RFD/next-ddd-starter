@@ -14,10 +14,12 @@ import tseslint from 'typescript-eslint'
 const CONTEXTS = ['identity', 'boards', 'audit']
 const TS = '**/*.{ts,tsx,mts,cts}'
 
+// #region no-parent-relative
 const noParentRelative = {
   regex: '^\\.\\.(?:/|$)',
   message: "Use the '@/' alias instead of '../'.",
 }
+// #endregion no-parent-relative
 // #region no-next-or-react
 const noNextOrReact = {
   group: ['next', 'next/*', 'react', 'react/*', 'react-dom', 'react-dom/*'],
@@ -333,6 +335,7 @@ const eslintConfig = defineConfig([
     files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
     rules: jsxA11y.flatConfigs.recommended.rules,
   },
+  // #region type-aware
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
@@ -349,6 +352,8 @@ const eslintConfig = defineConfig([
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
     },
   },
+  // #endregion type-aware
+  // #region import-order
   {
     rules: {
       'import/order': [
@@ -370,6 +375,7 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // #endregion import-order
   ...boundaries,
   prettier,
   // Override default ignores of eslint-config-next.
