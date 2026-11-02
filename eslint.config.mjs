@@ -174,7 +174,10 @@ const eslintConfig = defineConfig([
             'internal',
             ['parent', 'sibling', 'index'],
           ],
-          pathGroups: [{ pattern: '@/**', group: 'internal' }],
+          pathGroups: [
+            { pattern: '@/**', group: 'internal' },
+            { pattern: '@tests/**', group: 'internal', position: 'after' },
+          ],
           pathGroupsExcludedImportTypes: ['builtin'],
           'newlines-between': 'always',
         },
