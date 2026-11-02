@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
+import { toTagId } from '@/modules/boards/domain/board/tag'
 import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import {
   changeTaskDescription,
   createTask,
+  detachTag,
   renameTask,
   reorderTask,
 } from '@/modules/boards/domain/task/task'
@@ -51,6 +53,7 @@ describe('createTask', () => {
           listId,
           title: 'Write the brief',
           description: '',
+          tagIds: [],
           position: 'V',
           archived: false,
           createdAt: now,
@@ -258,5 +261,32 @@ describe('reorderTask', () => {
       ok: false,
       error: new ForbiddenError(),
     })
+  })
+})
+
+// The Consequence of a deleted tag, which no Board member asked for, so it
+// checks no role.
+describe('detachTag', () => {
+  const urgent = toTagId('tag-urgent')
+  const design = toTagId('tag-design')
+
+  it('drops the tag and raises TaskUntagged', () => {
+    const task = aTask({ tagIds: [urgent, design] })
+
+    expect(detachTag(task, urgent)).toEqual({
+      state: { ...task, tagIds: [design] },
+      events: [
+        {
+          type: 'TaskUntagged',
+          payload: { taskId: task.id, boardId, tagId: urgent },
+        },
+      ],
+    })
+  })
+
+  it('raises nothing for a tag the task doesn’t have', () => {
+    const task = aTask({ tagIds: [design] })
+
+    expect(detachTag(task, urgent)).toEqual({ state: task, events: [] })
   })
 })

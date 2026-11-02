@@ -28,6 +28,13 @@ beforeEach(async () => {
   })
   if (!task.ok) throw new Error('setup failed')
   taskId = task.value.taskId
+  const tag = await api.createTag({
+    actorId: ada,
+    boardId,
+    name: 'Urgent',
+    color: 'red',
+  })
+  if (!tag.ok) throw new Error('setup failed')
 })
 
 describeMembershipProof('boards', api, {
@@ -46,6 +53,12 @@ describeMembershipProof('boards', api, {
     'removeMember',
     'leaveBoard',
     'transferOwnership',
+    'createTag',
+    'renameTag',
+    'recolorTag',
+    'deleteTag',
+    'tagTask',
+    'untagTask',
   ],
   queries: {
     listBoards: () => api.listBoards({ actorId: outsider }),
@@ -54,5 +67,6 @@ describeMembershipProof('boards', api, {
     searchUsers: () =>
       api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),
     roleOf: () => api.roleOf({ boardId, userId: outsider }),
+    listTags: () => api.listTags({ actorId: outsider, boardId }),
   },
 })

@@ -1,4 +1,5 @@
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
+import type { TagId } from '@/modules/boards/domain/board/tag'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { TaskId } from '@/modules/boards/domain/task/task-id'
 import type { DomainEvent } from '@/shared/kernel/events'
@@ -43,5 +44,26 @@ export type TaskReordered = DomainEvent<
   { taskId: TaskId; boardId: BoardId; listId: ListId }
 >
 
+/** A Board member attached a tag to a task. Translated to `boards.TaskTagged.v1`. */
+export type TaskTagged = DomainEvent<
+  'TaskTagged',
+  { taskId: TaskId; boardId: BoardId; tagId: TagId }
+>
+
+/**
+ * A tag left a task: a Board member detached it, or, as a Consequence, it
+ * was deleted. Translated to `boards.TaskUntagged.v1`.
+ */
+export type TaskUntagged = DomainEvent<
+  'TaskUntagged',
+  { taskId: TaskId; boardId: BoardId; tagId: TagId }
+>
+
 export type TaskEvent =
-  TaskCreated | TaskRenamed | TaskDescriptionChanged | TaskMoved | TaskReordered
+  | TaskCreated
+  | TaskRenamed
+  | TaskDescriptionChanged
+  | TaskMoved
+  | TaskReordered
+  | TaskTagged
+  | TaskUntagged

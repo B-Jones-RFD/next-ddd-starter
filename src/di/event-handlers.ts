@@ -7,6 +7,10 @@ import {
   recordUserRenamed,
 } from '@/modules/boards/application/handlers/record-user-renamed'
 import {
+  UNTAG_DELETED_TAG,
+  untagDeletedTag,
+} from '@/modules/boards/application/handlers/untag-deleted-tag'
+import {
   eventHandler,
   type EventHandler,
 } from '@/shared/kernel/ports/event-relay.port'
@@ -27,5 +31,12 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     eventType: 'identity.UserRenamed',
     version: 1,
     handle: recordUserRenamed,
+  }),
+  // A domain row: only boards' own handlers receive it (§6).
+  eventHandler({
+    name: UNTAG_DELETED_TAG,
+    eventType: 'TagDeleted',
+    version: 1,
+    handle: untagDeletedTag,
   }),
 ]

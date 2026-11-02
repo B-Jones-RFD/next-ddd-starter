@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { toTagId } from '@/modules/boards/domain/board/tag'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -160,6 +161,75 @@ export function describeTaskRepositoryContract(make: Make) {
       const { repository } = make()
 
       expect(await repository.findLastInList(toListId('empty'))).toBeNull()
+    })
+
+    it('saves a task’s tags in the order they were attached, and their changes', async () => {
+      const { repository } = make()
+      const urgent = toTagId('tag-urgent')
+      const design = toTagId('tag-design')
+      const saved = await repository.save(
+        aTask({ version: 0, tagIds: [urgent, design] }),
+        [],
+        origin
+      )
+      if (!saved.ok) throw new Error('setup failed')
+      expect(await repository.findById(saved.value.id)).toEqual(saved)
+
+      const changed = { ...saved.value, tagIds: [design] }
+      const result = await repository.save(changed, [], origin)
+
+      expect(result).toEqual({ ok: true, value: { ...changed, version: 2 } })
+      expect(await repository.findById(changed.id)).toEqual(result)
+    })
+
+    it('finds every task carrying a tag, archived ones included, by id', async () => {
+      const { repository } = make()
+      const urgent = toTagId('tag-urgent')
+      for (const task of [
+        aTask({ id: toTaskId('task-b'), tagIds: [urgent] }),
+        aTask({ id: toTaskId('task-a'), tagIds: [toTagId('x'), urgent] }),
+        aTask({ id: toTaskId('task-c'), tagIds: [urgent], archived: true }),
+        aTask({ id: toTaskId('task-d'), tagIds: [toTagId('x')] }),
+      ]) {
+        await repository.save({ ...task, version: 0 }, [], origin)
+      }
+
+      const tagged = await repository.findTaggedWith(urgent)
+
+      expect(tagged.map((task) => task.id)).toEqual([
+        'task-a',
+        'task-b',
+        'task-c',
+      ])
+      expect(tagged[0]).toMatchObject({ tagIds: ['x', urgent], version: 1 })
+    })
+
+    it('publishes tagging events with their payloads', async () => {
+      const { repository, outbox } = make()
+      const task = aTask({ version: 0 })
+      const payload = {
+        taskId: task.id,
+        boardId: task.boardId,
+        tagId: toTagId('tag-1'),
+      }
+      await repository.save(
+        task,
+        [
+          { type: 'TaskTagged', payload },
+          { type: 'TaskUntagged', payload },
+        ],
+        origin
+      )
+
+      const rows = await outbox.pending(20)
+      expect(
+        rows
+          .filter((row) => row.scope === 'integration')
+          .map((row) => [row.envelope.type, row.envelope.payload])
+      ).toEqual([
+        ['boards.TaskTagged', payload],
+        ['boards.TaskUntagged', payload],
+      ])
     })
 
     it('writes each event as a domain row and publishes its translation', async () => {

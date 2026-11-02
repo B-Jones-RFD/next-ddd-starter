@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { translateTaskEvents } from '@/modules/boards/application/contracts/translate'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
+import { toTagId, type TagId } from '@/modules/boards/domain/board/tag'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
@@ -34,13 +35,14 @@ type TaskRow = {
   version: number
 }
 
-function toTask(row: TaskRow): Task {
+function toTask(row: TaskRow, tagIds: readonly TagId[]): Task {
   return {
     id: row.id as TaskId,
     boardId: row.board_id as BoardId,
     listId: row.list_id as ListId,
     title: row.title as TaskTitle,
     description: row.description as TaskDescription,
+    tagIds,
     position: row.position,
     archived: row.archived === 1,
     createdAt: new Date(row.created_at),
@@ -48,35 +50,72 @@ function toTask(row: TaskRow): Task {
   }
 }
 
-/** Tasks in `boards_tasks`, one row per task. */
+/**
+ * Tasks in `boards_tasks`, one row per task, with their tags in
+ * `boards_task_tags`.
+ */
 export class TaskRepository implements ITaskRepository {
   constructor(
     private readonly db: DatabaseSync,
     private readonly outbox: IOutbox
   ) {}
 
+  /** The rows as tasks, each with its tag ids in the order attached. */
+  private withTags(rows: readonly TaskRow[]): Task[] {
+    if (rows.length === 0) return []
+    const tagRows = this.db
+      .prepare(
+        `SELECT task_id, tag_id FROM boards_task_tags
+         WHERE task_id IN (SELECT value FROM json_each(?))
+         ORDER BY task_id, position`
+      )
+      .all(JSON.stringify(rows.map((row) => row.id))) as {
+      task_id: string
+      tag_id: string
+    }[]
+    const byTask = new Map<string, TagId[]>()
+    for (const { task_id, tag_id } of tagRows) {
+      byTask.set(task_id, [...(byTask.get(task_id) ?? []), toTagId(tag_id)])
+    }
+    return rows.map((row) => toTask(row, byTask.get(row.id) ?? []))
+  }
+
   async findById(id: TaskId): Promise<Result<Task, NotFoundError>> {
-    const row = query(
-      PORT,
-      () =>
-        this.db.prepare('SELECT * FROM boards_tasks WHERE id = ?').get(id) as
-          TaskRow | undefined
-    )
-    return row ? ok(toTask(row)) : err(new NotFoundError('Task', id))
+    const [task] = query(PORT, () => {
+      const row = this.db
+        .prepare('SELECT * FROM boards_tasks WHERE id = ?')
+        .get(id) as TaskRow | undefined
+      return this.withTags(row ? [row] : [])
+    })
+    return task ? ok(task) : err(new NotFoundError('Task', id))
   }
 
   async findLastInList(listId: ListId): Promise<Task | null> {
-    const row = query(
-      PORT,
-      () =>
+    const [task] = query(PORT, () => {
+      const row = this.db
+        .prepare(
+          `SELECT * FROM boards_tasks WHERE list_id = ?
+           ORDER BY position DESC, id DESC LIMIT 1`
+        )
+        .get(listId) as TaskRow | undefined
+      return this.withTags(row ? [row] : [])
+    })
+    return task ?? null
+  }
+
+  async findTaggedWith(tagId: TagId): Promise<Task[]> {
+    return query(PORT, () =>
+      this.withTags(
         this.db
           .prepare(
-            `SELECT * FROM boards_tasks WHERE list_id = ?
-             ORDER BY position DESC, id DESC LIMIT 1`
+            `SELECT t.* FROM boards_tasks t
+             JOIN boards_task_tags tt ON tt.task_id = t.id
+             WHERE tt.tag_id = ?
+             ORDER BY t.id`
           )
-          .get(listId) as TaskRow | undefined
+          .all(tagId) as TaskRow[]
+      )
     )
-    return row ? toTask(row) : null
   }
 
   async save(
@@ -131,6 +170,16 @@ export class TaskRepository implements ITaskRepository {
                 task.version
               )
       if (changes === 0) return ROLLBACK
+      this.db
+        .prepare('DELETE FROM boards_task_tags WHERE task_id = ?')
+        .run(task.id)
+      const insertTag = this.db.prepare(
+        `INSERT INTO boards_task_tags (task_id, tag_id, position)
+         VALUES (?, ?, ?)`
+      )
+      task.tagIds.forEach((tagId, position) => {
+        insertTag.run(task.id, tagId, position)
+      })
       this.outbox.append(entries)
       return true
     })

@@ -4,6 +4,7 @@ import Link from 'next/link'
 const TABS = [
   { id: 'general', label: 'General', path: '' },
   { id: 'members', label: 'Members', path: '/members' },
+  { id: 'tags', label: 'Tags', path: '/tags' },
 ] as const
 
 type Tab = (typeof TABS)[number]['id']

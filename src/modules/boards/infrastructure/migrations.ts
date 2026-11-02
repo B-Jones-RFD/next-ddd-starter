@@ -109,3 +109,29 @@ export const boards004: Migration = {
     CREATE INDEX boards_tasks_board_id ON boards_tasks (board_id);
   `,
 }
+
+export const boards005: Migration = {
+  context: 'boards',
+  name: '005-tags',
+  sql: `
+    -- A board's tags: child rows of the Board aggregate.
+    CREATE TABLE boards_tags (
+      id TEXT PRIMARY KEY,
+      board_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL CHECK (color IN
+        ('gray', 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet')),
+      position INTEGER NOT NULL
+    );
+    CREATE INDEX boards_tags_board_id ON boards_tags (board_id, position);
+
+    -- The tags attached to a task: child rows of the Task aggregate.
+    CREATE TABLE boards_task_tags (
+      task_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      PRIMARY KEY (task_id, tag_id)
+    );
+    CREATE INDEX boards_task_tags_tag_id ON boards_task_tags (tag_id);
+  `,
+}

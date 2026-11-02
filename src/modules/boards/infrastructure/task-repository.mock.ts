@@ -1,4 +1,5 @@
 import { translateTaskEvents } from '@/modules/boards/application/contracts/translate'
+import type { TagId } from '@/modules/boards/domain/board/tag'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskId } from '@/modules/boards/domain/task/task-id'
@@ -32,6 +33,13 @@ export class MockTaskRepository implements ITaskRepository {
       .sort(byPositionThenId)
       .at(-1)
     return last ? structuredClone(last) : null
+  }
+
+  async findTaggedWith(tagId: TagId): Promise<Task[]> {
+    return [...mockTasks().values()]
+      .filter((task) => task.tagIds.includes(tagId))
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .map((task) => structuredClone(task))
   }
 
   async save(

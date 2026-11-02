@@ -19,6 +19,7 @@ export function aTask(overrides: Partial<Task> = {}): Task {
     listId: toListId('list-tasks'),
     title: `Task ${sequence}` as TaskTitle,
     description: '' as TaskDescription,
+    tagIds: [],
     position: 'V',
     archived: false,
     createdAt: new Date('2026-01-01T10:00:00.000Z'),

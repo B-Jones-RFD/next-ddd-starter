@@ -4,8 +4,10 @@ import type {
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
+import type { TagDto } from '@/modules/boards/application/dto/tag.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
+import type { Tag } from '@/modules/boards/domain/board/tag'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
 import {
   byPositionThenId,
@@ -33,6 +35,17 @@ function membersOf(board: Board): BoardMemberDto[] {
 
 const byNameThenId = (a: Board, b: Board) =>
   a.name < b.name ? -1 : a.name > b.name ? 1 : a.id < b.id ? -1 : 1
+
+/** The board's tags by name ignoring case, then id, as `TagDto`s. */
+function tagsOf(board: Board, only?: readonly string[]): TagDto[] {
+  const key = (tag: Tag) => tag.name.toLowerCase()
+  return board.tags
+    .filter((tag) => !only || only.includes(tag.id))
+    .toSorted((a, b) =>
+      key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : a.id < b.id ? -1 : 1
+    )
+    .map((tag) => ({ id: tag.id, name: tag.name, color: tag.color }))
+}
 
 /** In-memory twin of `BoardReader`, over the mock boards and people stores. */
 export class MockBoardReader implements IBoardReader {
@@ -70,7 +83,11 @@ export class MockBoardReader implements IBoardReader {
           tasks: [...mockTasks().values()]
             .filter((task) => task.listId === list.id && !task.archived)
             .sort(byPositionThenId)
-            .map((task) => ({ id: task.id, title: task.title })),
+            .map((task) => ({
+              id: task.id,
+              title: task.title,
+              tags: tagsOf(board, task.tagIds),
+            })),
         })),
     })
   }
@@ -95,7 +112,20 @@ export class MockBoardReader implements IBoardReader {
       boardName: board.name,
       listId: list.id,
       listName: list.name,
+      tags: tagsOf(board, task.tagIds),
     })
+  }
+
+  async tagsForMember(
+    boardId: string,
+    userId: UserId
+  ): Promise<Result<TagDto[], NotFoundError | ForbiddenError>> {
+    const board = mockBoards().get(boardId)
+    if (!board) return err(new NotFoundError('Board', boardId))
+    if (!board.members.some((m) => m.userId === userId)) {
+      return err(new ForbiddenError())
+    }
+    return ok(tagsOf(board))
   }
 
   async roleOf(

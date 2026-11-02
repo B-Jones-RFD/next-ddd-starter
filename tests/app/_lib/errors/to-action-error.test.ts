@@ -6,6 +6,7 @@ import {
   ListArchivedError,
   NotAMemberError,
   OwnerMustTransferFirstError,
+  TagNameTakenError,
 } from '@/modules/boards/api'
 import {
   EmailTakenError,
@@ -129,6 +130,22 @@ describe('toActionError', () => {
     expect(
       toActionError(new ValidationError({ title: 'too-long' })).fields
     ).toEqual({ title: 'Use 200 characters or fewer.' })
+  })
+
+  it('puts boards.board.tag-name-taken under the name field', () => {
+    expect(toActionError(new TagNameTakenError())).toEqual({
+      code: 'boards.board.tag-name-taken',
+      message: 'That tag name is taken.',
+      fields: {
+        name: 'This board already has a tag with that name. Choose another.',
+      },
+    })
+  })
+
+  it('words an invalid Tag color', () => {
+    expect(
+      toActionError(new ValidationError({ color: 'invalid' })).fields
+    ).toEqual({ color: 'Choose one of the tag colors.' })
   })
 
   it('words boards.list.archived', () => {

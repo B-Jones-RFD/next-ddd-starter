@@ -1,4 +1,5 @@
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
+import type { TagId } from '@/modules/boards/domain/board/tag'
 import {
   acceptTasks,
   type List,
@@ -32,6 +33,8 @@ export type Task = {
   readonly listId: ListId
   readonly title: TaskTitle
   readonly description: TaskDescription
+  /** Its board's tags attached to it, in the order they were attached. */
+  readonly tagIds: readonly TagId[]
   /** A fractional key: tasks sort within their list by `(position, id)` (§3). */
   readonly position: string
   readonly archived: boolean
@@ -69,6 +72,7 @@ export function createTask(input: {
     listId: list.value.id,
     title: title.value,
     description: '' as TaskDescription,
+    tagIds: [],
     position: keyBetween(input.after, null),
     archived: false,
     createdAt: input.now,
@@ -159,6 +163,41 @@ export function reorderTask(
   if (!membership) return err(new ForbiddenError())
   if (!place.after && !place.before) return ok({ state: task, events: [] })
   return placeTask(task, task.listId, place)
+}
+
+/**
+ * Attaches a tag the caller has checked is on the task's board. A tag the
+ * task already has raises nothing.
+ */
+export function attachTag(task: Task, tagId: TagId): Change {
+  if (task.tagIds.includes(tagId)) return { state: task, events: [] }
+  return {
+    state: { ...task, tagIds: [...task.tagIds, tagId] },
+    events: [
+      {
+        type: 'TaskTagged',
+        payload: { taskId: task.id, boardId: task.boardId, tagId },
+      },
+    ],
+  }
+}
+
+/**
+ * Drops a tag from the task. It checks no role, because a deleted tag also
+ * leaves its tasks as a Consequence nobody asked for (§6). A tag the task
+ * doesn't have raises nothing.
+ */
+export function detachTag(task: Task, tagId: TagId): Change {
+  if (!task.tagIds.includes(tagId)) return { state: task, events: [] }
+  return {
+    state: { ...task, tagIds: task.tagIds.filter((id) => id !== tagId) },
+    events: [
+      {
+        type: 'TaskUntagged',
+        payload: { taskId: task.id, boardId: task.boardId, tagId },
+      },
+    ],
+  }
 }
 
 /**

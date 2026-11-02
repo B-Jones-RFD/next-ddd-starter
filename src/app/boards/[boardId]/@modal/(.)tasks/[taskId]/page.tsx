@@ -33,7 +33,11 @@ async function Task({
 
   return (
     <TaskDialog boardId={boardId} taskId={taskId} title={task.value.title}>
-      <TaskDetails task={task.value} formKey={actor.userId} />
+      <TaskDetails
+        task={task.value}
+        formKey={actor.userId}
+        actorId={actor.userId}
+      />
     </TaskDialog>
   )
 }

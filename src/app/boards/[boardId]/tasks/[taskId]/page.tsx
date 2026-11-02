@@ -49,7 +49,11 @@ async function Task({
       <h1 className='font-heading text-2xl font-semibold break-words'>
         {task.value.title}
       </h1>
-      <TaskDetails task={task.value} formKey={actor.userId} />
+      <TaskDetails
+        task={task.value}
+        formKey={actor.userId}
+        actorId={actor.userId}
+      />
     </div>
   )
 }

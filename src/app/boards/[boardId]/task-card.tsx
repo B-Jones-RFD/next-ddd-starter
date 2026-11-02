@@ -14,6 +14,8 @@ import { useActionState, useCallback, useId, useRef, useState } from 'react'
 import { FormAlert } from '@/app/_components/form/form-alert'
 import { SubmitButton } from '@/app/_components/form/submit-button'
 import { useRefocus } from '@/app/_components/refocus'
+import { TagBadge } from '@/app/_components/tags/tag-badge'
+import type { TagColorName } from '@/app/_components/tags/tag-colors'
 import { Button } from '@/app/_components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/app/_components/ui/dialog'
 import { Label } from '@/app/_components/ui/label'
@@ -46,7 +48,11 @@ const MOVES = [
   { move: 'last', label: 'Move last', Icon: ChevronsDown },
 ] as const satisfies readonly { move: ListMove; label: string; Icon: unknown }[]
 
-type Task = { id: string; title: string }
+type Task = {
+  id: string
+  title: string
+  tags: { id: string; name: string; color: TagColorName }[]
+}
 type List = { id: string; name: string; tasks: Task[] }
 
 /** The task's own place in its list, or the bottom of another. */
@@ -136,6 +142,15 @@ export function TaskCard({
           </MenuContent>
         </Menu>
       </div>
+      {task.tags.length > 0 && (
+        <ul aria-label='Tags' className='flex flex-wrap gap-1 px-1'>
+          {task.tags.map((tag) => (
+            <li key={tag.id} className='max-w-full'>
+              <TagBadge tag={tag} />
+            </li>
+          ))}
+        </ul>
+      )}
       <FormAlert error={state.status === 'error' ? state.error : undefined} />
       {available.map(({ move: name }) => (
         <form key={name} id={`${formId}-${name}`} action={reorder} hidden>
