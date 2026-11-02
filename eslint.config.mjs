@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 import nextTs from 'eslint-config-next/typescript'
 import prettier from 'eslint-config-prettier/flat'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 import tseslint from 'typescript-eslint'
 
 // --- Module boundaries (ADR 0002) ---------------------------------------
@@ -140,6 +141,12 @@ const boundaries = [
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Accessibility (§10): the full recommended set. eslint-config-next registers
+  // the plugin and turns on a few rules as warnings, so only the rules go here.
+  {
+    files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
+    rules: jsxA11y.flatConfigs.recommended.rules,
+  },
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
     languageOptions: {
