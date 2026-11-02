@@ -40,6 +40,10 @@ _Avoid_: Owner (of a task), responsible, assigned user
 A label defined on one board that its board members can attach to that board's tasks.
 _Avoid_: Label, category
 
+**Tag color**:
+One of a fixed palette of named colors that each tag carries. It decorates a tag and never stands in for the tag's name.
+_Avoid_: Hex, swatch, label color
+
 **Archived**:
 The state of a board, list, or task that is hidden by default and read-only, but can be restored. Boards, lists, and tasks are never deleted, only archived. A list can be archived only when none of its tasks are active.
 _Avoid_: Hidden, soft-deleted, closed
