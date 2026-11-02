@@ -4,6 +4,7 @@ import { getInjection } from '@/di/container'
 import { getActivity } from '@/modules/audit/api'
 import {
   addMember,
+  archiveTask,
   assignTask,
   ConflictError,
   createBoard,
@@ -21,7 +22,6 @@ import {
   unassignTask,
   ValidationError,
 } from '@/modules/boards/api'
-import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -207,18 +207,6 @@ describe('unassignTask', () => {
   })
 })
 
-/** Makes the task archived, as #73's archive will, through its repository. */
-async function archived(id: string) {
-  const tasks = await getInjection('ITaskRepository')
-  const task = await tasks.findById(toTaskId(id))
-  if (!task.ok) throw new Error('setup failed')
-  const saved = await tasks.save({ ...task.value, archived: true }, [], {
-    actorId: ada,
-    causationId: null,
-  })
-  if (!saved.ok) throw new Error('setup failed')
-}
-
 describe('handing assignments over to the Owner', () => {
   let other: string
   let shelved: string
@@ -230,7 +218,8 @@ describe('handing assignments over to the Owner', () => {
     await assignTask({ actorId: ada, taskId: other, userId: ada })
     await assignTask({ actorId: ada, taskId: other, userId: ben })
     await assignTask({ actorId: ada, taskId: shelved, userId: ben })
-    await archived(shelved)
+    const shelf = await archiveTask({ actorId: ada, taskId: shelved })
+    if (!shelf.ok) throw new Error('setup failed')
   })
 
   it.each([
