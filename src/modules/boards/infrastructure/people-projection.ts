@@ -20,6 +20,7 @@ const PORT = 'IPeopleProjection'
 export class PeopleProjection implements IPeopleProjection {
   constructor(private readonly db: DatabaseSync) {}
 
+  // #region record
   async record(
     person: Person,
     aggregateVersion: number,
@@ -47,6 +48,7 @@ export class PeopleProjection implements IPeopleProjection {
       return true
     })
   }
+  // #endregion record
 
   async find(userId: UserId): Promise<Result<Person, NotFoundError>> {
     const row = query(
