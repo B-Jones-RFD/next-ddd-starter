@@ -1,3 +1,5 @@
+import { builtinModules } from 'node:module'
+
 import { defineConfig, globalIgnores } from 'eslint/config'
 import nextVitals from 'eslint-config-next/core-web-vitals'
 import nextTs from 'eslint-config-next/typescript'
@@ -20,6 +22,20 @@ const noParentRelative = {
   message: "Use the '@/' alias instead of '../'.",
 }
 // #endregion no-parent-relative
+// #region node-prefix
+/** Node's built-ins by their bare names (`fs`, `fs/promises`), which need `node:`. */
+const BARE_BUILTINS = [
+  ...new Set(
+    builtinModules
+      .filter((name) => !name.startsWith('node:') && !name.startsWith('_'))
+      .map((name) => name.split('/')[0])
+  ),
+]
+const noBareBuiltin = {
+  regex: `^(?:${BARE_BUILTINS.join('|')})(?:/|$)`,
+  message: "Import Node built-ins with the 'node:' prefix.",
+}
+// #endregion node-prefix
 // #region no-next-or-react
 const noNextOrReact = {
   group: ['next', 'next/*', 'react', 'react/*', 'react-dom', 'react-dom/*'],
@@ -55,7 +71,7 @@ const SRC = { patterns: [noPino, noMetricsSdk], paths: [noMetricsApi] }
 const restrict = (...patterns) => ({
   'no-restricted-imports': [
     'error',
-    { patterns: [noParentRelative, ...patterns] },
+    { patterns: [noParentRelative, noBareBuiltin, ...patterns] },
   ],
 })
 
@@ -64,7 +80,7 @@ const restrictSrc = (...patterns) => ({
   'no-restricted-imports': [
     'error',
     {
-      patterns: [noParentRelative, ...SRC.patterns, ...patterns],
+      patterns: [noParentRelative, noBareBuiltin, ...SRC.patterns, ...patterns],
       paths: SRC.paths,
     },
   ],
@@ -291,6 +307,7 @@ const boundaries = [
         {
           patterns: [
             noParentRelative,
+            noBareBuiltin,
             noMetricsSdk,
             {
               regex: '^@/(?:modules|di|app)(?:/|$)',

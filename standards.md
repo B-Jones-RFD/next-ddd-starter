@@ -9,7 +9,7 @@ Site: [overview](https://b-jones-rfd.github.io/next-ddd-starter/)
 - **Read this file before you write or review code.** It is short on purpose. The explanations live on the site.
 - **This file owns the rules.** The site explains them but never adds or changes one, and the ADRs in `docs/adr/` record the trade-offs behind them. If either disagrees with this file, this file wins, and the other gets fixed in the same change.
 - **Older guides are superseded.** Where any earlier architecture document conflicts with this file, follow this file.
-- **Each rule ends with how it is enforced:** `lint` (ESLint in `npm run check`), `type` (the compiler), `test` (a test fails) or `review` (only a reviewer catches it). Until the slice that writes the governed code adds its check, a `lint` or `test` rule is enforced by review.
+- **Each rule ends with how it is enforced:** `lint` (ESLint in `npm run check`), `format` (Prettier's check in `npm run check`), `type` (the compiler), `test` (a test fails) or `review` (only a reviewer catches it). Until the slice that writes the governed code adds its check, a `lint` or `test` rule is enforced by review.
 - **_This app's choice; decide per project_** marks an answer that belongs to this app, not to the template. What carries over is the seam named with it.
 - **Cite rules by section** (for example "§4 Application"). Rules have no IDs.
 - **If you change a rule, edit this file in the same change**, along with the site page for its section.
@@ -227,7 +227,7 @@ Site: [Presentation](https://b-jones-rfd.github.io/next-ddd-starter/presentation
 - **Show field errors under their inputs** (`Field`/`FieldError`, with `aria-invalid` and `aria-describedby`) and everything else in one `FormAlert`. There's no toast library. `review`
 - **Submit with the shared `SubmitButton`** (`useFormStatus`). A dialog form closes on `success` through an `onSuccess` callback, and a full-page form redirects. `review`
 - **Make mutating buttons `<form action={fn.bind(null, id)}>`, never `onClick`**, so they work before hydration. Bound ids are untrusted, and the domain checks them again. `review`
-- **Default to Server Components, and put `'use client'` only on the smallest interactive part.** Client Components get serializable DTOs as props, import actions from their route's `actions.ts` and never import `@/modules`. `lint`
+- **Default to Server Components, and put `'use client'` only on the smallest interactive part.** Client Components get serializable DTOs as props, import actions from their route's `actions.ts` and never import `@/modules`. ESLint can't tell a Client Component's file apart, but `server-only` at the top of each `api.ts` fails `next build` for a value import. A type-only import passes. `review`
 - **Use `useOptimistic` only where lag is built in** (posting a comment into Activity). `review`
 - **Give each route segment a `loading.tsx` and each independent section its own `<Suspense>`.** Add `error.tsx` at the root and on key segments, plus `global-error.tsx` and `not-found.tsx`. `error.tsx` shows `error.digest` as the reference. `review`
 - **Use DTOs as they are, with no view-model layer.** Format timestamps with the client `<Time>` component (DayJS) inside `<time dateTime>`. `review`
@@ -288,7 +288,7 @@ Site: [Testing](https://b-jones-rfd.github.io/next-ddd-starter/testing/)
 Site: [Tooling](https://b-jones-rfd.github.io/next-ddd-starter/tooling/)
 
 - **Run Node `>=26`** (`engines`, `.nvmrc`), for `node:sqlite`'s `Database`. Import it as `DatabaseSync`, its alias, until `@types/node` declares `Database`. `review`
-- **Format with Prettier:** no semicolons, single quotes, 2 spaces, `es5` trailing commas and the Tailwind plugin. `lint`
+- **Format with Prettier:** no semicolons, single quotes, 2 spaces, `es5` trailing commas and the Tailwind plugin. `format`
 - **Lint with `eslint-config-next`** (`core-web-vitals`, `typescript`), the type-aware `no-floating-promises`, `no-misused-promises`, `consistent-type-imports` and `switch-exhaustiveness-check` rules, `import/order` (builtin, external, `@/`, relative, separated by blank lines) and `eslint-config-prettier`. Boundary blocks are generated per context, with no custom rules. `lint`
 - **Compile with `strict`** plus `noUncheckedIndexedAccess`, `noImplicitOverride` and `noFallthroughCasesInSwitch`, with no decorators. `type`
 - **Name files and folders in kebab-case**, with a role suffix: `.port`, `.command`, `.query`, `.dto`, `.mock`, `.events`, `.errors`, `.service`, `.contract`, `.test`. Adapters, aggregates, value objects, components and `actions.ts` take none. A dynamic route segment holds its camelCase param name (`[boardId]`). `review`
@@ -297,7 +297,7 @@ Site: [Tooling](https://b-jones-rfd.github.io/next-ddd-starter/tooling/)
 - **Use string-literal unions, never `enum`.** `review`
 - **Use named exports only**, and default exports only where Next requires one. `review`
 - **Import through `@/` (which maps to `src/`), use `./` only for siblings, and never write `../`.** `lint`
-- **Import Node built-ins with the `node:` prefix.** `review`
+- **Import Node built-ins with the `node:` prefix.** Every scope's `no-restricted-imports` bans the bare names. `lint`
 - **Don't add pre-commit hooks.** `npm run check` is the gate. `review`
 
 ## 13. Known exceptions and local-only simplifications

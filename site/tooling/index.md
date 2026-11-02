@@ -22,7 +22,7 @@ Each step stops the chain, so the cheapest failure is the one you see first. A t
 
 There are no pre-commit hooks. A hook runs on one machine, can be skipped with `--no-verify`, and slows every commit, including the work-in-progress ones. A single script anyone can run, an agent included, says the same thing on every machine. A coding agent's "done" means `npm run check` passes, and a reviewer can ask for exactly that.
 
-When this page says a rule is enforced by `lint` or `type`, it means one of the steps above fails. A `review` rule has no step, so only a reviewer catches it.
+When this page says a rule is enforced by `lint`, `format` or `type`, it means one of the steps above fails: ESLint, Prettier's check or the compiler. A `review` rule has no step, so only a reviewer catches it.
 
 ## Node `>=26`
 
@@ -160,7 +160,9 @@ Imports go through the `@/` alias, which maps to `src/`. `./` is for a sibling i
 
 The reason is the boundary matrix. Its blocks match imports by path, and `@/modules/boards/domain/...` names its target where `../../domain/...` only names a direction. A file can also move without breaking its own imports, and an import line says which layer it reaches into.
 
-Node's built-ins take the `node:` prefix (`node:sqlite`, `node:crypto`), so a built-in can never be shadowed by a package of the same name, and an import line shows at a glance that nothing is installed for it. No lint rule checks the prefix, so it is held by review.
+Node's built-ins take the `node:` prefix (`node:sqlite`, `node:crypto`), so a built-in can never be shadowed by a package of the same name, and an import line shows at a glance that nothing is installed for it. Every lint scope bans the bare names next to `../`, built from Node's own list of built-ins, so a new built-in is covered without an edit:
+
+<<< @/../eslint.config.mjs#node-prefix{js}
 
 ## Checklist
 
