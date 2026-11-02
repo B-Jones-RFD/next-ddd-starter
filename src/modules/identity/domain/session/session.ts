@@ -59,6 +59,7 @@ export function startSession(input: {
   }
 }
 
+// #region expiry
 /**
  * Whether the session still signs its user in: not ended, used within the
  * last 7 days, and started less than 30 days ago. Expiry is computed here,
@@ -72,7 +73,9 @@ export function isSessionActive(session: Session, now: Date): boolean {
     time - session.createdAt.getTime() < SESSION_ABSOLUTE_LIMIT_MS
   )
 }
+// #endregion expiry
 
+// #region touch
 /** Whether a use now should record `lastSeenAt`: at most once a minute. */
 export function isTouchDue(session: Session, now: Date): boolean {
   return (
@@ -84,6 +87,7 @@ export function isTouchDue(session: Session, now: Date): boolean {
 export function touchSession(session: Session, now: Date): Session {
   return { ...session, lastSeenAt: now }
 }
+// #endregion touch
 
 /**
  * The user signs out of this session, on its own or as the one they signed

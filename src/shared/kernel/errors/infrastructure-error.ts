@@ -40,8 +40,8 @@ export class PersistenceError extends InfrastructureError {
 // #endregion infrastructure-error
 
 /**
- * An external service failed. Unused here: it is the pattern for apps that
- * call external services (§13).
+ * An external service failed. Only the password hasher throws it here: it
+ * is the pattern for apps that call external services (§13).
  */
 export class ExternalServiceError extends InfrastructureError {
   readonly code = 'external-service'
