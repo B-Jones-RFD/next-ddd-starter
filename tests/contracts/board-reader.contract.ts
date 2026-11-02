@@ -209,6 +209,7 @@ export function describeBoardReaderContract(make: Make) {
         id: toTaskId('task-b'),
         title: 'Second' as TaskTitle,
         position: 'V',
+        assignees: [ada],
       })
       await on({
         id: toTaskId('task-a'),
@@ -224,21 +225,26 @@ export function describeBoardReaderContract(make: Make) {
           id: backlog.id,
           name: backlog.name,
           tasks: [
-            { id: 'task-a', title: 'First' },
-            { id: 'task-b', title: 'Second' },
-            { id: expect.any(String), title: 'Third' },
+            { id: 'task-a', title: 'First', assignees: [] },
+            {
+              id: 'task-b',
+              title: 'Second',
+              assignees: [{ userId: ada, displayName: null }],
+            },
+            { id: expect.any(String), title: 'Third', assignees: [] },
           ],
         },
         {
           id: done.id,
           name: done.name,
-          tasks: [{ id: expect.any(String), title: 'Shipped' }],
+          tasks: [{ id: expect.any(String), title: 'Shipped', assignees: [] }],
         },
       ])
     })
 
-    it('gets a task for a Board member, with its board and list', async () => {
-      const { reader, boards, lists, tasks } = make()
+    it('gets a task for a Board member, with its board, list and assignees by name in the order assigned', async () => {
+      const { reader, boards, lists, tasks, people } = make()
+      await knownAs(people, ada, 'Ada')
       const board = await given(
         boards,
         aBoard({
@@ -258,6 +264,7 @@ export function describeBoardReaderContract(make: Make) {
         listId: list.id,
         title: 'Write the brief' as TaskTitle,
         description: 'One page.' as TaskDescription,
+        assignees: [ben, ada],
         version: 0,
       })
       await tasks.save(task, [], origin)
@@ -273,6 +280,10 @@ export function describeBoardReaderContract(make: Make) {
           boardName: 'Launch plan',
           listId: list.id,
           listName: 'Backlog',
+          assignees: [
+            { userId: ben, displayName: null },
+            { userId: ada, displayName: 'Ada' },
+          ],
         },
       })
     })

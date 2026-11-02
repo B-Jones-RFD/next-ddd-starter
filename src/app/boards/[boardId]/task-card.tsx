@@ -11,6 +11,7 @@ import {
 import Link from 'next/link'
 import { useActionState, useCallback, useId, useRef, useState } from 'react'
 
+import { AvatarStack } from '@/app/_components/avatar-stack'
 import { FormAlert } from '@/app/_components/form/form-alert'
 import { SubmitButton } from '@/app/_components/form/submit-button'
 import { useRefocus } from '@/app/_components/refocus'
@@ -46,7 +47,11 @@ const MOVES = [
   { move: 'last', label: 'Move last', Icon: ChevronsDown },
 ] as const satisfies readonly { move: ListMove; label: string; Icon: unknown }[]
 
-type Task = { id: string; title: string }
+type Task = {
+  id: string
+  title: string
+  assignees: { userId: string; displayName: string | null }[]
+}
 type List = { id: string; name: string; tasks: Task[] }
 
 /** The task's own place in its list, or the bottom of another. */
@@ -57,8 +62,8 @@ function initial(choices: readonly { current: boolean }[]): number {
 
 /**
  * A task in its list's column: its title as an `h3` link that opens the task
- * dialog, and its "⋯" menu to move it up, down, first or last, or to another
- * list (§10). After a move, focus returns to this ⋯ in the task's new place.
+ * dialog, its "⋯" menu to move it up, down, first or last, or to another
+ * list (§10), and its assignees as one avatar stack. After a move, focus returns to this ⋯ in the task's new place.
  */
 export function TaskCard({
   boardId,
@@ -136,6 +141,9 @@ export function TaskCard({
           </MenuContent>
         </Menu>
       </div>
+      {task.assignees.length > 0 && (
+        <AvatarStack label='Assignees' people={task.assignees} size='sm' />
+      )}
       <FormAlert error={state.status === 'error' ? state.error : undefined} />
       {available.map(({ move: name }) => (
         <form key={name} id={`${formId}-${name}`} action={reorder} hidden>

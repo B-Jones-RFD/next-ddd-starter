@@ -33,7 +33,12 @@ async function Task({
 
   return (
     <TaskDialog boardId={boardId} taskId={taskId} title={task.value.title}>
-      <TaskDetails task={task.value} formKey={actor.userId} />
+      {/* The dialog's title is an h2. */}
+      <TaskDetails
+        task={task.value}
+        actorId={actor.userId}
+        sectionHeading='h3'
+      />
     </TaskDialog>
   )
 }

@@ -109,3 +109,20 @@ export const boards004: Migration = {
     CREATE INDEX boards_tasks_board_id ON boards_tasks (board_id);
   `,
 }
+
+export const boards005: Migration = {
+  context: 'boards',
+  name: '005-task-assignees',
+  sql: `
+    -- A task's assignees, in the order they were assigned, rewritten with
+    -- the task on every save.
+    CREATE TABLE boards_task_assignees (
+      task_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      PRIMARY KEY (task_id, user_id)
+    );
+    CREATE INDEX boards_task_assignees_user_id
+      ON boards_task_assignees (user_id);
+  `,
+}

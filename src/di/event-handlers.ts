@@ -7,6 +7,10 @@ import {
   recordUserRenamed,
 } from '@/modules/boards/application/handlers/record-user-renamed'
 import {
+  REASSIGN_TO_OWNER,
+  reassignToOwner,
+} from '@/modules/boards/application/handlers/reassign-to-owner'
+import {
   eventHandler,
   type EventHandler,
 } from '@/shared/kernel/ports/event-relay.port'
@@ -27,5 +31,18 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     eventType: 'identity.UserRenamed',
     version: 1,
     handle: recordUserRenamed,
+  }),
+  // Domain events, so only boards' own handlers see them (§6).
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'MemberRemoved',
+    version: 1,
+    handle: reassignToOwner,
+  }),
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'MemberLeft',
+    version: 1,
+    handle: reassignToOwner,
   }),
 ]
