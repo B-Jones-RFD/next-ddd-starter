@@ -28,7 +28,7 @@ flowchart LR
 
 ## Commands: load, domain function, save
 
-Every command has the same three steps. It **loads** what it needs through ports, calls a **domain function** that returns `{ state, events }`, and **saves** both with `save(state, events)`. Sign-up is the first command in the repo:
+Every command has the same three steps. It **loads** what it needs through ports, calls a **domain function** that returns `{ state, events }`, and **saves** both with `save(state, events, origin)`. Sign-up is the first command in the repo:
 
 <<< @/../src/modules/identity/application/commands/sign-up.command.ts#sign-up{ts}
 
@@ -56,7 +56,7 @@ Why one shape for every command:
 - **Effects on other aggregates happen later.** When identity saves a new User, boards doesn't hear about it inside `signUp`. Boards records the new user's display name in a handler that runs after the commit, from the published `UserRegistered` event (see [Contexts](/contexts/)). A command that touched several aggregates directly would need a transaction across all of them, and it would couple contexts that should only meet through events.
 - **The rules stay in the domain.** The command only orders the steps. Whether a registration is valid is decided by `parseRegistration` and `registerUser`, which are pure and easy to test (see [Domain](/domain/)).
 
-In the code, `save` takes a third argument, the event `origin` (`actorId` and `causationId`), which the outbox stores with each event (§6).
+`origin` is the `actorId` and `causationId` that the outbox stores with each event (§6). For a change a user makes directly, as in sign-up, `causationId` is `null`. A handler sets it to the id of the event that triggered it.
 
 ## The actor is an argument
 
