@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: 'Task' }
 /** A task's own page, for a direct load or a shared link. */
 export default function TaskPage({
   params,
+  searchParams,
 }: PageProps<'/boards/[boardId]/tasks/[taskId]'>) {
   return (
     <Suspense
@@ -22,14 +23,15 @@ export default function TaskPage({
         </p>
       }
     >
-      <Task params={params} />
+      <Task params={params} searchParams={searchParams} />
     </Suspense>
   )
 }
 
 async function Task({
   params,
-}: Pick<PageProps<'/boards/[boardId]/tasks/[taskId]'>, 'params'>) {
+  searchParams,
+}: PageProps<'/boards/[boardId]/tasks/[taskId]'>) {
   const { boardId, taskId } = await params
   const actor = await requireActor(taskPath(boardId, taskId))
   const task = await getTask({ actorId: actor.userId, taskId })
@@ -49,7 +51,11 @@ async function Task({
       <h1 className='font-heading text-2xl font-semibold break-words'>
         {task.value.title}
       </h1>
-      <TaskDetails task={task.value} formKey={actor.userId} />
+      <TaskDetails
+        task={task.value}
+        formKey={actor.userId}
+        searchParams={searchParams}
+      />
     </div>
   )
 }
