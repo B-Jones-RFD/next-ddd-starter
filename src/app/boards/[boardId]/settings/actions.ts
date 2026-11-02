@@ -9,6 +9,7 @@ import { signInPath } from '@/app/_lib/auth/next-path'
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import { archiveBoard, renameBoard, restoreBoard } from '@/modules/boards/api'
 
+// #region rename-board-action
 /**
  * Renames the board, then re-renders the page. `boardId` is bound by the
  * form and untrusted: the domain checks the actor is its Owner.
@@ -37,6 +38,7 @@ export async function renameBoardAction(
   refresh()
   return { status: 'success' }
 }
+// #endregion rename-board-action
 
 /**
  * Archives the board once the Owner has typed its name, then goes to the
