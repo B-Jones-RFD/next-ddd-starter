@@ -31,8 +31,10 @@ import type {
   PendingOutboxRow,
 } from '@/shared/kernel/ports/outbox.port'
 
+// #region handler-name
 /** `<module>.<camelCaseName>`, as ADR 0016 requires of handler names. */
 const HANDLER_NAME = /^[a-z]+\.[a-z][A-Za-z0-9]*$/
+// #endregion handler-name
 
 const BATCH = 100
 const POLL_INTERVAL_MS = 1_000

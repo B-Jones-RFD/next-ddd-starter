@@ -17,6 +17,7 @@ export type {
   LogEventFields,
 } from '@/shared/infrastructure/logging/log-events'
 
+// #region logger
 /** The diagnostic log facade (§8). `pino` is imported nowhere else. */
 export type Logger = {
   error<E extends LogEvent>(event: E, fields: LogEventFields[E]): void
@@ -25,9 +26,11 @@ export type Logger = {
   debug<E extends LogEvent>(event: E, fields: LogEventFields[E]): void
   child(bindings: { module: string }): Logger
 }
+// #endregion logger
 
 const config = readObservabilityConfig(process.env)
 
+// #region root
 const root = pino({
   level: config.logLevel,
   // pid and hostname are dropped: the OTel resource carries them.
@@ -47,6 +50,7 @@ const root = pino({
     }
   },
 })
+// #endregion root
 
 function wrap(target: pino.Logger): Logger {
   const write =
@@ -65,6 +69,7 @@ function wrap(target: pino.Logger): Logger {
 
 export const logger: Logger = wrap(root)
 
+// #region reference
 /**
  * The reference a user is shown for an unexpected failure: the active span's
  * trace id, or a fresh id in trace-id format when no span is active, so the
@@ -75,3 +80,4 @@ export function traceReference(): string {
   if (context && isSpanContextValid(context)) return context.traceId
   return randomBytes(16).toString('hex')
 }
+// #endregion reference

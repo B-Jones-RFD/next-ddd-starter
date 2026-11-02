@@ -56,6 +56,7 @@ function defaultLogLevel(env: NodeJS.ProcessEnv): LogLevel {
   return 'debug'
 }
 
+// #region reader
 /**
  * Reads observability settings from the standard `OTEL_*` variables plus
  * `LOG_LEVEL` (ADR 0015). Every exporter defaults to `none`. Throws on any
@@ -89,3 +90,4 @@ export function readObservabilityConfig(
     serviceName: env.OTEL_SERVICE_NAME || 'next-ddd-starter',
   }
 }
+// #endregion reader

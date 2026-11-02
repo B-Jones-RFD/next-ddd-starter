@@ -3,6 +3,7 @@ import type { OutboxScope } from '@/shared/kernel/ports/outbox.port'
 // The `app.*` attribute keys are a contract with dashboards and alerts
 // (ADR 0016). Renaming one needs a new ADR.
 
+// #region attributes
 export const APP_MODULE = 'app.module'
 export const APP_ERROR_KIND = 'app.error.kind'
 export const APP_ERROR_CODE = 'app.error.code'
@@ -36,3 +37,4 @@ export type AppAttributes = {
   [APP_EVENT_CAUSATION_ID]: string
   [APP_EVENT_AGGREGATE_ID]: string
 }
+// #endregion attributes
