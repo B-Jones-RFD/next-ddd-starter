@@ -4,16 +4,31 @@ import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 
 type Outcome = { ok: true; value: unknown } | { ok: false; error: unknown }
 
+/** A page of entries, such as an Audit log view's, with nothing on it. */
+function isEmptyPage(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'entries' in value &&
+    Array.isArray(value.entries) &&
+    value.entries.length === 0
+  )
+}
+
 function isDenied(outcome: Outcome): boolean {
   if (!outcome.ok) return outcome.error instanceof ForbiddenError
   const { value } = outcome
-  return value === null || (Array.isArray(value) && value.length === 0)
+  return (
+    value === null ||
+    (Array.isArray(value) && value.length === 0) ||
+    isEmptyPage(value)
+  )
 }
 
 /**
  * The membership proof for one context (§11). Every function `api` exports
  * must be listed as a command or given a query case. Each case calls its
- * query as a non-member and must get `ForbiddenError`, an empty list or null.
+ * query as a non-member and must get `ForbiddenError`, an empty list, an empty page or null.
  * A query exported without a case fails the test.
  */
 export function describeMembershipProof(

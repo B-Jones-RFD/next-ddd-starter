@@ -1,8 +1,17 @@
 import type { DatabaseSync } from 'node:sqlite'
 
-import type { AuditEntryDto } from '@/modules/audit/application/dto/activity.dto'
-import type { IActivityReader } from '@/modules/audit/application/ports/activity-reader.port'
-import type { AuditAction } from '@/modules/audit/domain/audit-entry/audit-entry'
+import type {
+  AuditEntryDto,
+  SubjectEntryDto,
+} from '@/modules/audit/application/dto/activity.dto'
+import type {
+  EntryPage,
+  IActivityReader,
+} from '@/modules/audit/application/ports/activity-reader.port'
+import type {
+  AuditAction,
+  Subject,
+} from '@/modules/audit/domain/audit-entry/audit-entry'
 import { query } from '@/shared/infrastructure/sqlite/translate-error'
 
 const PORT = 'IActivityReader'
@@ -80,6 +89,47 @@ export class ActivityReader implements IActivityReader {
           ) as Row[]
     )
     return rows.map(toDto)
+  }
+
+  async forBoard(boardId: string, page: EntryPage): Promise<SubjectEntryDto[]> {
+    return this.page('board_id = ?', [boardId], page)
+  }
+
+  async forUser(userId: string, page: EntryPage): Promise<SubjectEntryDto[]> {
+    return this.page("subject = 'user' AND subject_id = ?", [userId], page)
+  }
+
+  /** One keyset page of the entries matching `where`, newest first. */
+  private page(
+    where: string,
+    params: readonly string[],
+    page: EntryPage
+  ): SubjectEntryDto[] {
+    const rows = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT ${COLUMNS}, subject, subject_id FROM audit_entries
+             WHERE ${where}
+               AND (? IS NULL OR id < ?)
+               AND action NOT IN (SELECT value FROM json_each(?))
+             ORDER BY id DESC
+             LIMIT ?`
+          )
+          .all(
+            ...params,
+            page.before,
+            page.before,
+            JSON.stringify(page.excluding),
+            page.limit
+          ) as (Row & { subject: Subject; subject_id: string })[]
+    )
+    return rows.map((row) => ({
+      ...toDto(row),
+      subject: row.subject,
+      subjectId: row.subject_id,
+    }))
   }
 
   async byIds(ids: readonly string[]): Promise<AuditEntryDto[]> {

@@ -1,5 +1,11 @@
-import type { AuditEntryDto } from '@/modules/audit/application/dto/activity.dto'
-import type { IActivityReader } from '@/modules/audit/application/ports/activity-reader.port'
+import type {
+  AuditEntryDto,
+  SubjectEntryDto,
+} from '@/modules/audit/application/dto/activity.dto'
+import type {
+  EntryPage,
+  IActivityReader,
+} from '@/modules/audit/application/ports/activity-reader.port'
 import type {
   AuditAction,
   AuditEntry,
@@ -49,6 +55,37 @@ export class MockActivityReader implements IActivityReader {
       .sort(newestFirst)
       .slice(0, page.limit)
       .map(toDto)
+  }
+
+  async forBoard(boardId: string, page: EntryPage): Promise<SubjectEntryDto[]> {
+    return this.page((entry) => entry.boardId === boardId, page)
+  }
+
+  async forUser(userId: string, page: EntryPage): Promise<SubjectEntryDto[]> {
+    return this.page(
+      (entry) => entry.subject === 'user' && entry.subjectId === userId,
+      page
+    )
+  }
+
+  private page(
+    matches: (entry: AuditEntry) => boolean,
+    page: EntryPage
+  ): SubjectEntryDto[] {
+    return [...mockAudit().entries.values()]
+      .filter(
+        (entry) =>
+          matches(entry) &&
+          !page.excluding.includes(entry.action) &&
+          (page.before === null || entry.id < page.before)
+      )
+      .sort(newestFirst)
+      .slice(0, page.limit)
+      .map((entry) => ({
+        ...toDto(entry),
+        subject: entry.subject,
+        subjectId: entry.subjectId,
+      }))
   }
 
   async byIds(ids: readonly string[]): Promise<AuditEntryDto[]> {
