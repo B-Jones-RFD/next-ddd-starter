@@ -55,6 +55,9 @@ export async function TaskActivity({
           taskId={taskId}
           authorName={actor.displayName}
           hasEntries={page.value.entries.length > 0}
+          commentIds={page.value.entries.flatMap((entry) =>
+            entry.action === 'comment.added' ? [entry.details.commentId] : []
+          )}
         >
           {page.value.entries.map((entry) => (
             <ActivityItem

@@ -195,6 +195,7 @@ export async function addCommentAction(
   if (!actor.ok) redirect(signInPath(taskPath(boardId, taskId)))
   const values = formValues(formData, ['text'])
 
+  let commentId: string
   try {
     const result = await addComment({
       actorId: actor.value.userId,
@@ -204,10 +205,13 @@ export async function addCommentAction(
     if (!result.ok) {
       return { status: 'error', error: toActionError(result.error), values }
     }
+    commentId = result.value.commentId
   } catch (error) {
     return { status: 'error', error: toActionError(error), values }
   }
   refresh()
-  return { status: 'success' }
+  // Activity trails by one relay drain: the client keeps the comment until
+  // an entry with this id arrives (§6).
+  return { status: 'success', id: commentId }
 }
 // #endregion add-comment-action

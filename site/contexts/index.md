@@ -217,6 +217,6 @@ Order within one outbox matters: a Task's `TaskRenamed` mustn't reach audit befo
 
 A command returns as soon as its transaction commits. Its events are delivered afterwards, so anything built from them, such as boards' copy of a Display name or a task's Activity, catches up one relay drain later. Locally that is a few milliseconds, but it is never zero.
 
-`app/` lives with the gap and never awaits the relay. A rename refreshes the page with the new title at once, and the matching Audit entry appears in Activity on a later render. When the user needs to see their own change immediately, such as a comment they just posted, the component shows it with `useOptimistic` until a refresh picks up the real entry.
+`app/` lives with the gap and never awaits the relay. A rename refreshes the page with the new title at once, and the matching Audit entry appears in Activity on a later render. When the user needs to see their own change immediately, such as a comment they just posted, the component shows it with `useOptimistic`, then keeps it, matched by the id the action returns, until a refresh picks up the real entry.
 
 Awaiting the relay would hide the lag only while every context runs in one process. Once audit runs somewhere else, it can't be awaited at all, and every screen that assumed it could would break. Planning for the lag now keeps that move possible.

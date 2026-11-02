@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ActionState } from '@/app/_lib/actions/action-state'
@@ -23,17 +24,30 @@ function postWaits() {
   return (state: ActionState) => act(async () => settle(state))
 }
 
-function renderActivity() {
-  render(
+let rerender: ReturnType<typeof render>['rerender']
+
+function activity(commentIds: string[], newer?: ReactNode) {
+  return (
     <ActivityEntries
       boardId='board-1'
       taskId='task-1'
       authorName='Ben'
       hasEntries
+      commentIds={commentIds}
     >
+      {newer}
       <li>Ada created the task in “Backlog”</li>
     </ActivityEntries>
   )
+}
+
+/** Activity as the server renders it again after a refresh. */
+function rerenderActivity(commentIds: string[], newer: ReactNode) {
+  rerender(activity(commentIds, newer))
+}
+
+function renderActivity() {
+  ;({ rerender } = render(activity([])))
   return {
     box: screen.getByLabelText('Comment') as HTMLTextAreaElement,
     list: screen.getByRole('list'),
@@ -73,6 +87,26 @@ describe('ActivityEntries', () => {
       'Can we keep it to one page?'
     )
     await settle({ status: 'success' })
+  })
+
+  it('keeps a posted comment showing until Activity has its entry', async () => {
+    const settle = postWaits()
+    const { box, list } = renderActivity()
+    const text = 'Can we keep it to one page?'
+
+    await submit(box, text)
+    await settle({ status: 'success', id: 'comment-1' })
+
+    // The relay hasn't delivered yet: Activity is as it was.
+    expect(within(list).getByText(text)).toBeTruthy()
+
+    rerenderActivity(['comment-1'], <li>Ben commented: {text}</li>)
+
+    const items = within(screen.getByRole('list')).getAllByRole('listitem')
+    expect(items.map((item) => item.textContent)).toEqual([
+      `Ben commented: ${text}`,
+      'Ada created the task in “Backlog”',
+    ])
   })
 
   it('says “Comment posted” in a status once the post succeeds', async () => {
@@ -135,6 +169,7 @@ describe('ActivityEntries', () => {
         taskId='task-1'
         authorName='Ben'
         hasEntries={false}
+        commentIds={[]}
       />
     )
 

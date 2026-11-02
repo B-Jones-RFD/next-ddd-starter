@@ -125,7 +125,7 @@ Components are Server Components unless they need the browser, and `'use client'
 
 A Client Component gets serializable DTOs as props and imports actions from its route's `actions.ts`. It never imports `@/modules`. Every module's `api.ts` starts with `import 'server-only'`, so a client import of one fails the build: a query in a Client Component would put a database read in the browser bundle.
 
-`useOptimistic` is used only where the lag is built in: posting a comment shows it in Activity at once, because Activity trails the command by one relay drain and the action never waits for the relay ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)). Everywhere else the response is the truth. An optimistic move that the domain then rejects would show a board that never existed and snap back.
+`useOptimistic` is used only where the lag is built in: posting a comment shows it in Activity at once, because Activity trails the command by one relay drain and the action never waits for the relay. The optimistic copy lasts only while the action runs, so on success the action returns the new comment's `id`, and the component keeps the comment until a refreshed Activity has an entry with that id ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)). Everywhere else the response is the truth. An optimistic move that the domain then rejects would show a board that never existed and snap back.
 
 ## The task dialog is an intercepted route
 

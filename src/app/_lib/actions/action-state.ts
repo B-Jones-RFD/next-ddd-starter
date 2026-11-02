@@ -3,11 +3,12 @@ import type { ActionError } from '@/app/_lib/errors/action-error'
 /**
  * What every Server Action returns (§10). An error echoes the submitted
  * `values`, so inputs refill through `defaultValue` after React resets the
- * form.
+ * form. A success may carry the `id` of what the action created, for a
+ * client that shows it before a projection has caught up.
  */
 export type ActionState =
   | { status: 'idle' }
-  | { status: 'success' }
+  | { status: 'success'; id?: string }
   | { status: 'error'; error: ActionError; values: Record<string, string> }
 
 export const IDLE: ActionState = { status: 'idle' }

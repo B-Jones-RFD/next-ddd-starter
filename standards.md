@@ -213,12 +213,12 @@ Site: [Presentation](https://b-jones-rfd.github.io/next-ddd-starter/presentation
 - **Await request APIs (`cookies()`, `headers()`, `params`) and read them inside `<Suspense>`.** They are async-only in Next 16 and can't enter `'use cache'`. `review`
 - **Keep a route's Server Actions in its one `actions.ts`**, shaped `(prev: ActionState, formData) =>`: call `getActor()`, build a plain input from `formData`, call `command({ actorId, ...input })`, then `refresh()` or `redirect()` on success. `review`
 - **Validate only in the command's schema.** The action passes strings through unchecked, and the browser gets only HTML constraint attributes as hints. `review`
-- **Return an `ActionState` from every action**, echoing `values` so inputs refill through `defaultValue` after React resets the form. `type`
+- **Return an `ActionState` from every action**, echoing `values` so inputs refill through `defaultValue` after React resets the form. A success may carry the `id` of what the action created, for a client that keeps an optimistic copy until a projection has it. `type`
 
   ```ts
   type ActionState =
     | { status: 'idle' }
-    | { status: 'success' }
+    | { status: 'success'; id?: string }
     | { status: 'error'; error: ActionError; values: Record<string, string> }
   ```
 
