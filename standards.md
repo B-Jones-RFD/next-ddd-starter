@@ -100,7 +100,7 @@ Site: [Application](https://b-jones-rfd.github.io/next-ddd-starter/application/)
 Site: [Infrastructure](https://b-jones-rfd.github.io/next-ddd-starter/infrastructure/)
 
 - **Write each adapter as `class <Name> implements I<Name>`** in a flat `infrastructure/`, named for what it does, not its technology (`board-repository.ts`). Only adapters are classes. `review`
-- **Repositories only load and `save(aggregate, events)`.** Nothing else writes an aggregate. `review`
+- **Repositories only load and `save(aggregate, events, origin)`.** Nothing else writes an aggregate. `origin` is the `actorId` and `causationId` its outbox rows carry (§6). `review`
 - **Keep `save` synchronous inside its `async` signature:** `BEGIN IMMEDIATE`, the upsert with `WHERE version = ?`, child rows, outbox rows, then `COMMIT`, with no `await` in between. `node:sqlite` shares one connection, so an `await` inside a transaction lets another request's statements in. `review`
 - **Reject stale writes.** A new aggregate has `version: 0` and is inserted at 1. An update that changes 0 rows rolls back and returns `ConflictError`, and nothing retries it automatically. Read outside the transaction. `test`
 - **Write raw SQL with prepared statements.** No ORM, query builder or driver package. _This app's choice; decide per project_. The ports stay either way. `review`

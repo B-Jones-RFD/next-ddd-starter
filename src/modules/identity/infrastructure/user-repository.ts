@@ -69,6 +69,7 @@ export class UserRepository implements IUserRepository {
     return row ? ok(toUser(row)) : err(new NotFoundError('User', 'by-email'))
   }
 
+  // #region save
   async save(
     user: User,
     events: readonly UserEvent[],
@@ -122,4 +123,5 @@ export class UserRepository implements IUserRepository {
     if (written === ROLLBACK) return err(new ConflictError('User', user.id))
     return ok({ ...user, version })
   }
+  // #endregion save
 }
