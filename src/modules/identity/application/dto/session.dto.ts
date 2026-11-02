@@ -1,5 +1,6 @@
 import type { UserId } from '@/shared/kernel/user-id'
 
+// #region dto
 /** A new session's raw cookie token. Only its hash is stored. */
 export type SessionTokenDto = {
   token: string
@@ -10,3 +11,4 @@ export type ActorDto = {
   userId: UserId
   displayName: string
 }
+// #endregion dto

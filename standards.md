@@ -85,8 +85,8 @@ Site: [Domain](https://b-jones-rfd.github.io/next-ddd-starter/domain/)
 Site: [Application](https://b-jones-rfd.github.io/next-ddd-starter/application/)
 
 - **Put use cases only in `application/commands/*.command.ts` and `application/queries/*.query.ts`**, each a plain exported async function. The `api.ts` lint rules rely on these folders. `lint`
-- **Write every command as load → domain function → `save(state, events)`.** One aggregate per transaction, and saving is publishing. Effects on other aggregates run later, as event handlers (§6). `review`
-- **Take an explicit `actorId: UserId` in every command and query.** Identity's session commands take the raw token instead (§9). `type`
+- **Write every command as load → domain function → `save(state, events, origin)`.** One aggregate per transaction, and saving is publishing. Effects on other aggregates run later, as event handlers (§6). `review`
+- **Take an explicit `actorId: UserId` in every command and query.** Identity's session use cases take the raw token instead, and sign-up, which creates the actor, takes neither (§9). `type`
 - **Have queries skip the domain.** They read through read ports that return DTOs, and they filter by the actor's membership in the read itself. Nothing else authorizes a read. `test`
 - **Keep queries read-only.** §13 names the one exception. `review`
 - **Check input shape with a Zod 4 input schema in the use case, and nowhere else.** Zod is imported only in `application/`, it never ships to the client, and no rule exists in two places. `lint`

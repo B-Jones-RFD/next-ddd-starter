@@ -5,6 +5,7 @@ import { ValidationError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
+// #region list-boards
 const ListBoardsInput = z.object({ actorId: z.string().min(1) })
 
 /**
@@ -20,3 +21,4 @@ export async function listBoards(input: {
   }
   return ok([])
 }
+// #endregion list-boards
