@@ -15,6 +15,7 @@ import type { UserId } from '@/shared/kernel/user-id'
 
 import { givenUser } from '@tests/fixtures/users'
 
+// #region arrange
 let ada: UserId
 let boardId: string
 
@@ -25,6 +26,7 @@ beforeEach(async () => {
   if (!created.ok) throw new Error('setup failed')
   boardId = created.value.boardId
 })
+// #endregion arrange
 
 async function nameOf(id: string) {
   const board = await getBoard({ actorId: ada, boardId: id })
@@ -77,6 +79,7 @@ describe('renameBoard', () => {
     })
   })
 
+  // #region stale-conflict
   it('returns ConflictError when the board changed since it was loaded, keeping the other change', async () => {
     const boards = await getInjection('IBoardRepository')
     const findById = boards.findById.bind(boards)
@@ -95,6 +98,7 @@ describe('renameBoard', () => {
     })
     expect(await nameOf(boardId)).toBe('Their name')
   })
+  // #endregion stale-conflict
 })
 
 describe('getBoard', () => {

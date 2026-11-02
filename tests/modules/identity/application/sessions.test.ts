@@ -48,6 +48,7 @@ describe('authenticate', () => {
     }
   )
 
+  // #region expiry
   describe('expiry', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] })
@@ -81,6 +82,7 @@ describe('authenticate', () => {
       expect(await authenticate(token)).toEqual(unauthenticated)
     })
   })
+  // #endregion expiry
 })
 
 describe('signOut', () => {
