@@ -3,9 +3,13 @@ import type {
   BoardSummaryDto,
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
-import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
+import type {
+  AssigneeDto,
+  TaskDto,
+} from '@/modules/boards/application/dto/task.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
+import type { Task } from '@/modules/boards/domain/task/task'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
 import {
   byPositionThenId,
@@ -28,6 +32,14 @@ function membersOf(board: Board): BoardMemberDto[] {
     userId: member.userId,
     displayName: people.get(member.userId)?.person.displayName ?? null,
     role: member.role,
+  }))
+}
+
+function assigneesOf(task: Task): AssigneeDto[] {
+  const { people } = mockPeople()
+  return task.assignees.map((userId) => ({
+    userId,
+    displayName: people.get(userId)?.person.displayName ?? null,
   }))
 }
 
@@ -70,7 +82,11 @@ export class MockBoardReader implements IBoardReader {
           tasks: [...mockTasks().values()]
             .filter((task) => task.listId === list.id && !task.archived)
             .sort(byPositionThenId)
-            .map((task) => ({ id: task.id, title: task.title })),
+            .map((task) => ({
+              id: task.id,
+              title: task.title,
+              assignees: assigneesOf(task),
+            })),
         })),
     })
   }
@@ -95,6 +111,7 @@ export class MockBoardReader implements IBoardReader {
       boardName: board.name,
       listId: list.id,
       listName: list.name,
+      assignees: assigneesOf(task),
     })
   }
 

@@ -1,6 +1,7 @@
 import { getInjection } from '@/di/container'
 import {
   addMember,
+  assignTask,
   createBoard,
   createList,
   createTask,
@@ -80,6 +81,25 @@ async function tasks(
   }
 }
 
+/**
+ * Assigns each task, by title, to the people named, in order. Assigning
+ * someone already assigned changes nothing, so re-running is safe.
+ */
+async function assignees(
+  actorId: UserId,
+  boardId: string,
+  byTitle: Readonly<Record<string, readonly UserId[]>>
+): Promise<void> {
+  const existing = await getBoard({ actorId, boardId })
+  if (!existing.ok) throw existing.error
+  for (const task of existing.value.lists.flatMap((list) => list.tasks)) {
+    for (const userId of byTitle[task.title] ?? []) {
+      const assigned = await assignTask({ actorId, taskId: task.id, userId })
+      if (!assigned.ok) throw assigned.error
+    }
+  }
+}
+
 /** The Owner adds `userId` as a Member, unless they already are one. */
 async function member(
   ownerId: UserId,
@@ -119,6 +139,13 @@ export async function seed(): Promise<void> {
       'Brief support',
     ],
     Done: ['Pick the launch date', 'Set up analytics'],
+  })
+  await assignees(ada, launchPlan, {
+    'Write the press release': [ada],
+    'Design the landing page': [ben],
+    'Record the demo video': [ben, ada],
+    'Brief support': [ben],
+    'Pick the launch date': [ada],
   })
   await relay.drain()
 }

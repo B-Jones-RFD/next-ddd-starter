@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -14,6 +15,8 @@ import { aTask } from '@tests/fixtures/tasks'
 type Make = () => { repository: ITaskRepository; outbox: IOutbox }
 
 const actor = toUserId('user-owner')
+const ada = toUserId('user-ada')
+const ben = toUserId('user-ben')
 const origin = { actorId: actor, causationId: null }
 
 /** What every `ITaskRepository` adapter must do, with boards' outbox. */
@@ -118,6 +121,67 @@ export function describeTaskRepositoryContract(make: Make) {
       expect(await repository.findById(changed.id)).toEqual(result)
     })
 
+    it('saves assignees in the order they were assigned', async () => {
+      const { repository } = make()
+      const saved = await repository.save(
+        aTask({ version: 0, assignees: [ben, ada] }),
+        [],
+        origin
+      )
+      if (!saved.ok) throw new Error('setup failed')
+
+      await repository.save({ ...saved.value, assignees: [ben] }, [], origin)
+      const found = await repository.findById(saved.value.id)
+      expect(found.ok && found.value.assignees).toEqual([ben])
+
+      await repository.save(
+        { ...saved.value, version: 2, assignees: [ada, ben] },
+        [],
+        origin
+      )
+      const again = await repository.findById(saved.value.id)
+      expect(again.ok && again.value.assignees).toEqual([ada, ben])
+    })
+
+    it('finds a board’s tasks assigned to a user, archived ones included, by id', async () => {
+      const { repository } = make()
+      const boardId = toBoardId('board-assigned')
+      for (const task of [
+        aTask({ id: toTaskId('task-2'), boardId, assignees: [ada, ben] }),
+        aTask({
+          id: toTaskId('task-1'),
+          boardId,
+          assignees: [ben],
+          archived: true,
+        }),
+        aTask({ id: toTaskId('task-3'), boardId, assignees: [ada] }),
+        aTask({
+          id: toTaskId('task-4'),
+          boardId: toBoardId('other'),
+          assignees: [ben],
+        }),
+      ]) {
+        await repository.save({ ...task, version: 0 }, [], origin)
+      }
+
+      const found = await repository.findAssignedTo(boardId, ben)
+
+      expect(found.map((task) => [task.id, task.archived])).toEqual([
+        ['task-1', true],
+        ['task-2', false],
+      ])
+      expect(found[1]?.assignees).toEqual([ada, ben])
+    })
+
+    it('finds no assigned tasks for someone with none', async () => {
+      const { repository } = make()
+      await repository.save(aTask({ version: 0, assignees: [ada] }), [], origin)
+
+      expect(
+        await repository.findAssignedTo(toBoardId('board-lists'), ben)
+      ).toEqual([])
+    })
+
     it('finds a list’s last task by position then id, archived ones included', async () => {
       const { repository } = make()
       const listId = toListId('list-last')
@@ -190,6 +254,8 @@ export function describeTaskRepositoryContract(make: Make) {
             type: 'TaskReordered',
             payload: { ...ids, listId: task.listId },
           },
+          { type: 'TaskAssigned', payload: { ...ids, userId: ada } },
+          { type: 'TaskUnassigned', payload: { ...ids, userId: ben } },
         ],
         origin
       )
@@ -202,13 +268,17 @@ export function describeTaskRepositoryContract(make: Make) {
         ['domain', 'TaskDescriptionChanged'],
         ['domain', 'TaskMoved'],
         ['domain', 'TaskReordered'],
+        ['domain', 'TaskAssigned'],
+        ['domain', 'TaskUnassigned'],
         ['integration', 'boards.TaskCreated'],
         ['integration', 'boards.TaskRenamed'],
         ['integration', 'boards.TaskDescriptionChanged'],
         ['integration', 'boards.TaskMoved'],
         ['integration', 'boards.TaskReordered'],
+        ['integration', 'boards.TaskAssigned'],
+        ['integration', 'boards.TaskUnassigned'],
       ])
-      expect(rows.slice(5).map((row) => row.envelope)).toMatchObject([
+      expect(rows.slice(7).map((row) => row.envelope)).toMatchObject([
         {
           version: 1,
           aggregateId: task.id,
@@ -223,6 +293,8 @@ export function describeTaskRepositoryContract(make: Make) {
           payload: { ...ids, fromListId: task.listId, toListId: 'list-to' },
         },
         { payload: { ...ids, listId: task.listId } },
+        { payload: { ...ids, userId: ada } },
+        { payload: { ...ids, userId: ben } },
       ])
     })
   })

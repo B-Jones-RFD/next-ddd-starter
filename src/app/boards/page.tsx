@@ -79,7 +79,7 @@ function BoardTile({ board }: { board: BoardSummaryDto }) {
           {board.name}
         </Link>
       </h2>
-      <AvatarStack members={board.members} />
+      <AvatarStack people={board.members} />
     </article>
   )
 }

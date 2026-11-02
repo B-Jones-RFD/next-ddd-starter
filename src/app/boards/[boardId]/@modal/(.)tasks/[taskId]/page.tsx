@@ -37,7 +37,7 @@ async function Task({
     <TaskDialog boardId={boardId} taskId={taskId} title={task.value.title}>
       <TaskDetails
         task={task.value}
-        formKey={actor.userId}
+        actorId={actor.userId}
         searchParams={searchParams}
       />
     </TaskDialog>

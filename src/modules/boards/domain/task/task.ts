@@ -23,6 +23,7 @@ import {
 } from '@/shared/kernel/errors/domain-error'
 import { keyBetween } from '@/shared/kernel/key-between'
 import { err, ok, type Result } from '@/shared/kernel/result'
+import type { UserId } from '@/shared/kernel/user-id'
 
 /** A single unit of work on a board, sitting in exactly one list. */
 export type Task = {
@@ -34,6 +35,8 @@ export type Task = {
   readonly description: TaskDescription
   /** A fractional key: tasks sort within their list by `(position, id)` (§3). */
   readonly position: string
+  /** Board members responsible for it, in the order they were assigned. */
+  readonly assignees: readonly UserId[]
   readonly archived: boolean
   readonly createdAt: Date
   /** Owned by persistence: 0 until first saved (§5). */
@@ -71,6 +74,7 @@ export function createTask(input: {
     title: title.value,
     description: '' as TaskDescription,
     position: keyBetween(input.after, null),
+    assignees: [],
     archived: false,
     createdAt: input.now,
     version: 0,

@@ -41,6 +41,14 @@ export function taskLinkId(taskId: string): string {
   return `task-${taskId}-link`
 }
 
+/**
+ * The DOM id of a task's Assignees heading, where focus goes when an
+ * Unassign button goes.
+ */
+export function assigneesHeadingId(taskId: string): string {
+  return `task-${taskId}-assignees`
+}
+
 /** The path of a task's dialog and page. */
 export function taskPath(boardId: string, taskId: string): string {
   return `/boards/${boardId}/tasks/${taskId}`

@@ -6,6 +6,7 @@ import type {
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 import type {
+  AssigneeDto,
   TaskDto,
   TaskSummaryDto,
 } from '@/modules/boards/application/dto/task.dto'
@@ -33,9 +34,17 @@ const MEMBERS_OF = `
   WHERE m.board_id IN (SELECT value FROM json_each(?))
   ORDER BY m.board_id, m.role = 'owner' DESC, m.position`
 
+// In the order they were assigned.
+const ASSIGNEES_OF = `
+  SELECT a.task_id, a.user_id, p.display_name
+  FROM boards_task_assignees a
+  LEFT JOIN boards_people p ON p.user_id = a.user_id
+  WHERE a.task_id IN (SELECT value FROM json_each(?))
+  ORDER BY a.task_id, a.position`
+
 /**
  * Boards' read side over `boards_boards`, `boards_members`, `boards_people`,
- * `boards_lists` and `boards_tasks`.
+ * `boards_lists`, `boards_tasks` and `boards_task_assignees`.
  */
 export class BoardReader implements IBoardReader {
   constructor(private readonly db: DatabaseSync) {}
@@ -107,10 +116,17 @@ export class BoardReader implements IBoardReader {
           )
           .all(row.id) as { id: string; title: string; list_id: string }[]
     )
+    const assignees = query(PORT, () =>
+      this.assigneesOf(tasks.map((task) => task.id))
+    )
     const byList = new Map<string, TaskSummaryDto[]>()
     for (const task of tasks) {
       const inList = byList.get(task.list_id) ?? []
-      inList.push({ id: task.id, title: task.title })
+      inList.push({
+        id: task.id,
+        title: task.title,
+        assignees: assignees.get(task.id) ?? [],
+      })
       byList.set(task.list_id, inList)
     }
     return ok({
@@ -162,6 +178,7 @@ export class BoardReader implements IBoardReader {
     )
     if (!row) return err(new NotFoundError('Task', taskId))
     if (!row.role) return err(new ForbiddenError())
+    const assignees = query(PORT, () => this.assigneesOf([row.id]))
     return ok({
       id: row.id,
       title: row.title,
@@ -171,6 +188,7 @@ export class BoardReader implements IBoardReader {
       boardName: row.board_name,
       listId: row.list_id,
       listName: row.list_name,
+      assignees: assignees.get(row.id) ?? [],
     })
   }
 
@@ -188,6 +206,21 @@ export class BoardReader implements IBoardReader {
           .get(boardId, userId) as { role: 'owner' | 'member' } | undefined
     )
     return row?.role ?? null
+  }
+
+  private assigneesOf(taskIds: string[]): Map<string, AssigneeDto[]> {
+    const rows = this.db.prepare(ASSIGNEES_OF).all(JSON.stringify(taskIds)) as {
+      task_id: string
+      user_id: string
+      display_name: string | null
+    }[]
+    const byTask = new Map<string, AssigneeDto[]>()
+    for (const row of rows) {
+      const list = byTask.get(row.task_id) ?? []
+      list.push({ userId: row.user_id, displayName: row.display_name })
+      byTask.set(row.task_id, list)
+    }
+    return byTask
   }
 
   private membersOf(boardIds: string[]): Map<string, BoardMemberDto[]> {

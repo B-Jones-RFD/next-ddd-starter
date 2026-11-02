@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { changeTaskDescription as changeTaskDescriptionCommand } from '@/modules/boards/application/commands/change-task-description.command'
+import { assignTask as assignTaskCommand } from '@/modules/boards/application/commands/assign-task.command'
 import { addMember as addMemberCommand } from '@/modules/boards/application/commands/add-member.command'
 import { createBoard as createBoardCommand } from '@/modules/boards/application/commands/create-board.command'
 import { createList as createListCommand } from '@/modules/boards/application/commands/create-list.command'
@@ -14,6 +15,7 @@ import { renameList as renameListCommand } from '@/modules/boards/application/co
 import { renameTask as renameTaskCommand } from '@/modules/boards/application/commands/rename-task.command'
 import { reorderTask as reorderTaskCommand } from '@/modules/boards/application/commands/reorder-task.command'
 import { transferOwnership as transferOwnershipCommand } from '@/modules/boards/application/commands/transfer-ownership.command'
+import { unassignTask as unassignTaskCommand } from '@/modules/boards/application/commands/unassign-task.command'
 import { getBoard as getBoardQuery } from '@/modules/boards/application/queries/get-board.query'
 import { getTask as getTaskQuery } from '@/modules/boards/application/queries/get-task.query'
 import { listBoards as listBoardsQuery } from '@/modules/boards/application/queries/list-boards.query'
@@ -37,6 +39,8 @@ export const changeTaskDescription = traced(
 )
 export const reorderTask = traced('boards.reorderTask', reorderTaskCommand)
 export const moveTask = traced('boards.moveTask', moveTaskCommand)
+export const assignTask = traced('boards.assignTask', assignTaskCommand)
+export const unassignTask = traced('boards.unassignTask', unassignTaskCommand)
 export const addMember = traced('boards.addMember', addMemberCommand)
 export const removeMember = traced('boards.removeMember', removeMemberCommand)
 export const leaveBoard = traced('boards.leaveBoard', leaveBoardCommand)
@@ -50,6 +54,7 @@ export const getTask = traced('boards.getTask', getTaskQuery)
 export const searchUsers = traced('boards.searchUsers', searchUsersQuery)
 export const roleOf = traced('boards.roleOf', roleOfQuery)
 
+export type { AssignTaskInput } from '@/modules/boards/application/commands/assign-task.command'
 export type { AddMemberInput } from '@/modules/boards/application/commands/add-member.command'
 export type { CreateBoardInput } from '@/modules/boards/application/commands/create-board.command'
 export type { CreateListInput } from '@/modules/boards/application/commands/create-list.command'
@@ -64,6 +69,7 @@ export type { RenameListInput } from '@/modules/boards/application/commands/rena
 export type { RenameTaskInput } from '@/modules/boards/application/commands/rename-task.command'
 export type { ReorderTaskInput } from '@/modules/boards/application/commands/reorder-task.command'
 export type { TransferOwnershipInput } from '@/modules/boards/application/commands/transfer-ownership.command'
+export type { UnassignTaskInput } from '@/modules/boards/application/commands/unassign-task.command'
 export type {
   BoardMemberDto,
   BoardSummaryDto,
@@ -71,6 +77,7 @@ export type {
 export type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 export type { ListDto } from '@/modules/boards/application/dto/list.dto'
 export type {
+  AssigneeDto,
   TaskDto,
   TaskSummaryDto,
 } from '@/modules/boards/application/dto/task.dto'
