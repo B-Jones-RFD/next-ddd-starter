@@ -9,6 +9,7 @@ import { logger } from '@/shared/infrastructure/logging'
 /** Variables the real adapters need. Missing any of them in development falls back to mock mode. */
 const REQUIRED_ENV = ['DATABASE_PATH'] as const
 
+// #region adapter-mode
 /**
  * Picks real or mock adapters, in order:
  * 1. `ADAPTERS=real|mock` wins if set.
@@ -46,6 +47,7 @@ export function pickAdapterMode(env: NodeJS.ProcessEnv): AdapterMode {
   }
   return mode
 }
+// #endregion adapter-mode
 
 let mode: AdapterMode | undefined
 
@@ -73,6 +75,7 @@ async function buildContainer(): Promise<Container> {
 
 let containerPromise: Promise<Container> | undefined
 
+// #region get-injection
 /**
  * Resolves an adapter by its port token. Call it inside a command or query
  * body, never at module top level, so importing `api.ts` never builds the
@@ -85,3 +88,4 @@ export async function getInjection<K extends Token>(
   const container = await containerPromise
   return container.get<Registry[K]>(token)
 }
+// #endregion get-injection
