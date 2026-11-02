@@ -2,6 +2,7 @@ import { createModule } from '@evyweb/ioctopus'
 
 import type { AdapterMode, Registry } from '@/di/types'
 
+// #region mock-mode
 /** Identity's bindings. Mocks load through `import()` only in mock mode. */
 export async function loadIdentityModule(mode: AdapterMode) {
   const identity = createModule<Registry>()
@@ -35,6 +36,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
       .toClass(MockTokenGenerator, undefined, 'singleton')
     return identity
   }
+  // #endregion mock-mode
 
   const [
     { getDatabase },

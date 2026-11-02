@@ -140,6 +140,7 @@ const typeOnly = [
   },
 ]
 
+// #region context-boundaries
 const contextBoundaries = CONTEXTS.flatMap((ctx) => {
   const others = `(?:${CONTEXTS.filter((c) => c !== ctx).join('|')})`
   const own = `@/modules/${ctx}`
@@ -205,6 +206,7 @@ const contextBoundaries = CONTEXTS.flatMap((ctx) => {
     },
   ]
 })
+// #endregion context-boundaries
 
 const boundaries = [
   { files: [TS], rules: restrict() },
