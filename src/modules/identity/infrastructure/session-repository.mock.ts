@@ -1,6 +1,7 @@
 import { translateSessionEvents } from '@/modules/identity/application/contracts/translate'
 import type {
   Session,
+  SessionId,
   TokenHash,
 } from '@/modules/identity/domain/session/session'
 import type { ISessionRepository } from '@/modules/identity/domain/session/session-repository.port'
@@ -11,6 +12,7 @@ import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { EventOrigin } from '@/shared/kernel/events'
 import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
+import type { UserId } from '@/shared/kernel/user-id'
 
 /** In-memory twin of `SessionRepository`. */
 export class MockSessionRepository implements ISessionRepository {
@@ -29,6 +31,18 @@ export class MockSessionRepository implements ISessionRepository {
     return session
       ? ok(structuredClone(session))
       : err(new NotFoundError('Session', 'by-token'))
+  }
+
+  async findByUserId(userId: UserId): Promise<Session[]> {
+    return [...this.sessions().values()]
+      .filter((s) => s.userId === userId)
+      .map((s) => structuredClone(s))
+  }
+
+  async touch(id: SessionId, lastSeenAt: Date): Promise<void> {
+    const sessions = this.sessions()
+    const stored = sessions.get(id)
+    if (stored) sessions.set(id, { ...stored, lastSeenAt })
   }
 
   async save(

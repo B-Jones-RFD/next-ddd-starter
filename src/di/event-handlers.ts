@@ -3,6 +3,10 @@ import {
   recordUserRegistered,
 } from '@/modules/boards/application/handlers/record-user-registered'
 import {
+  RECORD_USER_RENAMED,
+  recordUserRenamed,
+} from '@/modules/boards/application/handlers/record-user-renamed'
+import {
   eventHandler,
   type EventHandler,
 } from '@/shared/kernel/ports/event-relay.port'
@@ -17,5 +21,11 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     eventType: 'identity.UserRegistered',
     version: 1,
     handle: recordUserRegistered,
+  }),
+  eventHandler({
+    name: RECORD_USER_RENAMED,
+    eventType: 'identity.UserRenamed',
+    version: 1,
+    handle: recordUserRenamed,
   }),
 ]

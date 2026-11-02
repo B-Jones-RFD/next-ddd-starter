@@ -1,10 +1,11 @@
 import 'server-only'
 
-import { cookies } from 'next/headers'
+import { io } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
 
-import { SESSION_COOKIE } from '@/app/_lib/auth/session-cookie'
+import { signInPath } from '@/app/_lib/auth/next-path'
+import { readSessionToken } from '@/app/_lib/auth/session-cookie'
 import { authenticate, type ActorDto } from '@/modules/identity/api'
 
 /**
@@ -14,16 +15,20 @@ import { authenticate, type ActorDto } from '@/modules/identity/api'
  * action that needs it.
  */
 export const getActor = cache(async () => {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value ?? ''
+  const token = await readSessionToken()
+  // `authenticate` reads the clock and SQLite synchronously. With partial
+  // prefetching, a cookie read alone doesn't keep that out of a runtime
+  // prefetch, so `io()` marks the IO that follows (a no-op in a request).
+  await io()
   return authenticate(token)
 })
 
 /**
- * The actor, for a page. Without a session it redirects to sign-up, the only
- * way in until sign-in exists (slice 3 points this at `/sign-in?next=`).
+ * The actor, for a page or action at `path`. Without a valid session it
+ * redirects to sign-in, which returns to `path` afterwards (§9).
  */
-export async function requireActor(): Promise<ActorDto> {
+export async function requireActor(path: string): Promise<ActorDto> {
   const actor = await getActor()
-  if (!actor.ok) redirect('/sign-up')
+  if (!actor.ok) redirect(signInPath(path))
   return actor.value
 }

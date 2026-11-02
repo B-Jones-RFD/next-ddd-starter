@@ -19,7 +19,9 @@ const SCREENS: Screen[] = [
   { name: 'home', path: '/' },
   { name: 'not found', path: '/this-page-does-not-exist', status: 404 },
   { name: 'sign up', path: '/sign-up' },
+  { name: 'sign in', path: '/sign-in' },
   { name: 'boards (empty)', path: '/boards', arrange: signUp },
+  { name: 'account', path: '/account', arrange: signUp },
 ]
 
 const THEMES = ['light', 'dark'] as const

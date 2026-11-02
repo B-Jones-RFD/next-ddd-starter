@@ -1,5 +1,6 @@
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
+import type { ISignInThrottle } from '@/modules/identity/application/ports/sign-in-throttle.port'
 import type { ITokenGenerator } from '@/modules/identity/application/ports/token-generator.port'
 import type { ISessionRepository } from '@/modules/identity/domain/session/session-repository.port'
 import type { IUserRepository } from '@/modules/identity/domain/user/user-repository.port'
@@ -19,6 +20,7 @@ export type Registry = {
   ISessionRepository: ISessionRepository
   IPasswordHasher: IPasswordHasher
   ITokenGenerator: ITokenGenerator
+  ISignInThrottle: ISignInThrottle
   // boards
   IPeopleProjection: IPeopleProjection
 }

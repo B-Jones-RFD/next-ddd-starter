@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { toActionError } from '@/app/_lib/errors/to-action-error'
-import { EmailTakenError, ValidationError } from '@/modules/identity/api'
+import {
+  EmailTakenError,
+  IncorrectPasswordError,
+  InvalidCredentialsError,
+  TooManyAttemptsError,
+  ValidationError,
+} from '@/modules/identity/api'
 import { PersistenceError } from '@/shared/kernel/errors/infrastructure-error'
 
 import { withTestSpan } from '@tests/fixtures/spans'
@@ -33,6 +39,41 @@ describe('toActionError', () => {
         email: 'Enter an email address like name@example.com.',
         password: 'Use at least 8 characters.',
       },
+    })
+  })
+
+  it('words identity.invalid-credentials without saying which part was wrong', () => {
+    expect(toActionError(new InvalidCredentialsError())).toEqual({
+      code: 'identity.invalid-credentials',
+      message: 'That email and password don’t match. Check them and try again.',
+    })
+  })
+
+  it('words identity.too-many-attempts with when to try again', () => {
+    expect(toActionError(new TooManyAttemptsError())).toEqual({
+      code: 'identity.too-many-attempts',
+      message:
+        'Too many failed sign-ins for this email. Wait 15 minutes, then try again.',
+    })
+  })
+
+  it('puts identity.incorrect-password under the current password field', () => {
+    expect(toActionError(new IncorrectPasswordError())).toEqual({
+      code: 'identity.incorrect-password',
+      message: 'Your current password is incorrect.',
+      fields: { currentPassword: 'That isn’t your current password.' },
+    })
+  })
+
+  it('words the password change fields', () => {
+    const error = new ValidationError({
+      currentPassword: 'required',
+      newPassword: 'too-short',
+    })
+
+    expect(toActionError(error).fields).toEqual({
+      currentPassword: 'Enter your current password.',
+      newPassword: 'Use at least 8 characters.',
     })
   })
 

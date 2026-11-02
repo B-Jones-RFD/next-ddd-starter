@@ -10,7 +10,14 @@ beforeEach(() => {
 })
 
 describeMembershipProof('identity', api, {
-  commands: ['signUp'],
+  commands: [
+    'signUp',
+    'signIn',
+    'signOut',
+    'signOutEverywhere',
+    'changePassword',
+    'rename',
+  ],
   queries: {},
   exempt: {
     authenticate:

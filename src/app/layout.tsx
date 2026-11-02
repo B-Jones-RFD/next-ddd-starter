@@ -2,7 +2,9 @@ import { cn } from 'cn'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Inter } from 'next/font/google'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
+import { HeaderAccount } from '@/app/_components/account/header-account'
 import { ThemeSync } from '@/app/_components/theme-sync'
 import { themeScript } from '@/app/_lib/theme/theme'
 
@@ -45,13 +47,17 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <body className='flex min-h-full flex-col'>
         <ThemeSync />
         <header className='border-b border-border'>
-          <div className='mx-auto flex h-14 w-full max-w-6xl items-center px-4'>
+          <div className='mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4'>
             <Link
               href='/'
               className='rounded-sm font-heading font-semibold text-foreground'
             >
               Task Board
             </Link>
+            {/* Reads the session cookie, so it streams in its own boundary. */}
+            <Suspense fallback={null}>
+              <HeaderAccount />
+            </Suspense>
           </div>
         </header>
         <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8'>

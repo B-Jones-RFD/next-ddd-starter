@@ -23,4 +23,8 @@ export class MockPasswordHasher implements IPasswordHasher {
     if (algorithm !== 'mock' || salt === undefined) return false
     return digest(salt, password) === expected
   }
+
+  needsRehash(hash: PasswordHash): boolean {
+    return !hash.startsWith('mock$')
+  }
 }
