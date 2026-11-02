@@ -24,6 +24,9 @@ describeMembershipProof('boards', api, {
   commands: [
     'createBoard',
     'renameBoard',
+    'createList',
+    'renameList',
+    'moveList',
     'addMember',
     'removeMember',
     'leaveBoard',

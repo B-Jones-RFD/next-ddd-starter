@@ -1,4 +1,5 @@
 import type { BoardMemberDto } from '@/modules/boards/application/dto/board-summary.dto'
+import type { ListDto } from '@/modules/boards/application/dto/list.dto'
 
 /** One board, as the Board member reading it sees it. */
 export type BoardDto = {
@@ -9,4 +10,6 @@ export type BoardDto = {
   role: 'owner' | 'member'
   /** Owner first. */
   members: BoardMemberDto[]
+  /** Its active lists, in board order. */
+  lists: ListDto[]
 }

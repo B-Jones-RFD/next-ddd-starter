@@ -5,6 +5,7 @@ import { Suspense } from 'react'
 
 import { AvatarStack } from '@/app/_components/avatar-stack'
 import { requireActor } from '@/app/_lib/auth/get-actor'
+import { BoardLists } from '@/app/boards/[boardId]/board-lists'
 import { getBoard } from '@/modules/boards/api'
 
 export const metadata: Metadata = { title: 'Board' }
@@ -50,7 +51,11 @@ async function Board({
           </Link>
         </nav>
       </div>
-      <p className='text-muted-foreground'>No lists yet.</p>
+      <BoardLists
+        boardId={board.value.id}
+        lists={board.value.lists}
+        formKey={actor.userId}
+      />
     </div>
   )
 }
