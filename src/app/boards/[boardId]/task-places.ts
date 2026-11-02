@@ -41,6 +41,11 @@ export function taskLinkId(taskId: string): string {
   return `task-${taskId}-link`
 }
 
+/** The id of the task's Tags heading, where focus goes when a chip goes. */
+export function tagsHeadingId(taskId: string): string {
+  return `task-${taskId}-tags`
+}
+
 /**
  * The DOM id of a task's Assignees heading, where focus goes when an
  * Unassign button goes.

@@ -15,6 +15,7 @@ export function aBoard(overrides: Partial<Board> = {}): Board {
     id: toBoardId(`board-${sequence}`),
     name: `Board ${sequence}` as BoardName,
     members: [{ userId: toUserId('user-owner'), role: 'owner' }],
+    tags: [],
     archived: false,
     createdAt: new Date('2026-01-01T10:00:00.000Z'),
     version: 1,

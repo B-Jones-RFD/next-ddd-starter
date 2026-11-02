@@ -35,6 +35,9 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
   description: {
     'too-long': 'Use 5000 characters or fewer.',
   },
+  color: {
+    invalid: 'Choose one of the tag colors.',
+  },
   currentPassword: {
     required: 'Enter your current password.',
   },
@@ -95,6 +98,12 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
   'boards.board.owner-must-transfer-first': () => ({
     message:
       'You’re the Owner. Make another member the Owner before you leave.',
+  }),
+  'boards.board.tag-name-taken': () => ({
+    message: 'That tag name is taken.',
+    fields: {
+      name: 'This board already has a tag with that name. Choose another.',
+    },
   }),
   'boards.list.archived': () => ({
     message: 'That list was archived. Reload the page and choose another list.',

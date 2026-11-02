@@ -15,6 +15,8 @@ import { AvatarStack } from '@/app/_components/avatar-stack'
 import { FormAlert } from '@/app/_components/form/form-alert'
 import { SubmitButton } from '@/app/_components/form/submit-button'
 import { useRefocus } from '@/app/_components/refocus'
+import { TagBadge } from '@/app/_components/tags/tag-badge'
+import type { TagColorName } from '@/app/_components/tags/tag-colors'
 import { Button } from '@/app/_components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/app/_components/ui/dialog'
 import { Label } from '@/app/_components/ui/label'
@@ -50,6 +52,7 @@ const MOVES = [
 type Task = {
   id: string
   title: string
+  tags: { id: string; name: string; color: TagColorName }[]
   assignees: { userId: string; displayName: string | null }[]
 }
 type List = { id: string; name: string; tasks: Task[] }
@@ -141,6 +144,15 @@ export function TaskCard({
           </MenuContent>
         </Menu>
       </div>
+      {task.tags.length > 0 && (
+        <ul aria-label='Tags' className='flex flex-wrap gap-1 px-1'>
+          {task.tags.map((tag) => (
+            <li key={tag.id} className='max-w-full'>
+              <TagBadge tag={tag} />
+            </li>
+          ))}
+        </ul>
+      )}
       {task.assignees.length > 0 && (
         <AvatarStack label='Assignees' people={task.assignees} size='sm' />
       )}

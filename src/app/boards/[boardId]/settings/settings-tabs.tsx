@@ -4,6 +4,7 @@ import Link from 'next/link'
 const TABS = [
   { id: 'general', label: 'General', path: '', ownerOnly: false },
   { id: 'members', label: 'Members', path: '/members', ownerOnly: false },
+  { id: 'tags', label: 'Tags', path: '/tags', ownerOnly: false },
   { id: 'log', label: 'Board log', path: '/log', ownerOnly: true },
 ] as const
 

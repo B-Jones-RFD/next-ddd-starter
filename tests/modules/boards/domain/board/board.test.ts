@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest'
 import {
   addMember,
   createBoard,
+  createTag,
+  deleteTag,
   leaveBoard,
+  recolorTag,
   removeMember,
   renameBoard,
+  renameTag,
   transferOwnership,
 } from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
@@ -14,7 +18,11 @@ import {
   AlreadyAMemberError,
   NotAMemberError,
   OwnerMustTransferFirstError,
+  TagNameTakenError,
 } from '@/modules/boards/domain/board/board.errors'
+import { toTagId, type Tag } from '@/modules/boards/domain/board/tag'
+import type { TagName } from '@/modules/boards/domain/board/tag-name'
+import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import {
   ForbiddenError,
   type ValidationError,
@@ -45,6 +53,7 @@ describe('createBoard', () => {
           id: 'board-1',
           name: 'Launch plan',
           members: [{ userId: ada, role: 'owner' }],
+          tags: [],
           archived: false,
           createdAt: now,
           version: 0,
@@ -309,6 +318,240 @@ describe('Board membership', () => {
       ['a user who isn’t a Board member', outsider],
     ])('returns ForbiddenError for %s', (_who, actorId) => {
       expect(transferOwnership(board, actorId, member)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+})
+
+describe('Tags', () => {
+  const owner = toUserId('user-owner')
+  const member = toUserId('user-member')
+  const outsider = toUserId('user-outsider')
+  const urgent: Tag = {
+    id: toTagId('tag-urgent'),
+    name: 'Urgent' as TagName,
+    color: 'red',
+  }
+  const board = aBoard({
+    members: [
+      { userId: owner, role: 'owner' },
+      { userId: member, role: 'member' },
+    ],
+    tags: [urgent],
+  })
+
+  describe('createTag', () => {
+    const create = (overrides: Partial<Parameters<typeof createTag>[2]> = {}) =>
+      createTag(board, member, {
+        id: toTagId('tag-new'),
+        name: ' Design ',
+        color: 'teal',
+        ...overrides,
+      })
+
+    it('lets any Board member add a tag and raises TagCreated', () => {
+      expect(create()).toEqual({
+        ok: true,
+        value: {
+          state: {
+            ...board,
+            tags: [urgent, { id: 'tag-new', name: 'Design', color: 'teal' }],
+          },
+          events: [
+            {
+              type: 'TagCreated',
+              payload: {
+                boardId: board.id,
+                tagId: 'tag-new',
+                name: 'Design',
+                color: 'teal',
+              },
+            },
+          ],
+        },
+      })
+    })
+
+    it.each([
+      ['', { name: 'required' }],
+      ['x'.repeat(61), { name: 'too-long' }],
+    ])('returns ValidationError for the name %j', (name, fields) => {
+      expect(issues(create({ name }))).toEqual(fields)
+    })
+
+    it('returns ValidationError for a color outside the palette', () => {
+      expect(issues(create({ color: 'pink' }))).toEqual({ color: 'invalid' })
+    })
+
+    it('reports a bad name and a bad color together', () => {
+      expect(issues(create({ name: ' ', color: '#ff0000' }))).toEqual({
+        name: 'required',
+        color: 'invalid',
+      })
+    })
+
+    it('returns TagNameTakenError for a name already on the board, in any case', () => {
+      expect(create({ name: ' urgent ' })).toEqual({
+        ok: false,
+        error: new TagNameTakenError(),
+      })
+    })
+
+    it('returns ForbiddenError for a user who isn’t a Board member', () => {
+      expect(
+        createTag(board, outsider, {
+          id: toTagId('x'),
+          name: 'X',
+          color: 'red',
+        })
+      ).toEqual({ ok: false, error: new ForbiddenError() })
+    })
+  })
+
+  describe('renameTag', () => {
+    const design: Tag = {
+      id: toTagId('tag-design'),
+      name: 'Design' as TagName,
+      color: 'violet',
+    }
+    const twoTags = { ...board, tags: [urgent, design] }
+
+    it('renames the tag and raises TagRenamed with from and to', () => {
+      expect(renameTag(twoTags, member, design.id, ' UX ')).toEqual({
+        ok: true,
+        value: {
+          state: { ...twoTags, tags: [urgent, { ...design, name: 'UX' }] },
+          events: [
+            {
+              type: 'TagRenamed',
+              payload: {
+                boardId: board.id,
+                tagId: design.id,
+                from: 'Design',
+                to: 'UX',
+              },
+            },
+          ],
+        },
+      })
+    })
+
+    it('raises nothing when the name doesn’t change', () => {
+      expect(renameTag(twoTags, member, design.id, 'Design')).toEqual({
+        ok: true,
+        value: { state: twoTags, events: [] },
+      })
+    })
+
+    it('lets a tag change only the case of its own name', () => {
+      const renamed = renameTag(twoTags, member, design.id, 'DESIGN')
+      expect(renamed.ok && renamed.value.state.tags[1]?.name).toBe('DESIGN')
+    })
+
+    it('returns TagNameTakenError for another tag’s name', () => {
+      expect(renameTag(twoTags, member, design.id, 'URGENT')).toEqual({
+        ok: false,
+        error: new TagNameTakenError(),
+      })
+    })
+
+    it('returns ValidationError for an invalid name', () => {
+      expect(issues(renameTag(twoTags, member, design.id, ''))).toEqual({
+        name: 'required',
+      })
+    })
+
+    it('returns NotFoundError for a tag that isn’t on the board', () => {
+      expect(renameTag(twoTags, member, toTagId('tag-gone'), 'X')).toEqual({
+        ok: false,
+        error: new NotFoundError('Tag', 'tag-gone'),
+      })
+    })
+
+    it('returns ForbiddenError for a user who isn’t a Board member', () => {
+      expect(renameTag(twoTags, outsider, design.id, 'X')).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+
+  describe('recolorTag', () => {
+    it('changes the color and raises TagRecolored with from and to', () => {
+      expect(recolorTag(board, member, urgent.id, 'amber')).toEqual({
+        ok: true,
+        value: {
+          state: { ...board, tags: [{ ...urgent, color: 'amber' }] },
+          events: [
+            {
+              type: 'TagRecolored',
+              payload: {
+                boardId: board.id,
+                tagId: urgent.id,
+                from: 'red',
+                to: 'amber',
+              },
+            },
+          ],
+        },
+      })
+    })
+
+    it('raises nothing when the color doesn’t change', () => {
+      expect(recolorTag(board, member, urgent.id, 'red')).toEqual({
+        ok: true,
+        value: { state: board, events: [] },
+      })
+    })
+
+    it('returns ValidationError for a color outside the palette', () => {
+      expect(issues(recolorTag(board, member, urgent.id, 'pink'))).toEqual({
+        color: 'invalid',
+      })
+    })
+
+    it('returns NotFoundError for a tag that isn’t on the board', () => {
+      expect(recolorTag(board, member, toTagId('tag-gone'), 'red')).toEqual({
+        ok: false,
+        error: new NotFoundError('Tag', 'tag-gone'),
+      })
+    })
+
+    it('returns ForbiddenError for a user who isn’t a Board member', () => {
+      expect(recolorTag(board, outsider, urgent.id, 'blue')).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+
+  describe('deleteTag', () => {
+    it('removes the tag and raises TagDeleted with its name', () => {
+      expect(deleteTag(board, member, urgent.id)).toEqual({
+        ok: true,
+        value: {
+          state: { ...board, tags: [] },
+          events: [
+            {
+              type: 'TagDeleted',
+              payload: { boardId: board.id, tagId: urgent.id, name: 'Urgent' },
+            },
+          ],
+        },
+      })
+    })
+
+    it('returns NotFoundError for a tag that isn’t on the board', () => {
+      expect(deleteTag(board, member, toTagId('tag-gone'))).toEqual({
+        ok: false,
+        error: new NotFoundError('Tag', 'tag-gone'),
+      })
+    })
+
+    it('returns ForbiddenError for a user who isn’t a Board member', () => {
+      expect(deleteTag(board, outsider, urgent.id)).toEqual({
         ok: false,
         error: new ForbiddenError(),
       })

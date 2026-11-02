@@ -7,6 +7,7 @@ import {
   TaskDescriptionForm,
   TaskTitleForm,
 } from '@/app/boards/[boardId]/tasks/[taskId]/task-forms'
+import { TaskTags } from '@/app/boards/[boardId]/tasks/[taskId]/task-tags'
 import { getBoard, type TaskDto } from '@/modules/boards/api'
 import type { ActorDto } from '@/modules/identity/api'
 
@@ -63,6 +64,13 @@ export function TaskDetails({
           <Assignees key={actorId} task={task} actorId={actorId} />
         </Suspense>
       </section>
+      <Suspense
+        fallback={
+          <p className='text-sm text-muted-foreground'>Loading tags…</p>
+        }
+      >
+        <TaskTags task={task} />
+      </Suspense>
       <Suspense
         fallback={
           <p className='text-sm text-muted-foreground'>Loading activity…</p>

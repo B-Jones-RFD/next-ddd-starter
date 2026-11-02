@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { translateTaskEvents } from '@/modules/boards/application/contracts/translate'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
+import { toTagId, type TagId } from '@/modules/boards/domain/board/tag'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
@@ -35,13 +36,18 @@ type TaskRow = {
   version: number
 }
 
-function toTask(row: TaskRow, assignees: readonly UserId[]): Task {
+function toTask(
+  row: TaskRow,
+  assignees: readonly UserId[],
+  tagIds: readonly TagId[]
+): Task {
   return {
     id: row.id as TaskId,
     boardId: row.board_id as BoardId,
     listId: row.list_id as ListId,
     title: row.title as TaskTitle,
     description: row.description as TaskDescription,
+    tagIds,
     position: row.position,
     assignees,
     archived: row.archived === 1,
@@ -52,7 +58,7 @@ function toTask(row: TaskRow, assignees: readonly UserId[]): Task {
 
 /**
  * Tasks in `boards_tasks`, one row per task, with their assignees in
- * `boards_task_assignees`.
+ * `boards_task_assignees` and their tags in `boards_task_tags`.
  */
 export class TaskRepository implements ITaskRepository {
   constructor(
@@ -67,9 +73,7 @@ export class TaskRepository implements ITaskRepository {
         this.db.prepare('SELECT * FROM boards_tasks WHERE id = ?').get(id) as
           TaskRow | undefined
     )
-    return row
-      ? ok(this.withAssignees(row))
-      : err(new NotFoundError('Task', id))
+    return row ? ok(this.withChildren(row)) : err(new NotFoundError('Task', id))
   }
 
   async findLastInList(listId: ListId): Promise<Task | null> {
@@ -83,7 +87,7 @@ export class TaskRepository implements ITaskRepository {
           )
           .get(listId) as TaskRow | undefined
     )
-    return row ? this.withAssignees(row) : null
+    return row ? this.withChildren(row) : null
   }
 
   async findAssignedTo(boardId: BoardId, userId: UserId): Promise<Task[]> {
@@ -96,11 +100,25 @@ export class TaskRepository implements ITaskRepository {
            ORDER BY t.id`
         )
         .all(userId, boardId) as TaskRow[]
-      return rows.map((row) => this.withAssignees(row))
+      return rows.map((row) => this.withChildren(row))
     })
   }
 
-  private withAssignees(row: TaskRow): Task {
+  async findTaggedWith(tagId: TagId): Promise<Task[]> {
+    return query(PORT, () => {
+      const rows = this.db
+        .prepare(
+          `SELECT t.* FROM boards_tasks t
+           JOIN boards_task_tags tt ON tt.task_id = t.id AND tt.tag_id = ?
+           ORDER BY t.id`
+        )
+        .all(tagId) as TaskRow[]
+      return rows.map((row) => this.withChildren(row))
+    })
+  }
+
+  /** The row as a task, with its assignees and tags in the order added. */
+  private withChildren(row: TaskRow): Task {
     const assignees = query(
       PORT,
       () =>
@@ -111,9 +129,20 @@ export class TaskRepository implements ITaskRepository {
           )
           .all(row.id) as { user_id: string }[]
     )
+    const tags = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT tag_id FROM boards_task_tags
+             WHERE task_id = ? ORDER BY position`
+          )
+          .all(row.id) as { tag_id: string }[]
+    )
     return toTask(
       row,
-      assignees.map((assignee) => assignee.user_id as UserId)
+      assignees.map((assignee) => assignee.user_id as UserId),
+      tags.map((tag) => toTagId(tag.tag_id))
     )
   }
 
@@ -169,6 +198,16 @@ export class TaskRepository implements ITaskRepository {
                 task.version
               )
       if (changes === 0) return ROLLBACK
+      this.db
+        .prepare('DELETE FROM boards_task_tags WHERE task_id = ?')
+        .run(task.id)
+      const insertTag = this.db.prepare(
+        `INSERT INTO boards_task_tags (task_id, tag_id, position)
+         VALUES (?, ?, ?)`
+      )
+      task.tagIds.forEach((tagId, position) => {
+        insertTag.run(task.id, tagId, position)
+      })
       this.db
         .prepare('DELETE FROM boards_task_assignees WHERE task_id = ?')
         .run(task.id)

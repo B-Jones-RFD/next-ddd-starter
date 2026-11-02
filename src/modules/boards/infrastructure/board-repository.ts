@@ -6,6 +6,9 @@ import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
+import { toTagId } from '@/modules/boards/domain/board/tag'
+import type { TagColor } from '@/modules/boards/domain/board/tag-color'
+import type { TagName } from '@/modules/boards/domain/board/tag-name'
 import { outboxEntries } from '@/shared/infrastructure/outbox/outbox-entries'
 import {
   ROLLBACK,
@@ -30,7 +33,12 @@ type BoardRow = {
 
 type MemberRow = { user_id: string; role: Role }
 
-/** Boards in `boards_boards`, with their members in `boards_members`. */
+type TagRow = { id: string; name: string; color: TagColor }
+
+/**
+ * Boards in `boards_boards`, with their members in `boards_members` and
+ * their tags in `boards_tags`.
+ */
 export class BoardRepository implements IBoardRepository {
   constructor(
     private readonly db: DatabaseSync,
@@ -49,16 +57,27 @@ export class BoardRepository implements IBoardRepository {
            WHERE board_id = ? ORDER BY position`
         )
         .all(id) as MemberRow[]
-      return { board, members }
+      const tags = this.db
+        .prepare(
+          `SELECT id, name, color FROM boards_tags
+           WHERE board_id = ? ORDER BY position`
+        )
+        .all(id) as TagRow[]
+      return { board, members, tags }
     })
     if (!found) return err(new NotFoundError('Board', id))
-    const { board, members } = found
+    const { board, members, tags } = found
     return ok({
       id: board.id as BoardId,
       name: board.name as BoardName,
       members: members.map((m) => ({
         userId: toUserId(m.user_id),
         role: m.role,
+      })),
+      tags: tags.map((t) => ({
+        id: toTagId(t.id),
+        name: t.name as TagName,
+        color: t.color,
       })),
       archived: board.archived === 1,
       createdAt: new Date(board.created_at),
@@ -114,6 +133,16 @@ export class BoardRepository implements IBoardRepository {
       )
       board.members.forEach((member, position) => {
         insertMember.run(board.id, member.userId, member.role, position)
+      })
+      this.db
+        .prepare('DELETE FROM boards_tags WHERE board_id = ?')
+        .run(board.id)
+      const insertTag = this.db.prepare(
+        `INSERT INTO boards_tags (id, board_id, name, color, position)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      board.tags.forEach((tag, position) => {
+        insertTag.run(tag.id, board.id, tag.name, tag.color, position)
       })
       this.outbox.append(entries)
       return true

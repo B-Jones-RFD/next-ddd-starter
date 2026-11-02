@@ -56,6 +56,16 @@ export type AuditEntry =
   | Entry<'task', 'task.description-changed', Change>
   | Entry<'task', 'task.moved', { fromListId: string; toListId: string }>
   | Entry<'task', 'task.reordered', { listId: string }>
+  | Entry<
+      'board',
+      'tag.created',
+      { tagId: string; name: string; color: string }
+    >
+  | Entry<'board', 'tag.renamed', Change & { tagId: string }>
+  | Entry<'board', 'tag.recolored', Change & { tagId: string }>
+  | Entry<'board', 'tag.deleted', { tagId: string; name: string }>
+  | Entry<'task', 'task.tagged', { tagId: string }>
+  | Entry<'task', 'task.untagged', { tagId: string }>
   | Entry<'task', 'task.assigned', { userId: string }>
   | Entry<'task', 'task.unassigned', { userId: string }>
 // #endregion audit-entry
