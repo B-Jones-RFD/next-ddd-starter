@@ -9,7 +9,7 @@ Site: [overview](https://b-jones-rfd.github.io/next-ddd-starter/)
 - **Read this file before you write or review code.** It is short on purpose. The explanations live on the site.
 - **This file owns the rules.** The site explains them but never adds or changes one, and the ADRs in `docs/adr/` record the trade-offs behind them. If either disagrees with this file, this file wins, and the other gets fixed in the same change.
 - **Older guides are superseded.** Where any earlier architecture document conflicts with this file, follow this file.
-- **Each rule ends with how it is enforced:** `lint` (ESLint in `npm run check`), `type` (the compiler), `test` (a test fails) or `review` (only a reviewer catches it). Until the slice that writes the governed code adds its check, a `lint` or `test` rule is enforced by review.
+- **Each rule ends with how it is enforced:** `lint` (ESLint in `npm run check`), `format` (Prettier's check in `npm run check`), `type` (the compiler), `test` (a test fails) or `review` (only a reviewer catches it). Until the slice that writes the governed code adds its check, a `lint` or `test` rule is enforced by review.
 - **_This app's choice; decide per project_** marks an answer that belongs to this app, not to the template. What carries over is the seam named with it.
 - **Cite rules by section** (for example "§4 Application"). Rules have no IDs.
 - **If you change a rule, edit this file in the same change**, along with the site page for its section.
@@ -57,7 +57,7 @@ Site: [Layout](https://b-jones-rfd.github.io/next-ddd-starter/layout/)
 - **Bind only adapters in `src/di/`:** `container.ts` picks the mode and exports `getInjection`, `types.ts` maps each token to its port with type-only imports, and `modules/<context>.module.ts` plus `shared.module.ts` hold the bindings. A token is the port's interface name and is unique across the repo. Use cases are never bound. `type`
 - **Resolve with `await getInjection('IPortName')` inside the function body**, never at module top level. Importing `api.ts` never builds the container, and tests can swap bindings between cases. `review`
 - **The container picks the adapter mode once, at startup.** `ADAPTERS=real|mock` wins. Otherwise `NODE_ENV=test` means mock. In dev, a missing required variable means mock, with a warning. Production refuses mock mode and missing variables. The dev server runs without a database, and production never quietly runs on fakes. `test`
-- **Give every adapter a working in-memory `.mock.ts` twin beside it.** The twin keeps real behaviour: version checks, ordering and the same error classes. Mocks load through `import()` only in mock mode, keep their stores on `globalThis` and reset with `resetMockStores()`. `test`
+- **Give every adapter a working in-memory `.mock.ts` twin beside it.** The twin keeps real behaviour: version checks, ordering and the same error classes. Mocks load through `import()` only in mock mode, keep their stores on `globalThis` and reset with `resetMockStores()`. §13 names the ACL adapters that need none. `test`
 
 ## 3. Domain
 
@@ -68,12 +68,12 @@ Site: [Domain](https://b-jones-rfd.github.io/next-ddd-starter/domain/)
 - **Return `{ state, events }` from every operation that changes state.** The domain raises events. It never saves, publishes or writes the audit log. `type`
 
   ```ts
-  renameTask(task, actor, title, now): Result<{ state: Task; events: TaskEvent[] }, DomainError>
+  renameTask(task, membership, title): Result<{ state: Task; events: TaskEvent[] }, DomainError>
   ```
 
 - **Keep aggregates small, and refer between them by id only.** One aggregate holding everything would lock it all for every edit. `review`
 - **Give each aggregate its own folder** in `domain/`, holding the root, its value objects, `<aggregate>.events.ts`, `<aggregate>.errors.ts` and `<aggregate>-repository.port.ts`. Logic spanning aggregates goes in `domain/services/*.service.ts`. The repository interface is part of the aggregate's language. `review`
-- **Check permissions inside the operation.** An operation that needs a role takes the actor and returns `ForbiddenError` itself, so authorization never depends on the caller remembering. `test`
+- **Check permissions inside the operation.** An operation that needs a role takes the actor, or the actor's role read from another aggregate (a read-check), and returns `ForbiddenError` itself, so authorization never depends on the caller remembering. A read-check also carries any state that makes the target read-only, such as an archived board, and the operation refuses that too. `test`
 - **Build every field as a value object through a parse function** that trims, enforces limits and returns `ValidationError`. The domain owns the rules. Zod only checks shape (§4). `test`
 - **Pass `now` and new ids into domain functions as arguments.** The domain stays deterministic, and there is no clock port. `review`
 - **Give every aggregate a `version`.** Persistence owns it (§5). `review`
@@ -85,8 +85,8 @@ Site: [Domain](https://b-jones-rfd.github.io/next-ddd-starter/domain/)
 Site: [Application](https://b-jones-rfd.github.io/next-ddd-starter/application/)
 
 - **Put use cases only in `application/commands/*.command.ts` and `application/queries/*.query.ts`**, each a plain exported async function. The `api.ts` lint rules rely on these folders. `lint`
-- **Write every command as load → domain function → `save(state, events)`.** One aggregate per transaction, and saving is publishing. Effects on other aggregates run later, as event handlers (§6). `review`
-- **Take an explicit `actorId: UserId` in every command and query.** Identity's session commands take the raw token instead (§9). `type`
+- **Write every command as load → domain function → `save(state, events, origin)`.** One aggregate per transaction, and saving is publishing. Effects on other aggregates run later, as event handlers (§6). `review`
+- **Take an explicit `actorId: UserId` in every command and query.** Identity's session use cases take the raw token instead, and sign-up, which creates the actor, takes neither (§9). `type`
 - **Have queries skip the domain.** They read through read ports that return DTOs, and they filter by the actor's membership in the read itself. Nothing else authorizes a read. `test`
 - **Keep queries read-only.** §13 names the one exception. `review`
 - **Check input shape with a Zod 4 input schema in the use case, and nowhere else.** Zod is imported only in `application/`, it never ships to the client, and no rule exists in two places. `lint`
@@ -100,7 +100,7 @@ Site: [Application](https://b-jones-rfd.github.io/next-ddd-starter/application/)
 Site: [Infrastructure](https://b-jones-rfd.github.io/next-ddd-starter/infrastructure/)
 
 - **Write each adapter as `class <Name> implements I<Name>`** in a flat `infrastructure/`, named for what it does, not its technology (`board-repository.ts`). Only adapters are classes. `review`
-- **Repositories only load and `save(aggregate, events)`.** Nothing else writes an aggregate. `review`
+- **Repositories only load and `save(aggregate, events, origin)`.** Nothing else writes an aggregate. `origin` is the `actorId` and `causationId` its outbox rows carry (§6). `review`
 - **Keep `save` synchronous inside its `async` signature:** `BEGIN IMMEDIATE`, the upsert with `WHERE version = ?`, child rows, outbox rows, then `COMMIT`, with no `await` in between. `node:sqlite` shares one connection, so an `await` inside a transaction lets another request's statements in. `review`
 - **Reject stale writes.** A new aggregate has `version: 0` and is inserted at 1. An update that changes 0 rows rolls back and returns `ConflictError`, and nothing retries it automatically. Read outside the transaction. `test`
 - **Write raw SQL with prepared statements.** No ORM, query builder or driver package. _This app's choice; decide per project_. The ports stay either way. `review`
@@ -135,7 +135,7 @@ Site: [Contexts](https://b-jones-rfd.github.io/next-ddd-starter/contexts/)
   ```
 
 - **For a change a handler makes, keep `actorId` as the user who started the chain** and set `causationId` to the triggering event's id. It is null for a change a user made directly. There is no system user. `review`
-- **Put event handlers in the consumer's `application/`**, importing the supplier's contracts. A handler loads outside any transaction, then writes its one aggregate, its own outbox rows and its inbox row (`<context>_inbox(event_id, handler)`) in one synchronous transaction. `review`
+- **Put event handlers in the consumer's `application/`**, importing the supplier's contracts. A handler loads outside any transaction, then writes its one aggregate, its own outbox rows and its inbox row (`<context>_inbox(event_id, handler)`) in one synchronous transaction. §13 names the two handlers that don't. `review`
 - **Make consumers idempotent.** The inbox drops a redelivered event. A projection ignores an event whose `aggregateVersion` is older than one it has already applied. `test`
 - **Deliver through the in-process relay behind `IEventRelay`**, started once from `instrumentation.ts`. It is single-flight, polls and is kicked after each save, delivers each outbox in id order and marks a row delivered only when every handler has succeeded. `test`
 - **Retry what is retryable, and fail everything else at once.** A row failing with a `retryable` `InfrastructureError` retries indefinitely, with backoff capped at 60 s, while its stream waits. Any other error marks the row `failed`, logs it and moves on. `npm run outbox:replay` resets `failed` rows. Delivered rows are kept. `test`
@@ -197,7 +197,7 @@ Site: [Observability](https://b-jones-rfd.github.io/next-ddd-starter/observabili
 Site: [Auth](https://b-jones-rfd.github.io/next-ddd-starter/auth/)
 
 - **Choose authentication and sessions per project.** Here, sessions are rows in identity's database, with an opaque 256-bit cookie token and only its SHA-256 hash stored, plus scrypt passwords and 7-day idle and 30-day absolute expiry. _This app's choice; decide per project_. The rest of this section is the seam to keep. `review`
-- **Reach authentication from `app/` only through identity's `api.ts`.** `authenticate(token)` returns `{ userId, displayName }`, and session ids never leave identity. Cookies are read only in `src/app/`, which passes the raw token in. `lint`
+- **Reach authentication from `app/` only through identity's `api.ts`.** `authenticate(token)` returns `{ userId, displayName }`, and session ids never leave identity. Cookies are read only in `src/app/`, which passes the raw token in, and in `proxy.ts`, which only checks that one exists. `lint`
 - **Pass an explicit `actorId: UserId` to every other context.** Swapping in an external provider then changes only identity, the cookie handling in `app/` and `proxy.ts`. `type`
 - **Get the actor with `getActor()`** from `src/app/_lib/auth/`. It is server-only, memoized with React `cache()` and never `'use cache: private'`. Read it inside `<Suspense>`, in every page and action that needs it, never only in a layout. `review`
 - **Authorize commands in the domain and queries in the read.** `app/` only hides UI. `test`
@@ -213,12 +213,12 @@ Site: [Presentation](https://b-jones-rfd.github.io/next-ddd-starter/presentation
 - **Await request APIs (`cookies()`, `headers()`, `params`) and read them inside `<Suspense>`.** They are async-only in Next 16 and can't enter `'use cache'`. `review`
 - **Keep a route's Server Actions in its one `actions.ts`**, shaped `(prev: ActionState, formData) =>`: call `getActor()`, build a plain input from `formData`, call `command({ actorId, ...input })`, then `refresh()` or `redirect()` on success. `review`
 - **Validate only in the command's schema.** The action passes strings through unchecked, and the browser gets only HTML constraint attributes as hints. `review`
-- **Return an `ActionState` from every action**, echoing `values` so inputs refill through `defaultValue` after React resets the form. `type`
+- **Return an `ActionState` from every action**, echoing `values` so inputs refill through `defaultValue` after React resets the form. A success may carry the `id` of what the action created, for a client that keeps an optimistic copy until a projection has it. `type`
 
   ```ts
   type ActionState =
     | { status: 'idle' }
-    | { status: 'success' }
+    | { status: 'success'; id?: string }
     | { status: 'error'; error: ActionError; values: Record<string, string> }
   ```
 
@@ -227,7 +227,7 @@ Site: [Presentation](https://b-jones-rfd.github.io/next-ddd-starter/presentation
 - **Show field errors under their inputs** (`Field`/`FieldError`, with `aria-invalid` and `aria-describedby`) and everything else in one `FormAlert`. There's no toast library. `review`
 - **Submit with the shared `SubmitButton`** (`useFormStatus`). A dialog form closes on `success` through an `onSuccess` callback, and a full-page form redirects. `review`
 - **Make mutating buttons `<form action={fn.bind(null, id)}>`, never `onClick`**, so they work before hydration. Bound ids are untrusted, and the domain checks them again. `review`
-- **Default to Server Components, and put `'use client'` only on the smallest interactive part.** Client Components get serializable DTOs as props, import actions from their route's `actions.ts` and never import `@/modules`. `lint`
+- **Default to Server Components, and put `'use client'` only on the smallest interactive part.** Client Components get serializable DTOs as props, import actions from their route's `actions.ts` and never import `@/modules`. ESLint can't tell a Client Component's file apart, but `server-only` at the top of each `api.ts` fails `next build` for a value import. A type-only import passes. `review`
 - **Use `useOptimistic` only where lag is built in** (posting a comment into Activity). `review`
 - **Give each route segment a `loading.tsx` and each independent section its own `<Suspense>`.** Add `error.tsx` at the root and on key segments, plus `global-error.tsx` and `not-found.tsx`. `error.tsx` shows `error.digest` as the reference. `review`
 - **Use DTOs as they are, with no view-model layer.** Format timestamps with the client `<Time>` component (DayJS) inside `<time dateTime>`. `review`
@@ -265,7 +265,7 @@ Site: [Testing](https://b-jones-rfd.github.io/next-ddd-starter/testing/)
 - **Test the domain directly:** pure functions, no DI and no mocks, with state built by builders. Assert on `{ state, events }` and on rule errors. `review`
 - **Test application behaviour through `api.ts` on mock adapters.** Call `resetMockStores()` in `beforeEach`, and `await relay.drain()` before asserting on downstream effects. Arrange state through commands, never by writing to mock stores. Cross-context flows are tested here. `review`
 - **Keep mocks honest with one contract suite per port.** `tests/contracts/<port>.contract.ts` exports `describe<Port>Contract(makeAdapter)`, and a runner calls it with the real adapter, on SQLite `:memory:` with the production migrations, and with the `.mock.ts` twin. `test`
-- **Prove membership for every query.** Each context has one test that calls every exported query as a non-member and expects `ForbiddenError` or an empty result. It fails when a query has no case. `test`
+- **Prove membership for every query.** Each context has one test that calls every exported query as a non-member and expects `ForbiddenError` or an empty result (an empty list or `null`). It fails when a query has no case. A query that takes no actor, such as identity's `authenticate`, is listed as exempt with the reason. `test`
 - **Inject outages with `vi.spyOn(await getInjection('IPort'), 'method').mockRejectedValueOnce(...)`**, and produce conflicts from real stale versions. Mocks never get test-only hooks, because they ship in the bundle. `review`
 - **Control time with `vi.setSystemTime()`.** `review`
 - **Run E2E against `next build && next start` on a fresh SQLite file**, about five critical flows, each signing up its own users. Never depend on the seed. `review`
@@ -287,16 +287,17 @@ Site: [Testing](https://b-jones-rfd.github.io/next-ddd-starter/testing/)
 
 Site: [Tooling](https://b-jones-rfd.github.io/next-ddd-starter/tooling/)
 
-- **Run Node `>=26`** (`engines`, `.nvmrc`), for `node:sqlite`'s `Database`. `review`
-- **Format with Prettier:** no semicolons, single quotes, 2 spaces, `es5` trailing commas and the Tailwind plugin. `lint`
+- **Run Node `>=26`** (`engines`, `.nvmrc`), for `node:sqlite`'s `Database`. Import it as `DatabaseSync`, its alias, until `@types/node` declares `Database`. `review`
+- **Format with Prettier:** no semicolons, single quotes, 2 spaces, `es5` trailing commas and the Tailwind plugin. `format`
 - **Lint with `eslint-config-next`** (`core-web-vitals`, `typescript`), the type-aware `no-floating-promises`, `no-misused-promises`, `consistent-type-imports` and `switch-exhaustiveness-check` rules, `import/order` (builtin, external, `@/`, relative, separated by blank lines) and `eslint-config-prettier`. Boundary blocks are generated per context, with no custom rules. `lint`
 - **Compile with `strict`** plus `noUncheckedIndexedAccess`, `noImplicitOverride` and `noFallthroughCasesInSwitch`, with no decorators. `type`
-- **Name files and folders in kebab-case**, with a role suffix: `.port`, `.command`, `.query`, `.dto`, `.mock`, `.events`, `.errors`, `.service`, `.contract`, `.test`. Adapters, aggregates, value objects, components and `actions.ts` take none. `review`
+- **Name files and folders in kebab-case**, with a role suffix: `.port`, `.command`, `.query`, `.dto`, `.mock`, `.events`, `.errors`, `.service`, `.contract`, `.test`. Adapters, aggregates, value objects, components and `actions.ts` take none. A dynamic route segment holds its camelCase param name (`[boardId]`). `review`
 - **Use camelCase for values and functions, PascalCase for types, components and classes**, and SCREAMING_CASE only for true module constants. `review`
 - **Prefer `type` to `interface`, with no `I` or `T` prefix.** The exception is a port, which is `interface I<Name>`. `review`
 - **Use string-literal unions, never `enum`.** `review`
 - **Use named exports only**, and default exports only where Next requires one. `review`
-- **Import through `@/` (which maps to `src/`), use `./` only for siblings, and never write `../`.** Built-ins take the `node:` prefix. `lint`
+- **Import through `@/` (which maps to `src/`), use `./` only for siblings, and never write `../`.** `lint`
+- **Import Node built-ins with the `node:` prefix.** Every scope's `no-restricted-imports` bans the bare names. `lint`
 - **Don't add pre-commit hooks.** `npm run check` is the gate. `review`
 
 ## 13. Known exceptions and local-only simplifications
@@ -307,14 +308,17 @@ These are deliberate. Don't "fix" them, and don't copy them anywhere else.
 
 - **`getInjection` is a service locator.** `application/` importing `@/di/container` is a runtime edge pointing outward, while every type still points inward. It isn't a layering bug.
 - **`authenticate` writes during render.** It updates `last_seen_at` at most once a minute, straight through the session repository, with no events. This is the one exception to read-only queries.
-- **When a Board member leaves or is removed**, their assignments pass to the Owner, including on archived tasks. This is a handler-made change, exempt from the read-only rule.
+- **Two Consequence handlers write many aggregates and no inbox row**, against §6's one aggregate and one inbox row per handler. Each saves each task in its own transaction and is idempotent by state instead, so a redelivery redoes only what is left, and a task that keeps conflicting is left for a retryable redelivery after the rest:
+  - `boards.reassignToOwner`: when a Board member leaves or is removed, their assignments pass to the Owner, including on archived tasks, a handler-made change exempt from the read-only rule. A redelivery finds nothing still assigned to them.
+  - `boards.untagDeletedTag`: a deleted tag leaves every task that had it, archived ones included. A redelivery finds no task still carrying it.
 - **Cross-aggregate read-checks can race.** For example, a task restored just as its list is archived. The resulting states are odd but valid.
 - **All contexts share one SQLite file and connection.** Their tables stay separate by prefix.
 - **Mocks ship in the production bundle.** They load only in mock mode.
+- **ACL adapters have no `.mock.ts` twin**, against §2. `PeopleDirectory` and `BoardAccess` do no IO of their own: they call the supplier's `api.ts`, which runs on the supplier's mocks in mock mode, so one class serves both modes. Each still has a contract suite (§11).
 - **Ports use the `I` prefix and `interface`**, and **Next's files use default exports**.
 - **Error messages can carry input.** Third-party messages are kept as they are, and Next records thrown errors on its own spans.
 - **Observability deviates from the OTel spec in two ways:** exporters default to `none`, and traces' `none` keeps the provider.
-- **`ExternalServiceError` is unused here.** It is the pattern for apps that call external services.
+- **`ExternalServiceError` is all but unused here.** Only the password hasher throws it, when `scrypt` fails. It is the pattern for apps that call external services.
 - **The session cookie has no `__Host-` prefix**, because Safari rejects `Secure` cookies on `http://localhost`.
 - **Local-only simplifications** that a deployed app replaces:
   - expired sessions are never purged (add a scheduled purge)

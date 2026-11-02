@@ -2,7 +2,21 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
+/* #region dark-variant */
+/* Theme (ADR 0018): an explicit choice sets `data-theme` on <html>. With no
+   `data-theme`, the theme follows `prefers-color-scheme`, so System works
+   before hydration and without JS. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
+/* #endregion dark-variant */
 
 @theme inline {
   --color-background: var(--background);
@@ -39,6 +53,22 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-tag-gray: var(--tag-gray);
+  --color-tag-gray-foreground: var(--tag-gray-foreground);
+  --color-tag-red: var(--tag-red);
+  --color-tag-red-foreground: var(--tag-red-foreground);
+  --color-tag-orange: var(--tag-orange);
+  --color-tag-orange-foreground: var(--tag-orange-foreground);
+  --color-tag-amber: var(--tag-amber);
+  --color-tag-amber-foreground: var(--tag-amber-foreground);
+  --color-tag-green: var(--tag-green);
+  --color-tag-green-foreground: var(--tag-green-foreground);
+  --color-tag-teal: var(--tag-teal);
+  --color-tag-teal-foreground: var(--tag-teal-foreground);
+  --color-tag-blue: var(--tag-blue);
+  --color-tag-blue-foreground: var(--tag-blue-foreground);
+  --color-tag-violet: var(--tag-violet);
+  --color-tag-violet-foreground: var(--tag-violet-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -60,13 +90,15 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  /* Dark enough for 4.5:1 on its own 10% tint (destructive buttons). */
+  --destructive: oklch(0.5 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Focus rings need 3:1 against every surface (§10). */
+  --ring: oklch(0.488 0.243 264.376);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
@@ -80,46 +112,84 @@
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Tag colors (§10): each pair is 4.5:1 or more, in every theme. */
+  --tag-gray: oklch(0.928 0.006 264.531);
+  --tag-gray-foreground: oklch(0.278 0.033 256.848);
+  --tag-red: oklch(0.936 0.032 17.717);
+  --tag-red-foreground: oklch(0.444 0.177 26.899);
+  --tag-orange: oklch(0.954 0.038 75.164);
+  --tag-orange-foreground: oklch(0.47 0.157 37.304);
+  --tag-amber: oklch(0.962 0.059 95.617);
+  --tag-amber-foreground: oklch(0.473 0.137 46.201);
+  --tag-green: oklch(0.962 0.044 156.743);
+  --tag-green-foreground: oklch(0.448 0.119 151.328);
+  --tag-teal: oklch(0.953 0.051 180.801);
+  --tag-teal-foreground: oklch(0.437 0.078 188.216);
+  --tag-blue: oklch(0.932 0.032 255.585);
+  --tag-blue-foreground: oklch(0.424 0.199 265.638);
+  --tag-violet: oklch(0.943 0.029 294.588);
+  --tag-violet-foreground: oklch(0.432 0.232 292.759);
+  color-scheme: light;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.424 0.199 265.638);
-  --primary-foreground: oklch(0.97 0.014 254.604);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* Every token is redefined for dark here, so a theme is one place to change. */
+:root {
+  @variant dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.424 0.199 265.638);
+    --primary-foreground: oklch(0.97 0.014 254.604);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.707 0.165 254.6);
+    --chart-1: oklch(0.809 0.105 251.813);
+    --chart-2: oklch(0.623 0.214 259.815);
+    --chart-3: oklch(0.546 0.245 262.881);
+    --chart-4: oklch(0.488 0.243 264.376);
+    --chart-5: oklch(0.424 0.199 265.638);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.623 0.214 259.815);
+    --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.707 0.165 254.6);
+    --tag-gray: oklch(0.373 0.034 259.733);
+    --tag-gray-foreground: oklch(0.967 0.003 264.542);
+    --tag-red: oklch(0.396 0.141 25.723);
+    --tag-red-foreground: oklch(0.936 0.032 17.717);
+    --tag-orange: oklch(0.408 0.123 38.172);
+    --tag-orange-foreground: oklch(0.954 0.038 75.164);
+    --tag-amber: oklch(0.414 0.112 45.904);
+    --tag-amber-foreground: oklch(0.962 0.059 95.617);
+    --tag-green: oklch(0.393 0.095 152.535);
+    --tag-green-foreground: oklch(0.962 0.044 156.743);
+    --tag-teal: oklch(0.386 0.063 188.416);
+    --tag-teal-foreground: oklch(0.953 0.051 180.801);
+    --tag-blue: oklch(0.379 0.146 265.522);
+    --tag-blue-foreground: oklch(0.932 0.032 255.585);
+    --tag-violet: oklch(0.38 0.189 293.745);
+    --tag-violet-foreground: oklch(0.943 0.029 294.588);
+    color-scheme: dark;
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
@@ -128,3 +198,18 @@
     @apply font-sans;
   }
 }
+
+/* #region reduced-motion */
+/* Reduced motion (§10): dialogs, sheets and menus become instant, and smooth
+   scrolling turns off. Components add `motion-safe:` to any motion they use. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* #endregion reduced-motion */

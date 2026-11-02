@@ -13,5 +13,5 @@ npm run build  # ADR drift check, then a build that fails on dead links
 - **`/standards/`** renders the root `standards.md` through `site/standards.md`'s include. Never copy rules into a page.
 - **Cite ADRs** in frontmatter (`adrs: ['0007']`). The page then ends with a "Decisions behind this page" list.
 - **`stub: true`** marks a page not yet written. Remove it when you write the page. While any section page is a stub, an ADR no page cites is a warning; after that it fails the build.
-- **Code from this repo** is imported by region (`<<< @/../src/…/file.ts#name`, with `// #region name` markers in the file), never pasted.
+- **Code from this repo** is imported by region (`<<< @/../src/…/file.ts#name`, with `// #region name` markers in the file), never pasted. VitePress would import the whole file for a missing region, so `scripts/check-regions.mjs` fails the build instead, and also when an imported file is missing or its markers don't pair up.
 - **Diagrams** are Mermaid code blocks.
