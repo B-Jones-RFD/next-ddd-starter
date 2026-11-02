@@ -5,16 +5,22 @@ import type { IPeopleProjection } from '@/modules/boards/application/ports/peopl
 import type { Board } from '@/modules/boards/domain/board/board'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
+import { toBoardId } from '@/modules/boards/domain/board/board-id'
+import { toListId } from '@/modules/boards/domain/list/list-id'
+import type { ListName } from '@/modules/boards/domain/list/list-name'
+import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
 import { aBoard } from '@tests/fixtures/boards'
+import { aList } from '@tests/fixtures/lists'
 
 type Make = () => {
   reader: IBoardReader
   boards: IBoardRepository
   people: IPeopleProjection
+  lists: IListRepository
 }
 
 const ada = toUserId('user-ada')
@@ -135,8 +141,43 @@ export function describeBoardReaderContract(make: Make) {
             { userId: ada, displayName: 'Ada', role: 'owner' },
             { userId: ben, displayName: 'Ben', role: 'member' },
           ],
+          lists: [],
         },
       })
+    })
+
+    it('gets a board with its active lists by position, then id', async () => {
+      const { reader, boards, lists } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }] })
+      )
+      const on = (list: Parameters<typeof aList>[0]) =>
+        lists.save(aList({ boardId: board.id, version: 0, ...list }), [], {
+          actorId: ada,
+          causationId: null,
+        })
+      await on({ name: 'Done' as ListName, position: 'l' })
+      await on({ name: 'Archived' as ListName, position: 'G', archived: true })
+      await on({
+        id: toListId('list-b'),
+        name: 'Doing' as ListName,
+        position: 'V',
+      })
+      await on({
+        id: toListId('list-a'),
+        name: 'Backlog' as ListName,
+        position: 'V',
+      })
+      await on({ boardId: toBoardId('board-elsewhere'), position: 'A' })
+
+      const found = await reader.getForMember(board.id, ada)
+
+      expect(found.ok && found.value.lists).toEqual([
+        { id: 'list-a', name: 'Backlog' },
+        { id: 'list-b', name: 'Doing' },
+        { id: expect.any(String), name: 'Done' },
+      ])
     })
 
     it('returns ForbiddenError for a user who isn’t a Board member', async () => {

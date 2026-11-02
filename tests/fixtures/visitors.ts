@@ -60,6 +60,15 @@ export async function createBoardNamed(page: Page, name: string) {
   return new URL(page.url()).pathname
 }
 
+/** Adds a list through the form after the board's last column. */
+export async function addListNamed(page: Page, name: string) {
+  await page.getByLabel('List name').fill(name)
+  await page.getByRole('button', { name: 'Add list' }).click()
+  await expect(
+    page.getByRole('heading', { level: 2, name, exact: true })
+  ).toBeVisible()
+}
+
 /**
  * As the board's Owner, searches the Members tab for `email`, adds the user
  * it finds, and waits until they are listed. Leaves the page on the tab.

@@ -29,7 +29,10 @@ const MEMBERS_OF = `
   WHERE m.board_id IN (SELECT value FROM json_each(?))
   ORDER BY m.board_id, m.role = 'owner' DESC, m.position`
 
-/** Boards' read side over `boards_boards`, `boards_members` and `boards_people`. */
+/**
+ * Boards' read side over `boards_boards`, `boards_members`, `boards_people`
+ * and `boards_lists`.
+ */
 export class BoardReader implements IBoardReader {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -78,12 +81,24 @@ export class BoardReader implements IBoardReader {
     if (!row) return err(new NotFoundError('Board', boardId))
     if (!row.role) return err(new ForbiddenError())
     const members = query(PORT, () => this.membersOf([row.id]))
+    const lists = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT id, name FROM boards_lists
+             WHERE board_id = ? AND archived = 0
+             ORDER BY position, id`
+          )
+          .all(row.id) as { id: string; name: string }[]
+    )
     return ok({
       id: row.id,
       name: row.name,
       archived: row.archived === 1,
       role: row.role,
       members: members.get(row.id) ?? [],
+      lists: lists.map((list) => ({ id: list.id, name: list.name })),
     })
   }
 

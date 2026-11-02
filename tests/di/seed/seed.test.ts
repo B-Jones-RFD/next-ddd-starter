@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { seed, SEED_PASSWORD } from '@/di/seed/seed'
-import { listBoards } from '@/modules/boards/api'
+import { getBoard, listBoards } from '@/modules/boards/api'
 import { authenticate, signIn } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 
@@ -48,6 +48,21 @@ describe('seed', () => {
 
     const cy = await actorFor('cy@example.com')
     expect(await listBoards({ actorId: cy })).toEqual({ ok: true, value: [] })
+  })
+
+  it('gives “Launch plan” three lists in order, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = boards.ok ? boards.value[0]?.id : undefined
+    const board = await getBoard({ actorId: ada, boardId: boardId ?? '' })
+    expect(board.ok && board.value.lists.map((list) => list.name)).toEqual([
+      'Backlog',
+      'In progress',
+      'Done',
+    ])
   })
 })
 

@@ -12,12 +12,14 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockPeopleProjection },
       { MockBoardRepository },
       { MockBoardReader },
+      { MockListRepository },
       { UserDirectory },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/boards/infrastructure/people-projection.mock'),
       import('@/modules/boards/infrastructure/board-repository.mock'),
       import('@/modules/boards/infrastructure/board-reader.mock'),
+      import('@/modules/boards/infrastructure/list-repository.mock'),
       // No IO of its own: it asks identity's api.ts, which is on mocks too.
       import('@/modules/boards/infrastructure/user-directory'),
     ])
@@ -29,6 +31,9 @@ export async function loadBoardsModule(mode: AdapterMode) {
       .bind('IBoardRepository')
       .toFactory(() => new MockBoardRepository(outbox), 'singleton')
     boards.bind('IBoardReader').toClass(MockBoardReader, undefined, 'singleton')
+    boards
+      .bind('IListRepository')
+      .toFactory(() => new MockListRepository(outbox), 'singleton')
     boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
     return boards
   }
@@ -39,6 +44,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { PeopleProjection },
     { BoardRepository },
     { BoardReader },
+    { ListRepository },
     { UserDirectory },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
@@ -46,6 +52,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     import('@/modules/boards/infrastructure/people-projection'),
     import('@/modules/boards/infrastructure/board-repository'),
     import('@/modules/boards/infrastructure/board-reader'),
+    import('@/modules/boards/infrastructure/list-repository'),
     import('@/modules/boards/infrastructure/user-directory'),
   ])
   boards
@@ -61,6 +68,13 @@ export async function loadBoardsModule(mode: AdapterMode) {
   boards
     .bind('IBoardReader')
     .toFactory(() => new BoardReader(getDatabase()), 'singleton')
+  boards
+    .bind('IListRepository')
+    .toFactory(
+      () =>
+        new ListRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
+      'singleton'
+    )
   boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
   return boards
 }

@@ -111,6 +111,7 @@ describe('getBoard', () => {
         archived: false,
         role: 'owner',
         members: [{ userId: ada, displayName: 'Ada', role: 'owner' }],
+        lists: [],
       },
     })
   })
