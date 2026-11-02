@@ -1,5 +1,6 @@
 import { createContainer, type Container } from '@evyweb/ioctopus'
 
+import { loadAuditModule } from '@/di/modules/audit.module'
 import { loadBoardsModule } from '@/di/modules/boards.module'
 import { loadIdentityModule } from '@/di/modules/identity.module'
 import { loadSharedModule } from '@/di/modules/shared.module'
@@ -62,14 +63,16 @@ async function buildContainer(): Promise<Container> {
   // Untyped container: modules are typed against `Registry`, and
   // `getInjection` is the typed surface.
   const container = createContainer()
-  const [shared, identity, boards] = await Promise.all([
+  const [shared, identity, boards, audit] = await Promise.all([
     loadSharedModule(adapterMode),
     loadIdentityModule(adapterMode),
     loadBoardsModule(adapterMode),
+    loadAuditModule(adapterMode),
   ])
   container.load(Symbol('shared'), shared)
   container.load(Symbol('identity'), identity)
   container.load(Symbol('boards'), boards)
+  container.load(Symbol('audit'), audit)
   return container
 }
 

@@ -1,3 +1,6 @@
+import type { IActivityReader } from '@/modules/audit/application/ports/activity-reader.port'
+import type { IAuditLog } from '@/modules/audit/application/ports/audit-log.port'
+import type { IBoardAccess } from '@/modules/audit/application/ports/board-access.port'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { IPeopleProjection } from '@/modules/boards/application/ports/people-projection.port'
 import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
@@ -33,6 +36,10 @@ export type Registry = {
   IListRepository: IListRepository
   ITaskRepository: ITaskRepository
   IUserDirectory: IUserDirectory
+  // audit
+  IAuditLog: IAuditLog
+  IActivityReader: IActivityReader
+  IBoardAccess: IBoardAccess
 }
 
 export type Token = keyof Registry
