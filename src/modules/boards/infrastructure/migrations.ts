@@ -86,3 +86,26 @@ export const boards003: Migration = {
       ON boards_lists (board_id, position, id);
   `,
 }
+
+export const boards004: Migration = {
+  context: 'boards',
+  name: '004-tasks',
+  sql: `
+    CREATE TABLE boards_tasks (
+      id TEXT PRIMARY KEY,
+      board_id TEXT NOT NULL,
+      list_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      position TEXT NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      version INTEGER NOT NULL
+    );
+    -- Tasks sort within a list by (position, id), with no unique index on
+    -- position (§3). The board index serves the board's read.
+    CREATE INDEX boards_tasks_list_order
+      ON boards_tasks (list_id, position, id);
+    CREATE INDEX boards_tasks_board_id ON boards_tasks (board_id);
+  `,
+}

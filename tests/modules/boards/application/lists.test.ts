@@ -54,9 +54,9 @@ describe('createList', () => {
     expect(result).toEqual({ ok: true, value: { listId: expect.any(String) } })
     const board = await getBoard({ actorId: ada, boardId })
     expect(board.ok && board.value.lists).toEqual([
-      { id: expect.any(String), name: 'Backlog' },
-      { id: expect.any(String), name: 'Doing' },
-      { id: result.ok && result.value.listId, name: 'Done' },
+      { id: expect.any(String), name: 'Backlog', tasks: [] },
+      { id: expect.any(String), name: 'Doing', tasks: [] },
+      { id: result.ok && result.value.listId, name: 'Done', tasks: [] },
     ])
   })
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import {
   AlreadyAMemberError,
+  ListArchivedError,
   NotAMemberError,
   OwnerMustTransferFirstError,
 } from '@/modules/boards/api'
@@ -111,6 +112,28 @@ describe('toActionError', () => {
       code: 'boards.board.owner-must-transfer-first',
       message:
         'You’re the Owner. Make another member the Owner before you leave.',
+    })
+  })
+
+  it('words the task title and description fields', () => {
+    expect(
+      toActionError(
+        new ValidationError({ title: 'required', description: 'too-long' })
+      ).fields
+    ).toEqual({
+      title: 'Enter a title.',
+      description: 'Use 5000 characters or fewer.',
+    })
+    expect(
+      toActionError(new ValidationError({ title: 'too-long' })).fields
+    ).toEqual({ title: 'Use 200 characters or fewer.' })
+  })
+
+  it('words boards.list.archived', () => {
+    expect(toActionError(new ListArchivedError())).toEqual({
+      code: 'boards.list.archived',
+      message:
+        'That list was archived. Reload the page and choose another list.',
     })
   })
 

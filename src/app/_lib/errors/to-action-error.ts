@@ -28,6 +28,13 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
     required: 'Enter a name.',
     'too-long': 'Use 60 characters or fewer.',
   },
+  title: {
+    required: 'Enter a title.',
+    'too-long': 'Use 200 characters or fewer.',
+  },
+  description: {
+    'too-long': 'Use 5000 characters or fewer.',
+  },
   currentPassword: {
     required: 'Enter your current password.',
   },
@@ -88,6 +95,9 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
   'boards.board.owner-must-transfer-first': () => ({
     message:
       'You’re the Owner. Make another member the Owner before you leave.',
+  }),
+  'boards.list.archived': () => ({
+    message: 'That list was archived. Reload the page and choose another list.',
   }),
   unauthenticated: () => ({ message: 'Sign in to continue.' }),
   forbidden: () => ({ message: 'You can’t do that here.' }),

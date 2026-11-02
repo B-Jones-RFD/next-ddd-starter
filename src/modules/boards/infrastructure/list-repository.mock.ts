@@ -16,8 +16,13 @@ export function mockLists(): Map<string, List> {
   return mockStore('boards.lists', () => new Map<string, List>())
 }
 
-/** Lists in board order: by `(position, id)`, as SQLite's BINARY collation sorts. */
-export const byPositionThenId = (a: List, b: List) =>
+type Ordered = { readonly position: string; readonly id: string }
+
+/**
+ * Lists in board order, or tasks in list order: by `(position, id)`, as
+ * SQLite's BINARY collation sorts.
+ */
+export const byPositionThenId = (a: Ordered, b: Ordered) =>
   a.position < b.position
     ? -1
     : a.position > b.position

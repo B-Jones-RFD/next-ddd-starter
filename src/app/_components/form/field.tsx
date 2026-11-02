@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react'
 
 import { Input } from '@/app/_components/ui/input'
 import { Label } from '@/app/_components/ui/label'
+import { Textarea } from '@/app/_components/ui/textarea'
 
 type FieldProps = Omit<ComponentProps<'input'>, 'id' | 'name'> & {
   name: string
@@ -31,6 +32,38 @@ export function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
         {...input}
+      />
+      <FieldError id={errorId} message={error} />
+    </div>
+  )
+}
+
+type TextareaFieldProps = Omit<ComponentProps<'textarea'>, 'id' | 'name'> & {
+  name: string
+  label: string
+  /** Defaults to `field-<name>`. */
+  id?: string
+  error?: string
+}
+
+/** A labelled textarea with its error under it (§10). */
+export function TextareaField({
+  name,
+  label,
+  error,
+  id = `field-${name}`,
+  ...textarea
+}: TextareaFieldProps) {
+  const errorId = `${id}-error`
+  return (
+    <div className='flex flex-col gap-1.5'>
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea
+        id={id}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        {...textarea}
       />
       <FieldError id={errorId} message={error} />
     </div>

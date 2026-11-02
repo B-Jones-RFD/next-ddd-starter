@@ -64,6 +64,33 @@ describe('seed', () => {
       'Done',
     ])
   })
+
+  it('fills the three lists with eight tasks in order, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = boards.ok ? boards.value[0]?.id : undefined
+    const board = await getBoard({ actorId: ada, boardId: boardId ?? '' })
+    expect(
+      board.ok &&
+        board.value.lists.map((list) => [
+          list.name,
+          list.tasks.map((task) => task.title),
+        ])
+    ).toEqual([
+      [
+        'Backlog',
+        ['Write the press release', 'Plan the launch event', 'Update the FAQ'],
+      ],
+      [
+        'In progress',
+        ['Design the landing page', 'Record the demo video', 'Brief support'],
+      ],
+      ['Done', ['Pick the launch date', 'Set up analytics']],
+    ])
+  })
 })
 
 async function actorFor(email: string) {

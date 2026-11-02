@@ -5,6 +5,10 @@ import type {
   BoardSummaryDto,
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
+import type {
+  TaskDto,
+  TaskSummaryDto,
+} from '@/modules/boards/application/dto/task.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import { query } from '@/shared/infrastructure/sqlite/translate-error'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
@@ -30,8 +34,8 @@ const MEMBERS_OF = `
   ORDER BY m.board_id, m.role = 'owner' DESC, m.position`
 
 /**
- * Boards' read side over `boards_boards`, `boards_members`, `boards_people`
- * and `boards_lists`.
+ * Boards' read side over `boards_boards`, `boards_members`, `boards_people`,
+ * `boards_lists` and `boards_tasks`.
  */
 export class BoardReader implements IBoardReader {
   constructor(private readonly db: DatabaseSync) {}
@@ -92,13 +96,81 @@ export class BoardReader implements IBoardReader {
           )
           .all(row.id) as { id: string; name: string }[]
     )
+    const tasks = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT id, title, list_id FROM boards_tasks
+             WHERE board_id = ? AND archived = 0
+             ORDER BY position, id`
+          )
+          .all(row.id) as { id: string; title: string; list_id: string }[]
+    )
+    const byList = new Map<string, TaskSummaryDto[]>()
+    for (const task of tasks) {
+      const inList = byList.get(task.list_id) ?? []
+      inList.push({ id: task.id, title: task.title })
+      byList.set(task.list_id, inList)
+    }
     return ok({
       id: row.id,
       name: row.name,
       archived: row.archived === 1,
       role: row.role,
       members: members.get(row.id) ?? [],
-      lists: lists.map((list) => ({ id: list.id, name: list.name })),
+      lists: lists.map((list) => ({
+        id: list.id,
+        name: list.name,
+        tasks: byList.get(list.id) ?? [],
+      })),
+    })
+  }
+
+  async getTaskForMember(
+    taskId: string,
+    userId: UserId
+  ): Promise<Result<TaskDto, NotFoundError | ForbiddenError>> {
+    const row = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT t.id, t.title, t.description, t.archived, t.board_id,
+                    b.name AS board_name, t.list_id, l.name AS list_name,
+                    me.role
+             FROM boards_tasks t
+             JOIN boards_boards b ON b.id = t.board_id
+             JOIN boards_lists l ON l.id = t.list_id
+             LEFT JOIN boards_members me
+               ON me.board_id = t.board_id AND me.user_id = ?
+             WHERE t.id = ?`
+          )
+          .get(userId, taskId) as
+          | {
+              id: string
+              title: string
+              description: string
+              archived: number
+              board_id: string
+              board_name: string
+              list_id: string
+              list_name: string
+              role: string | null
+            }
+          | undefined
+    )
+    if (!row) return err(new NotFoundError('Task', taskId))
+    if (!row.role) return err(new ForbiddenError())
+    return ok({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      archived: row.archived === 1,
+      boardId: row.board_id,
+      boardName: row.board_name,
+      listId: row.list_id,
+      listName: row.list_name,
     })
   }
 

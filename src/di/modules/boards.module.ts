@@ -13,6 +13,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockBoardRepository },
       { MockBoardReader },
       { MockListRepository },
+      { MockTaskRepository },
       { UserDirectory },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
@@ -20,6 +21,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
       import('@/modules/boards/infrastructure/board-repository.mock'),
       import('@/modules/boards/infrastructure/board-reader.mock'),
       import('@/modules/boards/infrastructure/list-repository.mock'),
+      import('@/modules/boards/infrastructure/task-repository.mock'),
       // No IO of its own: it asks identity's api.ts, which is on mocks too.
       import('@/modules/boards/infrastructure/user-directory'),
     ])
@@ -34,6 +36,9 @@ export async function loadBoardsModule(mode: AdapterMode) {
     boards
       .bind('IListRepository')
       .toFactory(() => new MockListRepository(outbox), 'singleton')
+    boards
+      .bind('ITaskRepository')
+      .toFactory(() => new MockTaskRepository(outbox), 'singleton')
     boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
     return boards
   }
@@ -45,6 +50,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { BoardRepository },
     { BoardReader },
     { ListRepository },
+    { TaskRepository },
     { UserDirectory },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
@@ -53,6 +59,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     import('@/modules/boards/infrastructure/board-repository'),
     import('@/modules/boards/infrastructure/board-reader'),
     import('@/modules/boards/infrastructure/list-repository'),
+    import('@/modules/boards/infrastructure/task-repository'),
     import('@/modules/boards/infrastructure/user-directory'),
   ])
   boards
@@ -73,6 +80,13 @@ export async function loadBoardsModule(mode: AdapterMode) {
     .toFactory(
       () =>
         new ListRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
+      'singleton'
+    )
+  boards
+    .bind('ITaskRepository')
+    .toFactory(
+      () =>
+        new TaskRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
       'singleton'
     )
   boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')

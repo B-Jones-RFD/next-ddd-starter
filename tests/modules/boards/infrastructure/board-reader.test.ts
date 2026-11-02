@@ -6,6 +6,8 @@ import { BoardRepository } from '@/modules/boards/infrastructure/board-repositor
 import { MockBoardRepository } from '@/modules/boards/infrastructure/board-repository.mock'
 import { ListRepository } from '@/modules/boards/infrastructure/list-repository'
 import { MockListRepository } from '@/modules/boards/infrastructure/list-repository.mock'
+import { TaskRepository } from '@/modules/boards/infrastructure/task-repository'
+import { MockTaskRepository } from '@/modules/boards/infrastructure/task-repository.mock'
 import { PeopleProjection } from '@/modules/boards/infrastructure/people-projection'
 import { MockPeopleProjection } from '@/modules/boards/infrastructure/people-projection.mock'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
@@ -23,6 +25,7 @@ describe('BoardReader (SQLite)', () => {
       boards: new BoardRepository(db, new Outbox(db, 'boards')),
       people: new PeopleProjection(db),
       lists: new ListRepository(db, new Outbox(db, 'boards')),
+      tasks: new TaskRepository(db, new Outbox(db, 'boards')),
     }
   })
 })
@@ -35,6 +38,7 @@ describe('MockBoardReader', () => {
       boards: new MockBoardRepository(new MockOutbox('boards')),
       people: new MockPeopleProjection(),
       lists: new MockListRepository(new MockOutbox('boards')),
+      tasks: new MockTaskRepository(new MockOutbox('boards')),
     }
   })
 })

@@ -84,3 +84,17 @@ export async function addMemberByEmail(
   await page.getByRole('button', { name: /^Add / }).click()
   await expect(page.getByRole('button', { name: /^Remove / })).toBeVisible()
 }
+
+/** Adds a task through the form at the foot of the named list's column. */
+export async function addTaskNamed(
+  page: Page,
+  listName: string,
+  title: string
+) {
+  const list = page.getByRole('region', { name: listName, exact: true })
+  await list.getByLabel('Task title').fill(title)
+  await list.getByRole('button', { name: 'Add task' }).click()
+  await expect(
+    list.getByRole('heading', { level: 3, name: title, exact: true })
+  ).toBeVisible()
+}
