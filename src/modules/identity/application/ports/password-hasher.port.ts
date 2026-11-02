@@ -1,6 +1,7 @@
 import type { Password } from '@/modules/identity/domain/user/password'
 import type { PasswordHash } from '@/modules/identity/domain/user/password-hash'
 
+// #region port
 /** Hashes and checks passwords. Throws `InfrastructureError` on an outage. */
 export interface IPasswordHasher {
   /** A salted hash; hashing the same password twice gives different hashes. */
@@ -13,3 +14,4 @@ export interface IPasswordHasher {
    */
   needsRehash(hash: PasswordHash): boolean
 }
+// #endregion port

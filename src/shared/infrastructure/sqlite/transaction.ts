@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { toPersistenceError } from '@/shared/infrastructure/sqlite/translate-error'
 
+// #region transaction
 /** Returned from a transaction body to roll back without throwing. */
 export const ROLLBACK = Symbol('rollback')
 
@@ -34,3 +35,4 @@ export function transaction<T>(
     throw toPersistenceError(port, error)
   }
 }
+// #endregion transaction

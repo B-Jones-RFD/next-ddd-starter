@@ -10,12 +10,14 @@ import { AppError } from '@/shared/kernel/errors/app-error'
 // The only place span data is written (§8). Lint bans `setAttribute(s)`,
 // `addEvent`, `recordException` and `setStatus` everywhere else.
 
+// #region set-attributes
 export function setAppAttributes(
   span: Span,
   attributes: Partial<AppAttributes>
 ): void {
   span.setAttributes(attributes)
 }
+// #endregion set-attributes
 
 /** Records a returned error: its code, with the status left unset. */
 export function recordExpectedError(span: Span, error: AppError): void {

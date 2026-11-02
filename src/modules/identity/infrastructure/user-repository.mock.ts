@@ -31,6 +31,7 @@ export class MockUserRepository implements IUserRepository {
       : err(new NotFoundError('User', 'by-email'))
   }
 
+  // #region save
   async save(
     user: User,
     events: readonly UserEvent[],
@@ -58,4 +59,5 @@ export class MockUserRepository implements IUserRepository {
     )
     return ok(saved)
   }
+  // #endregion save
 }

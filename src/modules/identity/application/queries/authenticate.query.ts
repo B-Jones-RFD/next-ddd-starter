@@ -20,6 +20,7 @@ const Token = z.string().min(1)
  * It records the session's use at most once a minute, straight through the
  * repository with no events: the one write a query makes (§13).
  */
+// #region authenticate
 export async function authenticate(
   token: string
 ): Promise<Result<ActorDto, UnauthenticatedError>> {
@@ -44,3 +45,4 @@ export async function authenticate(
   }
   return ok({ userId: user.value.id, displayName: user.value.displayName })
 }
+// #endregion authenticate

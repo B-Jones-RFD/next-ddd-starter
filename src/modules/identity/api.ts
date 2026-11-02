@@ -12,6 +12,7 @@ import { traced } from '@/shared/infrastructure/tracing'
 // Public API of the identity context (§2): its commands and queries, each
 // wrapped in `traced`, plus their DTO types and the errors they return.
 
+// #region use-cases
 export const signUp = traced('identity.signUp', signUpCommand)
 export const signIn = traced('identity.signIn', signInCommand)
 export const signOut = traced('identity.signOut', signOutCommand)
@@ -25,6 +26,7 @@ export const changePassword = traced(
 )
 export const rename = traced('identity.rename', renameCommand)
 export const authenticate = traced('identity.authenticate', authenticateQuery)
+// #endregion use-cases
 
 export type { ChangePasswordInput } from '@/modules/identity/application/commands/change-password.command'
 export type { RenameInput } from '@/modules/identity/application/commands/rename.command'
@@ -34,6 +36,7 @@ export type {
   ActorDto,
   SessionTokenDto,
 } from '@/modules/identity/application/dto/session.dto'
+// #region errors
 export {
   EmailTakenError,
   IncorrectPasswordError,
@@ -48,3 +51,4 @@ export {
   ForbiddenError,
   ValidationError,
 } from '@/shared/kernel/errors/domain-error'
+// #endregion errors

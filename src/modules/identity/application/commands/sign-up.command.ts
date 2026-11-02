@@ -15,14 +15,18 @@ import { ValidationError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import { toUserId } from '@/shared/kernel/user-id'
 
+// #region input-schema
 const SignUpInput = z.object({
   displayName: z.string(),
   email: z.string(),
   password: z.string(),
 })
+// #endregion input-schema
 
 export type SignUpInput = z.input<typeof SignUpInput>
 
+// #region sign-up
+// #region signature
 /**
  * Registers a user and starts their first session: two aggregates, saved one
  * after the other (§4). Returns the session's raw cookie token.
@@ -30,6 +34,7 @@ export type SignUpInput = z.input<typeof SignUpInput>
 export async function signUp(
   input: SignUpInput
 ): Promise<Result<SessionTokenDto, EmailTakenError | ValidationError>> {
+  // #endregion signature
   const shape = SignUpInput.safeParse(input)
   if (!shape.success) {
     return err(ValidationError.fromShape(input, shape.error.issues))
@@ -64,6 +69,7 @@ export async function signUp(
     tokenHash: hash,
     now: new Date(),
   })
+  // #region unreachable-conflict
   const sessions = await getInjection('ISessionRepository')
   const savedSession = await sessions.save(
     session.state,
@@ -71,6 +77,8 @@ export async function signUp(
     origin
   )
   if (!savedSession.ok) throw savedSession.error
+  // #endregion unreachable-conflict
 
   return ok({ token })
 }
+// #endregion sign-up
