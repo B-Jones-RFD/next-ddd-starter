@@ -6,6 +6,7 @@ import {
   ListArchivedError,
   NotAMemberError,
   OwnerMustTransferFirstError,
+  TaskArchivedError,
 } from '@/modules/boards/api'
 import {
   EmailTakenError,
@@ -137,6 +138,22 @@ describe('toActionError', () => {
       message:
         'That list was archived. Reload the page and choose another list.',
     })
+  })
+
+  it('words boards.task.archived', () => {
+    expect(toActionError(new TaskArchivedError())).toEqual({
+      code: 'boards.task.archived',
+      message: 'That task was archived, so it can’t be changed.',
+    })
+  })
+
+  it('words an empty or too-long comment under its field', () => {
+    expect(
+      toActionError(new ValidationError({ text: 'required' })).fields
+    ).toEqual({ text: 'Write a comment.' })
+    expect(
+      toActionError(new ValidationError({ text: 'too-long' })).fields
+    ).toEqual({ text: 'Use 2000 characters or fewer.' })
   })
 
   it('turns anything thrown into unexpected, with the trace id as its reference', async () => {

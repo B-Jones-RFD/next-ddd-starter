@@ -3,6 +3,7 @@ import type { Name } from '@/modules/audit/domain/name/name'
 import type {
   BoardCreatedV1,
   BoardRenamedV1,
+  CommentAddedV1,
   ListCreatedV1,
   ListRenamedV1,
   ListReorderedV1,
@@ -46,6 +47,7 @@ export type AuditedEvent =
   | TaskDescriptionChangedV1
   | TaskMovedV1
   | TaskReorderedV1
+  | CommentAddedV1
 
 /** One event in audit's language: its entry, and any current names it tells. */
 export type Translation = {
@@ -291,6 +293,15 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
         ...onTask(e),
         action: 'task.reordered',
         details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+    // A comment is filed on its task, so it shows in the task's Activity.
+    'boards.CommentAdded': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'comment.added',
+        details: { commentId: e.payload.commentId, text: e.payload.text },
       },
       names: [],
     }),

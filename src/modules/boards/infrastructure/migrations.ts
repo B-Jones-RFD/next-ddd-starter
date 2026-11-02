@@ -109,3 +109,20 @@ export const boards004: Migration = {
     CREATE INDEX boards_tasks_board_id ON boards_tasks (board_id);
   `,
 }
+
+export const boards005: Migration = {
+  context: 'boards',
+  name: '005-comments',
+  sql: `
+    CREATE TABLE boards_comments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      board_id TEXT NOT NULL,
+      author_id TEXT NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      version INTEGER NOT NULL
+    );
+    CREATE INDEX boards_comments_task_id ON boards_comments (task_id);
+  `,
+}

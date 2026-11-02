@@ -8,7 +8,11 @@ import { getActor } from '@/app/_lib/auth/get-actor'
 import { signInPath } from '@/app/_lib/auth/next-path'
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import { taskPath } from '@/app/boards/[boardId]/task-places'
-import { changeTaskDescription, renameTask } from '@/modules/boards/api'
+import {
+  addComment,
+  changeTaskDescription,
+  renameTask,
+} from '@/modules/boards/api'
 
 // The task's actions, from its dialog and its page. Bound ids are untrusted:
 // the domain checks the actor is a Board member of the task's board.
@@ -53,6 +57,37 @@ export async function changeTaskDescriptionAction(
 
   try {
     const result = await changeTaskDescription({
+      actorId: actor.value.userId,
+      taskId,
+      ...values,
+    })
+    if (!result.ok) {
+      return { status: 'error', error: toActionError(result.error), values }
+    }
+  } catch (error) {
+    return { status: 'error', error: toActionError(error), values }
+  }
+  refresh()
+  return { status: 'success' }
+}
+
+/**
+ * Comments on the task, then re-renders it. Activity picks the comment up
+ * one relay drain later, and the form shows it optimistically until then:
+ * the action never waits for the relay (§6).
+ */
+export async function addCommentAction(
+  boardId: string,
+  taskId: string,
+  _previous: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const actor = await getActor()
+  if (!actor.ok) redirect(signInPath(taskPath(boardId, taskId)))
+  const values = formValues(formData, ['text'])
+
+  try {
+    const result = await addComment({
       actorId: actor.value.userId,
       taskId,
       ...values,

@@ -35,6 +35,10 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
   description: {
     'too-long': 'Use 5000 characters or fewer.',
   },
+  text: {
+    required: 'Write a comment.',
+    'too-long': 'Use 2000 characters or fewer.',
+  },
   currentPassword: {
     required: 'Enter your current password.',
   },
@@ -98,6 +102,9 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
   }),
   'boards.list.archived': () => ({
     message: 'That list was archived. Reload the page and choose another list.',
+  }),
+  'boards.task.archived': () => ({
+    message: 'That task was archived, so it can’t be changed.',
   }),
   unauthenticated: () => ({ message: 'Sign in to continue.' }),
   forbidden: () => ({ message: 'You can’t do that here.' }),

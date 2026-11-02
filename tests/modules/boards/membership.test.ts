@@ -42,6 +42,7 @@ describeMembershipProof('boards', api, {
     'changeTaskDescription',
     'reorderTask',
     'moveTask',
+    'addComment',
     'addMember',
     'removeMember',
     'leaveBoard',

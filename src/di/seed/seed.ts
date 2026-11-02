@@ -1,5 +1,7 @@
 import { getInjection } from '@/di/container'
+import { getActivity } from '@/modules/audit/api'
 import {
+  addComment,
   addMember,
   createBoard,
   createList,
@@ -80,6 +82,41 @@ async function tasks(
   }
 }
 
+type SeedComment = { task: string; authorId: UserId; text: string }
+
+/**
+ * Posts each comment on the task of that title, in order, unless its
+ * Activity already has it. Reads Activity, so the relay must be drained.
+ */
+async function comments(
+  actorId: UserId,
+  boardId: string,
+  wanted: readonly SeedComment[]
+): Promise<void> {
+  const existing = await getBoard({ actorId, boardId })
+  if (!existing.ok) throw existing.error
+  const tasks = existing.value.lists.flatMap((list) => list.tasks)
+  for (const comment of wanted) {
+    const task = tasks.find((t) => t.title === comment.task)
+    if (!task) continue
+    const activity = await getActivity({ actorId, taskId: task.id })
+    if (!activity.ok) throw activity.error
+    const posted = activity.value.entries.some(
+      (entry) =>
+        entry.action === 'comment.added' &&
+        entry.actorId === comment.authorId &&
+        entry.details.text === comment.text
+    )
+    if (posted) continue
+    const added = await addComment({
+      actorId: comment.authorId,
+      taskId: task.id,
+      text: comment.text,
+    })
+    if (!added.ok) throw added.error
+  }
+}
+
 /** The Owner adds `userId` as a Member, unless they already are one. */
 async function member(
   ownerId: UserId,
@@ -120,5 +157,29 @@ export async function seed(): Promise<void> {
     ],
     Done: ['Pick the launch date', 'Set up analytics'],
   })
+  // Comments are checked against Activity, which trails by one drain.
+  await relay.drain()
+  await comments(ada, launchPlan, [
+    {
+      task: 'Write the press release',
+      authorId: ada,
+      text: 'Draft by Friday, please.',
+    },
+    {
+      task: 'Write the press release',
+      authorId: ben,
+      text: 'On it. I’ll share a first pass on Thursday.',
+    },
+    {
+      task: 'Design the landing page',
+      authorId: ben,
+      text: 'Should the hero use a still from the demo video?',
+    },
+    {
+      task: 'Pick the launch date',
+      authorId: ada,
+      text: 'Locked in for the 14th.',
+    },
+  ])
   await relay.drain()
 }

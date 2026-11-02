@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { changeTaskDescription as changeTaskDescriptionCommand } from '@/modules/boards/application/commands/change-task-description.command'
+import { addComment as addCommentCommand } from '@/modules/boards/application/commands/add-comment.command'
 import { addMember as addMemberCommand } from '@/modules/boards/application/commands/add-member.command'
 import { createBoard as createBoardCommand } from '@/modules/boards/application/commands/create-board.command'
 import { createList as createListCommand } from '@/modules/boards/application/commands/create-list.command'
@@ -37,6 +38,7 @@ export const changeTaskDescription = traced(
 )
 export const reorderTask = traced('boards.reorderTask', reorderTaskCommand)
 export const moveTask = traced('boards.moveTask', moveTaskCommand)
+export const addComment = traced('boards.addComment', addCommentCommand)
 export const addMember = traced('boards.addMember', addMemberCommand)
 export const removeMember = traced('boards.removeMember', removeMemberCommand)
 export const leaveBoard = traced('boards.leaveBoard', leaveBoardCommand)
@@ -50,6 +52,7 @@ export const getTask = traced('boards.getTask', getTaskQuery)
 export const searchUsers = traced('boards.searchUsers', searchUsersQuery)
 export const roleOf = traced('boards.roleOf', roleOfQuery)
 
+export type { AddCommentInput } from '@/modules/boards/application/commands/add-comment.command'
 export type { AddMemberInput } from '@/modules/boards/application/commands/add-member.command'
 export type { CreateBoardInput } from '@/modules/boards/application/commands/create-board.command'
 export type { CreateListInput } from '@/modules/boards/application/commands/create-list.command'
@@ -81,6 +84,7 @@ export {
   OwnerMustTransferFirstError,
 } from '@/modules/boards/domain/board/board.errors'
 export { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
+export { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 export { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 export {
   ForbiddenError,

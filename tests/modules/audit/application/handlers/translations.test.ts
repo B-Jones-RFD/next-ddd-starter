@@ -370,6 +370,33 @@ describe('translating task events', () => {
   })
 })
 
+describe('translating comment events', () => {
+  it('records a comment on its task, with its text', () => {
+    const type = 'boards.CommentAdded'
+    const payload = {
+      commentId: 'comment-1',
+      taskId: 'task-1',
+      boardId: 'board-1',
+      text: 'Can we keep it to one page?',
+    }
+    expect(translate(event(type, 'comment-1', payload, 1))).toEqual({
+      entry: {
+        ...meta(type),
+        subject: 'task',
+        subjectId: 'task-1',
+        boardId: 'board-1',
+        taskId: 'task-1',
+        action: 'comment.added',
+        details: {
+          commentId: 'comment-1',
+          text: 'Can we keep it to one page?',
+        },
+      },
+      names: [],
+    })
+  })
+})
+
 describe('translating any event', () => {
   it('keeps the causing event’s id on a Consequence', () => {
     const envelope = {

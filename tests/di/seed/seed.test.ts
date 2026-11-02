@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { seed, SEED_PASSWORD } from '@/di/seed/seed'
+import { getActivity } from '@/modules/audit/api'
 import { getBoard, listBoards } from '@/modules/boards/api'
 import { authenticate, signIn } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
@@ -89,6 +90,43 @@ describe('seed', () => {
         ['Design the landing page', 'Record the demo video', 'Brief support'],
       ],
       ['Done', ['Pick the launch date', 'Set up analytics']],
+    ])
+  })
+
+  it('puts a few comments from Ada and Ben in the tasks’ Activity, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = boards.ok ? boards.value[0]?.id : undefined
+    const board = await getBoard({ actorId: ada, boardId: boardId ?? '' })
+    if (!board.ok) throw new Error('read failed')
+    const comments: [string, string, string][] = []
+    for (const list of board.value.lists) {
+      for (const task of list.tasks) {
+        const page = await getActivity({ actorId: ada, taskId: task.id })
+        if (!page.ok) throw new Error('read failed')
+        for (const entry of [...page.value.entries].reverse()) {
+          if (entry.action !== 'comment.added') continue
+          const author = entry.actorId === ada ? 'Ada' : 'Ben'
+          comments.push([task.title, author, entry.details.text])
+        }
+      }
+    }
+    expect(comments).toEqual([
+      ['Write the press release', 'Ada', 'Draft by Friday, please.'],
+      [
+        'Write the press release',
+        'Ben',
+        'On it. I’ll share a first pass on Thursday.',
+      ],
+      [
+        'Design the landing page',
+        'Ben',
+        'Should the hero use a still from the demo video?',
+      ],
+      ['Pick the launch date', 'Ada', 'Locked in for the 14th.'],
     ])
   })
 })
