@@ -24,6 +24,10 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
     'too-short': 'Use at least 8 characters.',
     'too-long': 'Use 128 characters or fewer.',
   },
+  name: {
+    required: 'Enter a name.',
+    'too-long': 'Use 60 characters or fewer.',
+  },
   currentPassword: {
     required: 'Enter your current password.',
   },

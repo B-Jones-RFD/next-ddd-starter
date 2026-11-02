@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { seed, SEED_PASSWORD } from '@/di/seed/seed'
-import { signIn } from '@/modules/identity/api'
+import { listBoards } from '@/modules/boards/api'
+import { authenticate, signIn } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
 
 beforeEach(() => {
@@ -17,4 +18,29 @@ describe('seed', () => {
       expect((await signIn({ email, password: SEED_PASSWORD })).ok).toBe(true)
     }
   )
+
+  it('gives Ada her board “Launch plan” as its Owner, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    expect(await listBoards({ actorId: ada })).toEqual({
+      ok: true,
+      value: [
+        {
+          id: expect.any(String),
+          name: 'Launch plan',
+          members: [{ userId: ada, displayName: 'Ada', role: 'owner' }],
+        },
+      ],
+    })
+  })
 })
+
+async function actorFor(email: string) {
+  const session = await signIn({ email, password: SEED_PASSWORD })
+  if (!session.ok) throw new Error('sign-in failed')
+  const actor = await authenticate(session.value.token)
+  if (!actor.ok) throw new Error('authenticate failed')
+  return actor.value.userId
+}

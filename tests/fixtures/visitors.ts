@@ -43,3 +43,19 @@ export async function signOut(page: Page, displayName: string) {
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL('/sign-in')
 }
+
+/**
+ * Creates a board through the "Create board" dialog on `/boards`, opens it,
+ * and returns its path.
+ */
+export async function createBoardNamed(page: Page, name: string) {
+  await page.goto('/boards')
+  await page.getByRole('button', { name: 'Create board' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Create board' })
+  await dialog.getByLabel('Board name').fill(name)
+  await dialog.getByRole('button', { name: 'Create board' }).click()
+  await expect(dialog).toBeHidden()
+  await page.getByRole('link', { name }).click()
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
+  return new URL(page.url()).pathname
+}

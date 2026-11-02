@@ -77,6 +77,15 @@ describe('toActionError', () => {
     })
   })
 
+  it('words the board name field', () => {
+    expect(
+      toActionError(new ValidationError({ name: 'required' })).fields
+    ).toEqual({ name: 'Enter a name.' })
+    expect(
+      toActionError(new ValidationError({ name: 'too-long' })).fields
+    ).toEqual({ name: 'Use 60 characters or fewer.' })
+  })
+
   it('turns anything thrown into unexpected, with the trace id as its reference', async () => {
     const outage = new PersistenceError('IUserRepository', { retryable: true })
 
