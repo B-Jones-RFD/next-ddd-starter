@@ -314,7 +314,7 @@ These are deliberate. Don't "fix" them, and don't copy them anywhere else.
 - **Ports use the `I` prefix and `interface`**, and **Next's files use default exports**.
 - **Error messages can carry input.** Third-party messages are kept as they are, and Next records thrown errors on its own spans.
 - **Observability deviates from the OTel spec in two ways:** exporters default to `none`, and traces' `none` keeps the provider.
-- **`ExternalServiceError` is unused here.** It is the pattern for apps that call external services.
+- **`ExternalServiceError` is all but unused here.** Only the password hasher throws it, when `scrypt` fails. It is the pattern for apps that call external services.
 - **The session cookie has no `__Host-` prefix**, because Safari rejects `Secure` cookies on `http://localhost`.
 - **Local-only simplifications** that a deployed app replaces:
   - expired sessions are never purged (add a scheduled purge)

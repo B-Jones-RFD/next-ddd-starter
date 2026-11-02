@@ -17,6 +17,7 @@ const PARAMS = { N: 2 ** 17, r: 8, p: 1 }
 const SALT_BYTES = 16
 const KEY_BYTES = 32
 
+// #region derive
 function derive(
   password: string,
   salt: Buffer,
@@ -39,6 +40,7 @@ function derive(
     })
   })
 }
+// #endregion derive
 
 /** scrypt hashes stored as `scrypt$N$r$p$salt$hash` (base64url). */
 export class PasswordHasher implements IPasswordHasher {

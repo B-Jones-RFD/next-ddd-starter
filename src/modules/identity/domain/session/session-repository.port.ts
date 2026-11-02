@@ -23,9 +23,11 @@ export interface ISessionRepository {
     events: readonly SessionEvent[],
     origin: EventOrigin
   ): Promise<Result<Session, ConflictError>>
+  // #region touch
   /**
    * Records when the session was last used, with no version change and no
    * events: the one write a query makes (§13). An unknown id changes nothing.
    */
   touch(id: SessionId, lastSeenAt: Date): Promise<void>
+  // #endregion touch
 }

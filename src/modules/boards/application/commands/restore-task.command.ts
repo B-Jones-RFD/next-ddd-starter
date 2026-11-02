@@ -47,6 +47,7 @@ export async function restoreTask(
     return err(ValidationError.fromShape(input, shape.error.issues))
   }
 
+  // #region read-checks
   const tasks = await getInjection('ITaskRepository')
   const task = await tasks.findById(toTaskId(shape.data.taskId))
   if (!task.ok) return task
@@ -58,6 +59,7 @@ export async function restoreTask(
   const lists = await getInjection('IListRepository')
   const list = await lists.findById(task.value.listId)
   if (!list.ok) return list
+  // #endregion read-checks
 
   const changed = restoreTaskOperation(
     task.value,
