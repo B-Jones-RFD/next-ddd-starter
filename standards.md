@@ -26,6 +26,7 @@ Site: [Scale](https://b-jones-rfd.github.io/next-ddd-starter/scale/)
   - **Database**: one SQLite file through `node:sqlite`, with raw SQL. Keep the repository ports, one aggregate per transaction and the outbox (§5, §6).
   - **Deployment**: local only. §13 lists what a deployed app adds.
   - **Contexts**: `identity`, `boards` and `audit`, cut from this domain's language. Keep the module shape (§2) and the integration rules (§6).
+  - **Theme and interaction details**: dark mode with a System / Light / Dark choice, an 8-color tag palette, no keyboard shortcuts and a "Comment posted" status. Keep the §10 accessibility rules and the seam that the server never reads the theme.
 
 ## 2. Layout and boundaries
 
@@ -231,6 +232,28 @@ Site: [Presentation](https://b-jones-rfd.github.io/next-ddd-starter/presentation
 - **Give each route segment a `loading.tsx` and each independent section its own `<Suspense>`.** Add `error.tsx` at the root and on key segments, plus `global-error.tsx` and `not-found.tsx`. `error.tsx` shows `error.digest` as the reference. `review`
 - **Use DTOs as they are, with no view-model layer.** Format timestamps with the client `<Time>` component (DayJS) inside `<time dateTime>`. `review`
 - **Put shared UI in `src/app/_components/`** (shadcn/ui in `ui/`) and shared edge code in `src/app/_lib/` (`actions/`, `errors/`, `auth/`). A route's own components sit beside its `page.tsx`, with descriptive names. `review`
+
+### Accessibility and theming
+
+- **Meet WCAG 2.2 AA in every theme:** 4.5:1 for text, and 3:1 for large text, UI parts and focus rings. Focus is never obscured, and targets are at least 24px. `test`
+- **Never use color as the only signal.** Archived items get a text badge, tags always show their name, the Owner gets a crown plus "(Owner)" in the accessible name, and errors get text plus an icon. `review`
+- **Style with semantic tokens only, never raw palette classes.** Add any new meaning (`--success`, tag tokens) to `globals.css` in every theme, extending shadcn's variables, so a theme is one place to change. `review`
+- **Never read the theme on the server.** Here, the theme follows the system, with a System / Light / Dark choice in the account menu stored in `localStorage`. A hand-written inline `<head>` script sets `data-theme` before paint, `<html>` has `suppressHydrationWarning`, the `dark` variant is `[data-theme=dark]` or `prefers-color-scheme: dark` when unset, and a `matchMedia` listener keeps System live. _This app's choice; decide per project_. What carries over is no cookie, so the shell stays static ([ADR 0018](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0018-the-theme-choice-is-stored-per-device-and-applied-by-an-inline-script.md)). `review`
+- **Store a tag's color as a name, never hex or classes.** Here it is one of 8 (`gray red orange amber green teal blue violet`), a closed union in the domain. `app/` maps each to a `--tag-<name>` / `--tag-<name>-foreground` pair at 4.5:1 in every theme, and the picker shows each swatch with its name. _This app's choice; decide per project_. `type`
+- **Keep the dialog primitive's focus:** in on open, back to the trigger on close, including a close through `onSuccess`. Override the first focus only on purpose. Here, the task dialog focuses its title heading and the type-the-name confirm focuses its input. `review`
+- **When an action moves or removes the focused element, move focus to its logical successor.** After a ⋯-menu reorder, that's the moved item's ⋯ trigger in its new place, through one client hook keyed by id. After an archive that hides the item, it's the next item, or the column heading if there isn't one. `test`
+- **Leave navigation focus to Next.** Full-page redirects use its route announcer and default focus, with no custom focus-to-`h1`. `review`
+- **Show focus with shadcn's `focus-visible` ring**, with `--ring` tuned to 3:1 in each theme. `review`
+- **Make tab order follow the DOM**, column by column (heading, ⋯, tasks, "Add task"), with no roving or positive `tabIndex`. A mobile jump-strip button scrolls to its column and focuses its heading (`tabIndex={-1}`). `review`
+- **Add no custom keyboard shortcuts.** The primitives cover Tab, Enter/Space, arrows in menus and Escape. _This app's choice; decide per project_. `review`
+- **Announce failures, not successes.** `FormAlert` is `role="alert"`, and field errors are reached through `aria-describedby`. A success gets no extra announcement, and there's no shared success live region. `review`
+- **Don't make Activity a live region.** Here, posting a comment gives a visually hidden `role="status"` saying "Comment posted". _This app's choice; decide per project_. `review`
+- **Name an icon-only button after its target** with `aria-label` ("Actions for list Backlog"). `review`
+- **Make an avatar stack one element named by its members** ("Members: Ada (Owner), Ben"), with each avatar `aria-hidden`. `review`
+- **Give each page `header`, `nav` where there is one, and `main`, with one `h1`.** On the board, each list column is a `section` named by its `h2`, and each task card's title is an `h3`. A dialog's title is its name. `review`
+- **Honour `prefers-reduced-motion`** with one global CSS block plus `motion-safe:`. Under it, dialogs, sheets and menus are instant or fade, and programmatic scrolls use `behavior: 'auto'`. `review`
+- **Lint with the full `jsx-a11y` recommended config.** `lint`
+- **Sweep with axe once, never per feature.** One E2E test (`@axe-core/playwright`) visits every screen in light and dark and fails on any WCAG 2.2 AA violation. A `ui` test covers the refocus hook. `test`
 
 ## 11. Testing and definition of done
 
