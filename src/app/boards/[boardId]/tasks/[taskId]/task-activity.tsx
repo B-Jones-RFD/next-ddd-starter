@@ -9,6 +9,7 @@ import { Time } from '@/app/_components/time'
 import { readLogParams } from '@/app/_lib/audit/log-params'
 import { requireActor } from '@/app/_lib/auth/get-actor'
 import { taskPath } from '@/app/boards/[boardId]/task-places'
+import { ActivityEntries } from '@/app/boards/[boardId]/tasks/[taskId]/activity-entries'
 import { getActivity, type ActivityEntryDto } from '@/modules/audit/api'
 
 const HEADING_ID = 'task-activity-heading'
@@ -47,10 +48,14 @@ export async function TaskActivity({
         <p className='text-sm text-muted-foreground'>
           Activity isn’t available.
         </p>
-      ) : page.value.entries.length === 0 ? (
-        <p className='text-sm text-muted-foreground'>No activity yet.</p>
       ) : (
-        <ol className='flex flex-col gap-3'>
+        <ActivityEntries
+          key={actor.userId}
+          boardId={boardId}
+          taskId={taskId}
+          authorName={actor.displayName}
+          hasEntries={page.value.entries.length > 0}
+        >
           {page.value.entries.map((entry) => (
             <ActivityItem
               key={entry.id}
@@ -58,7 +63,7 @@ export async function TaskActivity({
               names={page.value.names}
             />
           ))}
-        </ol>
+        </ActivityEntries>
       )}
       {page.ok ? (
         <LogPager
@@ -86,6 +91,9 @@ function ActivityItem({
         <span className='font-medium'>{personName(names, entry.actorId)}</span>{' '}
         {entryWording(entry, names)}
       </p>
+      {entry.action === 'comment.added' ? (
+        <p className='break-words whitespace-pre-line'>{entry.details.text}</p>
+      ) : null}
       {entry.action === 'task.description-changed' ? (
         <dl className='grid grid-cols-[auto_1fr] gap-x-2 text-muted-foreground'>
           <dt>Before:</dt>

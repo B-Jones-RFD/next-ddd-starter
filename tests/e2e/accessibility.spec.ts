@@ -74,6 +74,25 @@ async function withTaskOpen(page: Page) {
   await openTask(page)
 }
 
+/**
+ * Posts a comment until Activity has its entry, then posts an empty one, so
+ * the sweep sees a comment and a field error.
+ */
+async function commentAndFail(page: Page) {
+  const activity = page.getByRole('region', { name: 'Activity' })
+  await page.getByLabel('Comment').fill('Can we keep it to one page?')
+  await page.getByRole('button', { name: 'Post comment' }).click()
+  await expect(page.getByRole('status')).toHaveText('Comment posted')
+  await expect(async () => {
+    await page.reload()
+    await expect(
+      activity.getByText('Can we keep it to one page?')
+    ).toBeVisible()
+  }).toPass()
+  await page.getByRole('button', { name: 'Post comment' }).click()
+  await expect(page.getByText('Write a comment.')).toBeVisible()
+}
+
 /** Opens a task's "Move to list…" picker from its ⋯ menu. */
 async function openMovePicker(page: Page) {
   await page
@@ -185,6 +204,12 @@ const SCREENS: Screen[] = [
   { name: 'board with an assigned task', path: here, arrange: withAssignee },
   // A direct load of the task's path is its full page.
   { name: 'task page', path: here, arrange: withTaskOpen },
+  {
+    name: 'task page with a comment, and a comment error',
+    path: here,
+    arrange: withTaskOpen,
+    act: commentAndFail,
+  },
   {
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,

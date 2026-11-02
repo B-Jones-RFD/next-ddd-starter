@@ -1,5 +1,6 @@
 import { toBoardCreatedV1 } from '@/modules/boards/application/contracts/board-created.v1'
 import { toBoardRenamedV1 } from '@/modules/boards/application/contracts/board-renamed.v1'
+import { toCommentAddedV1 } from '@/modules/boards/application/contracts/comment-added.v1'
 import { toListCreatedV1 } from '@/modules/boards/application/contracts/list-created.v1'
 import { toListRenamedV1 } from '@/modules/boards/application/contracts/list-renamed.v1'
 import { toListReorderedV1 } from '@/modules/boards/application/contracts/list-reordered.v1'
@@ -21,6 +22,7 @@ import { toTaskTaggedV1 } from '@/modules/boards/application/contracts/task-tagg
 import { toTaskUntaggedV1 } from '@/modules/boards/application/contracts/task-untagged.v1'
 import { toTaskUnassignedV1 } from '@/modules/boards/application/contracts/task-unassigned.v1'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
+import type { CommentEvent } from '@/modules/boards/domain/comment/comment.events'
 import type { ListEvent } from '@/modules/boards/domain/list/list.events'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
 import type { IntegrationEvent } from '@/shared/kernel/events'
@@ -95,6 +97,18 @@ export function translateTaskEvents(
         return toTaskAssignedV1(event)
       case 'TaskUnassigned':
         return toTaskUnassignedV1(event)
+    }
+  })
+}
+
+/** The published translations of a comment's domain events (§6). */
+export function translateCommentEvents(
+  events: readonly CommentEvent[]
+): IntegrationEvent[] {
+  return events.map((event) => {
+    switch (event.type) {
+      case 'CommentAdded':
+        return toCommentAddedV1(event)
     }
   })
 }

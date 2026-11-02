@@ -64,6 +64,8 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `moved the task from ${listName(names, entry.details.fromListId)} to ${listName(names, entry.details.toListId)}`
     case 'task.reordered':
       return `reordered the task in ${listName(names, entry.details.listId)}`
+    case 'comment.added':
+      return 'commented'
     case 'tag.created':
       return `created the tag “${entry.details.name}”`
     case 'tag.renamed':

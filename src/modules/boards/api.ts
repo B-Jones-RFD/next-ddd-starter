@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { changeTaskDescription as changeTaskDescriptionCommand } from '@/modules/boards/application/commands/change-task-description.command'
+import { addComment as addCommentCommand } from '@/modules/boards/application/commands/add-comment.command'
 import { assignTask as assignTaskCommand } from '@/modules/boards/application/commands/assign-task.command'
 import { addMember as addMemberCommand } from '@/modules/boards/application/commands/add-member.command'
 import { createBoard as createBoardCommand } from '@/modules/boards/application/commands/create-board.command'
@@ -46,6 +47,7 @@ export const changeTaskDescription = traced(
 )
 export const reorderTask = traced('boards.reorderTask', reorderTaskCommand)
 export const moveTask = traced('boards.moveTask', moveTaskCommand)
+export const addComment = traced('boards.addComment', addCommentCommand)
 export const createTag = traced('boards.createTag', createTagCommand)
 export const renameTag = traced('boards.renameTag', renameTagCommand)
 export const recolorTag = traced('boards.recolorTag', recolorTagCommand)
@@ -68,6 +70,7 @@ export const searchUsers = traced('boards.searchUsers', searchUsersQuery)
 export const roleOf = traced('boards.roleOf', roleOfQuery)
 export const listTags = traced('boards.listTags', listTagsQuery)
 
+export type { AddCommentInput } from '@/modules/boards/application/commands/add-comment.command'
 export type { AssignTaskInput } from '@/modules/boards/application/commands/assign-task.command'
 export type { AddMemberInput } from '@/modules/boards/application/commands/add-member.command'
 export type { CreateBoardInput } from '@/modules/boards/application/commands/create-board.command'
@@ -110,6 +113,7 @@ export {
   TagNameTakenError,
 } from '@/modules/boards/domain/board/board.errors'
 export { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
+export { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 export { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 export {
   ForbiddenError,
