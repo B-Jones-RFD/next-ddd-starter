@@ -3,6 +3,7 @@ import {
   addMember,
   createBoard,
   createList,
+  createTask,
   getBoard,
   listBoards,
 } from '@/modules/boards/api'
@@ -62,6 +63,23 @@ async function lists(
   }
 }
 
+/** Adds each named task to the end of its list, unless the list has it. */
+async function tasks(
+  actorId: UserId,
+  boardId: string,
+  byList: Readonly<Record<string, readonly string[]>>
+): Promise<void> {
+  const existing = await getBoard({ actorId, boardId })
+  if (!existing.ok) throw existing.error
+  for (const list of existing.value.lists) {
+    for (const title of byList[list.name] ?? []) {
+      if (list.tasks.some((task) => task.title === title)) continue
+      const created = await createTask({ actorId, listId: list.id, title })
+      if (!created.ok) throw created.error
+    }
+  }
+}
+
 /** The Owner adds `userId` as a Member, unless they already are one. */
 async function member(
   ownerId: UserId,
@@ -89,5 +107,18 @@ export async function seed(): Promise<void> {
   const launchPlan = await board(ada, 'Launch plan')
   await member(ada, launchPlan, ben)
   await lists(ada, launchPlan, ['Backlog', 'In progress', 'Done'])
+  await tasks(ada, launchPlan, {
+    Backlog: [
+      'Write the press release',
+      'Plan the launch event',
+      'Update the FAQ',
+    ],
+    'In progress': [
+      'Design the landing page',
+      'Record the demo video',
+      'Brief support',
+    ],
+    Done: ['Pick the launch date', 'Set up analytics'],
+  })
   await relay.drain()
 }

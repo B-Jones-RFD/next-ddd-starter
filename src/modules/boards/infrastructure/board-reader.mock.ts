@@ -3,6 +3,7 @@ import type {
   BoardSummaryDto,
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
+import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
@@ -10,6 +11,7 @@ import {
   byPositionThenId,
   mockLists,
 } from '@/modules/boards/infrastructure/list-repository.mock'
+import { mockTasks } from '@/modules/boards/infrastructure/task-repository.mock'
 import { mockPeople } from '@/modules/boards/infrastructure/people-projection.mock'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
@@ -62,7 +64,37 @@ export class MockBoardReader implements IBoardReader {
       lists: [...mockLists().values()]
         .filter((list) => list.boardId === board.id && !list.archived)
         .sort(byPositionThenId)
-        .map((list) => ({ id: list.id, name: list.name })),
+        .map((list) => ({
+          id: list.id,
+          name: list.name,
+          tasks: [...mockTasks().values()]
+            .filter((task) => task.listId === list.id && !task.archived)
+            .sort(byPositionThenId)
+            .map((task) => ({ id: task.id, title: task.title })),
+        })),
+    })
+  }
+
+  async getTaskForMember(
+    taskId: string,
+    userId: UserId
+  ): Promise<Result<TaskDto, NotFoundError | ForbiddenError>> {
+    const task = mockTasks().get(taskId)
+    const board = task && mockBoards().get(task.boardId)
+    const list = task && mockLists().get(task.listId)
+    if (!task || !board || !list) return err(new NotFoundError('Task', taskId))
+    if (!board.members.some((m) => m.userId === userId)) {
+      return err(new ForbiddenError())
+    }
+    return ok({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      archived: task.archived,
+      boardId: board.id,
+      boardName: board.name,
+      listId: list.id,
+      listName: list.name,
     })
   }
 

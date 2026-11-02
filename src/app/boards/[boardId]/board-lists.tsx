@@ -1,8 +1,10 @@
 import { RefocusScope } from '@/app/_components/refocus'
 import { AddListForm } from '@/app/boards/[boardId]/add-list-form'
+import { AddTaskForm } from '@/app/boards/[boardId]/add-task-form'
 import { JumpStrip } from '@/app/boards/[boardId]/jump-strip'
 import { ListHeader } from '@/app/boards/[boardId]/list-header'
 import { listHeadingId, movesFor } from '@/app/boards/[boardId]/list-places'
+import { TaskCard } from '@/app/boards/[boardId]/task-card'
 import type { ListDto } from '@/modules/boards/api'
 
 // A column is the full width of a phone, snapping as it swipes, and a fixed
@@ -11,7 +13,8 @@ const COLUMN = 'w-[calc(100vw-2rem)] shrink-0 snap-start sm:w-72'
 
 /**
  * The board's lists as columns, in board order, then the form that adds
- * one. Tab order follows the DOM, column by column (§10).
+ * one. Each column holds its tasks, then the form that adds a task. Tab
+ * order follows the DOM, column by column (§10).
  */
 export function BoardLists({
   boardId,
@@ -24,9 +27,15 @@ export function BoardLists({
   formKey: string
 }) {
   const ids = lists.map((list) => list.id)
+  // Lists and tasks share one scope: a moved task's ⋯ gets focus back when
+  // its list's order changes, or when it lands in another list.
+  const order = lists.flatMap((list) => [
+    list.id,
+    ...list.tasks.map((task) => task.id),
+  ])
 
   return (
-    <RefocusScope order={ids}>
+    <RefocusScope order={order}>
       <div className='flex flex-col gap-3'>
         {lists.length > 0 && <JumpStrip lists={lists} />}
         <div className='-mx-4 flex snap-x snap-mandatory scroll-px-4 items-start gap-4 overflow-x-auto px-4 pb-4 sm:snap-none'>
@@ -41,6 +50,24 @@ export function BoardLists({
                 list={list}
                 moves={movesFor(ids, index)}
               />
+              {list.tasks.length > 0 && (
+                <ol className='flex flex-col gap-2'>
+                  {list.tasks.map((task, position) => (
+                    <TaskCard
+                      key={task.id}
+                      boardId={boardId}
+                      listId={list.id}
+                      task={task}
+                      moves={movesFor(
+                        list.tasks.map((t) => t.id),
+                        position
+                      )}
+                      lists={lists}
+                    />
+                  ))}
+                </ol>
+              )}
+              <AddTaskForm key={formKey} boardId={boardId} listId={list.id} />
             </section>
           ))}
           <div

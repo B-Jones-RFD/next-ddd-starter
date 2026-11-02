@@ -5,6 +5,7 @@ import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
 import {
   addListNamed,
+  addTaskNamed,
   aNewVisitor,
   addMemberByEmail,
   createBoardNamed,
@@ -16,12 +17,14 @@ import {
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
 // the sweep checks it in both themes. `path` is visited after `arrange` (which
 // signs a visitor up, for screens behind a session); a function path is
-// worked out from where `arrange` left the page.
+// worked out from where `arrange` left the page. `act` runs after the visit,
+// for screens a click opens, such as a dialog.
 type Screen = {
   name: string
   path: string | ((page: Page) => string)
   status?: number
   arrange?: (page: Page) => Promise<unknown>
+  act?: (page: Page) => Promise<unknown>
   /** Visited at this size; the desktop default otherwise. */
   viewport?: { width: number; height: number }
 }
@@ -39,6 +42,44 @@ async function withLists(page: Page) {
   for (const name of ['Backlog', 'In progress', 'Done']) {
     await addListNamed(page, name)
   }
+}
+
+/** Lists with tasks, leaving the page on the board. */
+async function withTasks(page: Page) {
+  await withLists(page)
+  await addTaskNamed(page, 'Backlog', 'Write the brief')
+  await addTaskNamed(page, 'Backlog', 'Book the venue')
+  await addTaskNamed(page, 'Done', 'Pick the date')
+}
+
+/** Opens the task dialog from its link on the board. */
+async function openTask(page: Page) {
+  await page.getByRole('link', { name: 'Write the brief' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Write the brief' })
+  ).toBeFocused()
+  await settled(page)
+}
+
+/** Waits for the open dialog's fade-in, which axe would see half-done. */
+async function settled(page: Page) {
+  await expect(page.getByRole('dialog')).toHaveCSS('opacity', '1')
+  await expect(page.getByRole('menu')).toHaveCount(0)
+}
+
+/** Leaves the page on a task's own path. */
+async function withTaskOpen(page: Page) {
+  await withTasks(page)
+  await openTask(page)
+}
+
+/** Opens a task's "Move to list…" picker from its ⋯ menu. */
+async function openMovePicker(page: Page) {
+  await page
+    .getByRole('button', { name: 'Actions for task Write the brief' })
+    .click()
+  await page.getByRole('menuitem', { name: 'Move to list…' }).click()
+  await settled(page)
 }
 
 const PHONE = { width: 390, height: 844 }
@@ -73,6 +114,23 @@ const SCREENS: Screen[] = [
     arrange: withLists,
     viewport: PHONE,
   },
+  { name: 'board with tasks', path: here, arrange: withTasks },
+  {
+    name: 'move to list picker',
+    path: here,
+    arrange: withTasks,
+    act: openMovePicker,
+  },
+  { name: 'task dialog', path: here, arrange: withTasks, act: openTask },
+  {
+    name: 'task dialog (mobile)',
+    path: here,
+    arrange: withTasks,
+    act: openTask,
+    viewport: PHONE,
+  },
+  // A direct load of the task's path is its full page.
+  { name: 'task page', path: here, arrange: withTaskOpen },
   {
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
@@ -115,6 +173,7 @@ for (const theme of THEMES) {
         const html = page.locator('html')
         await expect(html).toHaveAttribute('data-theme', theme)
         await expect(html).toHaveCSS('color-scheme', theme)
+        await screen.act?.(page)
 
         const results = await new AxeBuilder({ page })
           .withTags(WCAG_22_AA)

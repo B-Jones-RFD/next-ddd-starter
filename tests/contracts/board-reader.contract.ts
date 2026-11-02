@@ -9,18 +9,24 @@ import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type { ListName } from '@/modules/boards/domain/list/list-name'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
+import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
+import { toTaskId } from '@/modules/boards/domain/task/task-id'
+import type { TaskTitle } from '@/modules/boards/domain/task/task-title'
+import type { ITaskRepository } from '@/modules/boards/domain/task/task-repository.port'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
 import { aBoard } from '@tests/fixtures/boards'
 import { aList } from '@tests/fixtures/lists'
+import { aTask } from '@tests/fixtures/tasks'
 
 type Make = () => {
   reader: IBoardReader
   boards: IBoardRepository
   people: IPeopleProjection
   lists: IListRepository
+  tasks: ITaskRepository
 }
 
 const ada = toUserId('user-ada')
@@ -174,10 +180,128 @@ export function describeBoardReaderContract(make: Make) {
       const found = await reader.getForMember(board.id, ada)
 
       expect(found.ok && found.value.lists).toEqual([
-        { id: 'list-a', name: 'Backlog' },
-        { id: 'list-b', name: 'Doing' },
-        { id: expect.any(String), name: 'Done' },
+        { id: 'list-a', name: 'Backlog', tasks: [] },
+        { id: 'list-b', name: 'Doing', tasks: [] },
+        { id: expect.any(String), name: 'Done', tasks: [] },
       ])
+    })
+
+    it('gives each list its active tasks by position, then id', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }] })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const backlog = aList({ boardId: board.id, position: 'F', version: 0 })
+      const done = aList({ boardId: board.id, position: 'V', version: 0 })
+      await lists.save(backlog, [], origin)
+      await lists.save(done, [], origin)
+      const on = (task: Parameters<typeof aTask>[0]) =>
+        tasks.save(
+          aTask({ boardId: board.id, listId: backlog.id, version: 0, ...task }),
+          [],
+          origin
+        )
+      await on({ title: 'Third' as TaskTitle, position: 'k' })
+      await on({ title: 'Gone' as TaskTitle, position: 'A', archived: true })
+      await on({
+        id: toTaskId('task-b'),
+        title: 'Second' as TaskTitle,
+        position: 'V',
+      })
+      await on({
+        id: toTaskId('task-a'),
+        title: 'First' as TaskTitle,
+        position: 'V',
+      })
+      await on({ listId: done.id, title: 'Shipped' as TaskTitle })
+
+      const found = await reader.getForMember(board.id, ada)
+
+      expect(found.ok && found.value.lists).toEqual([
+        {
+          id: backlog.id,
+          name: backlog.name,
+          tasks: [
+            { id: 'task-a', title: 'First' },
+            { id: 'task-b', title: 'Second' },
+            { id: expect.any(String), title: 'Third' },
+          ],
+        },
+        {
+          id: done.id,
+          name: done.name,
+          tasks: [{ id: expect.any(String), title: 'Shipped' }],
+        },
+      ])
+    })
+
+    it('gets a task for a Board member, with its board and list', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({
+          name: 'Launch plan' as BoardName,
+          members: [{ userId: ada, role: 'owner' }],
+        })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const list = aList({
+        boardId: board.id,
+        name: 'Backlog' as ListName,
+        version: 0,
+      })
+      await lists.save(list, [], origin)
+      const task = aTask({
+        boardId: board.id,
+        listId: list.id,
+        title: 'Write the brief' as TaskTitle,
+        description: 'One page.' as TaskDescription,
+        version: 0,
+      })
+      await tasks.save(task, [], origin)
+
+      expect(await reader.getTaskForMember(task.id, ada)).toEqual({
+        ok: true,
+        value: {
+          id: task.id,
+          title: 'Write the brief',
+          description: 'One page.',
+          archived: false,
+          boardId: board.id,
+          boardName: 'Launch plan',
+          listId: list.id,
+          listName: 'Backlog',
+        },
+      })
+    })
+
+    it('returns ForbiddenError for a task on a board the user isn’t a Board member of', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }] })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const list = aList({ boardId: board.id, version: 0 })
+      await lists.save(list, [], origin)
+      const task = aTask({ boardId: board.id, listId: list.id, version: 0 })
+      await tasks.save(task, [], origin)
+
+      expect(await reader.getTaskForMember(task.id, cy)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+
+    it('returns NotFoundError for a task that doesn’t exist', async () => {
+      const { reader } = make()
+
+      expect(await reader.getTaskForMember('nowhere', ada)).toEqual({
+        ok: false,
+        error: new NotFoundError('Task', 'nowhere'),
+      })
     })
 
     it('returns ForbiddenError for a user who isn’t a Board member', async () => {

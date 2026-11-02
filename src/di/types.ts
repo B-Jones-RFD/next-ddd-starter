@@ -3,6 +3,7 @@ import type { IPeopleProjection } from '@/modules/boards/application/ports/peopl
 import type { IUserDirectory } from '@/modules/boards/application/ports/user-directory.port'
 import type { IBoardRepository } from '@/modules/boards/domain/board/board-repository.port'
 import type { IListRepository } from '@/modules/boards/domain/list/list-repository.port'
+import type { ITaskRepository } from '@/modules/boards/domain/task/task-repository.port'
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
 import type { ISignInThrottle } from '@/modules/identity/application/ports/sign-in-throttle.port'
 import type { ITokenGenerator } from '@/modules/identity/application/ports/token-generator.port'
@@ -30,6 +31,7 @@ export type Registry = {
   IBoardRepository: IBoardRepository
   IBoardReader: IBoardReader
   IListRepository: IListRepository
+  ITaskRepository: ITaskRepository
   IUserDirectory: IUserDirectory
 }
 

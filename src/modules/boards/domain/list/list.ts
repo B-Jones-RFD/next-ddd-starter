@@ -5,6 +5,7 @@ import {
   parseListName,
   type ListName,
 } from '@/modules/boards/domain/list/list-name'
+import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import type { ListEvent } from '@/modules/boards/domain/list/list.events'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import {
@@ -34,6 +35,11 @@ export type List = {
 export type Membership = Role | undefined
 
 type Change = { state: List; events: ListEvent[] }
+
+/** A list takes new tasks, and tasks moved into it, only while it's active. */
+export function acceptTasks(list: List): Result<List, ListArchivedError> {
+  return list.archived ? err(new ListArchivedError()) : ok(list)
+}
 
 /** A Board member adds a list to the end of the board, after `after`. */
 export function createList(input: {
