@@ -104,4 +104,17 @@ test('a Board member creates a board, a list and a task, then works with the tas
   await expect(page.getByLabel('Description')).toHaveValue(
     'One page, for the press.'
   )
+
+  // Its Activity says what happened, newest first, with reorders hidden.
+  // Activity trails the board by one relay drain, so reload until it's in.
+  const activity = page.getByRole('region', { name: 'Activity' })
+  await expect(async () => {
+    await page.reload()
+    await expect(activity.getByRole('listitem')).toHaveText([
+      /moved the task from “Backlog” to “Done”/,
+      /changed the description/,
+      /renamed the task from “Write the brief” to “Write the launch brief”/,
+      /created the task in “Backlog”/,
+    ])
+  }).toPass()
 })

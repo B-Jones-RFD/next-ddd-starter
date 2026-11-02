@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getInjection } from '@/di/container'
+import { getActivity } from '@/modules/audit/api'
 import {
   addMember,
   assignTask,
@@ -250,27 +251,38 @@ describe('handing assignments over to the Owner', () => {
   it.each([
     [
       'removal',
+      'member.removed',
       () => removeMember({ actorId: ada, boardId, userId: ben }),
       () => ada,
     ],
-    ['leaving', () => leaveBoard({ actorId: ben, boardId }), () => ben],
-  ])(
-    'records each hand-over as a consequence of the %s, by the user who made it',
-    async (_, change, actor) => {
-      const tasks = await getInjection('ITaskRepository')
-      const save = vi.spyOn(tasks, 'save')
+    [
+      'leaving',
+      'member.left',
+      () => leaveBoard({ actorId: ben, boardId }),
+      () => ben,
+    ],
+  ] as const)(
+    'records the hand-over in the task’s Activity as a Consequence of the %s, by the user who made it',
+    async (_, cause, change, actor) => {
       await change()
       await (await getInjection('IEventRelay')).drain()
 
-      const origins = save.mock.calls.map(([, , origin]) => origin)
-      expect(origins).toHaveLength(3)
-      for (const origin of origins) {
-        expect(origin).toEqual({
-          actorId: actor(),
-          causationId: expect.any(String),
-        })
-      }
-      expect(new Set(origins.map((o) => o.causationId)).size).toBe(1)
+      const page = await getActivity({ actorId: ada, taskId })
+      if (!page.ok) throw new Error('read failed')
+      const handOver = page.value.entries.filter(
+        (entry) => entry.causationId !== null
+      )
+      expect(
+        handOver.map((entry) => [
+          entry.action,
+          entry.details,
+          entry.actorId,
+          entry.cause?.action,
+        ])
+      ).toEqual([
+        ['task.assigned', { userId: ada }, actor(), cause],
+        ['task.unassigned', { userId: ben }, actor(), cause],
+      ])
     }
   )
 

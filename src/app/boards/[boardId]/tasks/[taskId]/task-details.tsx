@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 
 import { assigneesHeadingId } from '@/app/boards/[boardId]/task-places'
 import { AssigneeForms } from '@/app/boards/[boardId]/tasks/[taskId]/assignee-forms'
+import { TaskActivity } from '@/app/boards/[boardId]/tasks/[taskId]/task-activity'
 import {
   TaskDescriptionForm,
   TaskTitleForm,
@@ -12,21 +13,19 @@ import type { ActorDto } from '@/modules/identity/api'
 /**
  * The task's body, shared by its dialog and its page, under the heading
  * each gives it: where it sits, its title and description forms, then its
- * sections, each in its own `<Suspense>`.
+ * sections, each in its own `<Suspense>`, with Activity last.
  */
 export function TaskDetails({
   task,
   actorId,
-  sectionHeading,
+  searchParams,
 }: {
   task: TaskDto
   /** The reader. It also keys the forms, so a sign-out never leaves half-typed text. */
   actorId: ActorDto['userId']
-  /** One level below the heading the task's title is under. */
-  sectionHeading: 'h2' | 'h3'
+  /** The route's query, which pages the Activity. */
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  const Heading = sectionHeading
-
   return (
     <div className='flex flex-col gap-6'>
       <p className='text-sm text-muted-foreground'>
@@ -47,13 +46,13 @@ export function TaskDetails({
         className='flex flex-col gap-3'
       >
         {/* Focusable only by script: focus lands here after an unassign. */}
-        <Heading
+        <h2
           id={assigneesHeadingId(task.id)}
           tabIndex={-1}
-          className='rounded-sm font-heading text-base font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring'
+          className='rounded-sm font-heading text-lg font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring'
         >
           Assignees
-        </Heading>
+        </h2>
         <Suspense
           fallback={
             <p role='status' className='text-sm text-muted-foreground'>
@@ -64,6 +63,17 @@ export function TaskDetails({
           <Assignees key={actorId} task={task} actorId={actorId} />
         </Suspense>
       </section>
+      <Suspense
+        fallback={
+          <p className='text-sm text-muted-foreground'>Loading activity…</p>
+        }
+      >
+        <TaskActivity
+          boardId={task.boardId}
+          taskId={task.id}
+          searchParams={searchParams}
+        />
+      </Suspense>
     </div>
   )
 }
