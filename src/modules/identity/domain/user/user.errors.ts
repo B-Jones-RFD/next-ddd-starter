@@ -2,7 +2,7 @@ import { DomainError } from '@/shared/kernel/errors/domain-error'
 
 /** Another user already registered this email. */
 export class EmailTakenError extends DomainError {
-  readonly code = 'identity.email-taken'
+  readonly code = 'identity.user.email-taken'
 
   constructor() {
     super('Email is already registered')
@@ -14,7 +14,7 @@ export class EmailTakenError extends DomainError {
  * reveals which emails are registered.
  */
 export class InvalidCredentialsError extends DomainError {
-  readonly code = 'identity.invalid-credentials'
+  readonly code = 'identity.user.invalid-credentials'
 
   constructor() {
     super('Invalid credentials')
@@ -23,7 +23,7 @@ export class InvalidCredentialsError extends DomainError {
 
 /** Too many failed sign-ins for this email lately (ADR 0009). */
 export class TooManyAttemptsError extends DomainError {
-  readonly code = 'identity.too-many-attempts'
+  readonly code = 'identity.user.too-many-attempts'
 
   constructor() {
     super('Too many failed sign-in attempts')
@@ -32,7 +32,7 @@ export class TooManyAttemptsError extends DomainError {
 
 /** A password change gave the wrong current password. */
 export class IncorrectPasswordError extends DomainError {
-  readonly code = 'identity.incorrect-password'
+  readonly code = 'identity.user.incorrect-password'
 
   constructor() {
     super('Current password is incorrect')

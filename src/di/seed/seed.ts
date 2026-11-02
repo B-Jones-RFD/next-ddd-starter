@@ -32,7 +32,7 @@ const CY: Person = { displayName: 'Cy', email: 'cy@example.com' }
 async function person(entry: Person): Promise<UserId> {
   const credentials = { email: entry.email, password: SEED_PASSWORD }
   const signedUp = await signUp({ ...entry, password: SEED_PASSWORD })
-  if (!signedUp.ok && signedUp.error.code !== 'identity.email-taken') {
+  if (!signedUp.ok && signedUp.error.code !== 'identity.user.email-taken') {
     throw signedUp.error
   }
   const session = signedUp.ok ? signedUp : await signIn(credentials)
