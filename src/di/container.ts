@@ -1,17 +1,22 @@
 import { createContainer, type Container } from '@evyweb/ioctopus'
 
+import { loadAuditModule } from '@/di/modules/audit.module'
+import { loadBoardsModule } from '@/di/modules/boards.module'
+import { loadIdentityModule } from '@/di/modules/identity.module'
 import { loadSharedModule } from '@/di/modules/shared.module'
 import type { AdapterMode, Registry, Token } from '@/di/types'
+import { logger } from '@/shared/infrastructure/logging'
 
 /** Variables the real adapters need. Missing any of them in development falls back to mock mode. */
 const REQUIRED_ENV = ['DATABASE_PATH'] as const
 
+// #region adapter-mode
 /**
  * Picks real or mock adapters, in order:
  * 1. `ADAPTERS=real|mock` wins if set.
  * 2. `NODE_ENV=test` means mock.
  * 3. Development missing a required variable means mock, with a warning.
- * Production refuses to run in mock mode.
+ * Production refuses mock mode and missing variables.
  */
 export function pickAdapterMode(env: NodeJS.ProcessEnv): AdapterMode {
   const isProduction = env.NODE_ENV === 'production'
@@ -33,9 +38,7 @@ export function pickAdapterMode(env: NodeJS.ProcessEnv): AdapterMode {
     } else if (isProduction) {
       throw new Error(`Missing required environment: ${missing.join(', ')}.`)
     } else {
-      console.warn(
-        `[di] Missing ${missing.join(', ')}; running on mock adapters. Set them, or ADAPTERS=mock to silence this.`
-      )
+      logger.warn('adapters.mock_fallback', { missing: [...missing] })
       mode = 'mock'
     }
   }
@@ -45,18 +48,37 @@ export function pickAdapterMode(env: NodeJS.ProcessEnv): AdapterMode {
   }
   return mode
 }
+// #endregion adapter-mode
+
+let mode: AdapterMode | undefined
+
+/** The adapter mode, picked once per process bundle on first use. */
+export function getAdapterMode(): AdapterMode {
+  mode ??= pickAdapterMode(process.env)
+  return mode
+}
 
 async function buildContainer(): Promise<Container> {
-  const mode = pickAdapterMode(process.env)
+  const adapterMode = getAdapterMode()
   // Untyped container: modules are typed against `Registry`, and
   // `getInjection` is the typed surface.
   const container = createContainer()
-  container.load(Symbol('shared'), await loadSharedModule(mode))
+  const [shared, identity, boards, audit] = await Promise.all([
+    loadSharedModule(adapterMode),
+    loadIdentityModule(adapterMode),
+    loadBoardsModule(adapterMode),
+    loadAuditModule(adapterMode),
+  ])
+  container.load(Symbol('shared'), shared)
+  container.load(Symbol('identity'), identity)
+  container.load(Symbol('boards'), boards)
+  container.load(Symbol('audit'), audit)
   return container
 }
 
 let containerPromise: Promise<Container> | undefined
 
+// #region get-injection
 /**
  * Resolves an adapter by its port token. Call it inside a command or query
  * body, never at module top level, so importing `api.ts` never builds the
@@ -69,3 +91,4 @@ export async function getInjection<K extends Token>(
   const container = await containerPromise
   return container.get<Registry[K]>(token)
 }
+// #endregion get-injection

@@ -1,0 +1,178 @@
+import 'server-only'
+
+import type { ActionError } from '@/app/_lib/errors/action-error'
+import { logger, traceReference } from '@/shared/infrastructure/logging'
+
+type Coded = Error & {
+  code: string
+  fields?: Readonly<Record<string, string>>
+}
+
+/** Wording for each field issue, per field, with a fallback per issue. */
+const FIELD_WORDING: Record<string, Record<string, string>> = {
+  displayName: {
+    required: 'Enter a display name.',
+    'too-long': 'Use 50 characters or fewer.',
+  },
+  email: {
+    required: 'Enter an email address.',
+    invalid: 'Enter an email address like name@example.com.',
+    'too-long': 'Use 254 characters or fewer.',
+  },
+  password: {
+    required: 'Enter a password.',
+    'too-short': 'Use at least 8 characters.',
+    'too-long': 'Use 128 characters or fewer.',
+  },
+  name: {
+    required: 'Enter a name.',
+    'too-long': 'Use 60 characters or fewer.',
+  },
+  title: {
+    required: 'Enter a title.',
+    'too-long': 'Use 200 characters or fewer.',
+  },
+  description: {
+    'too-long': 'Use 5000 characters or fewer.',
+  },
+  // #region comment-wording
+  text: {
+    required: 'Write a comment.',
+    'too-long': 'Use 2000 characters or fewer.',
+  },
+  // #endregion comment-wording
+  color: {
+    invalid: 'Choose one of the tag colors.',
+  },
+  currentPassword: {
+    required: 'Enter your current password.',
+  },
+  confirmName: {
+    required: 'Type the board’s name to confirm.',
+  },
+  newPassword: {
+    required: 'Enter a new password.',
+    'too-short': 'Use at least 8 characters.',
+    'too-long': 'Use 128 characters or fewer.',
+  },
+}
+
+const ISSUE_WORDING: Record<string, string> = {
+  required: 'This field is required.',
+  'too-short': 'This is too short.',
+  'too-long': 'This is too long.',
+  invalid: 'This isn’t valid.',
+}
+
+function fieldWording(fields: Readonly<Record<string, string>>) {
+  return Object.fromEntries(
+    Object.entries(fields).map(([field, issue]) => [
+      field,
+      FIELD_WORDING[field]?.[issue] ?? ISSUE_WORDING[issue] ?? 'Check this.',
+    ])
+  )
+}
+
+// #region wording
+/** Wording for each expected error `code`. Anything else is unexpected. */
+const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
+  validation: (error) => ({
+    message: 'Check the fields below.',
+    fields: fieldWording(error.fields ?? {}),
+  }),
+  'identity.email-taken': () => ({
+    message: 'That email is already registered.',
+    fields: {
+      email: 'That email is already registered. Sign in, or use another email.',
+    },
+  }),
+  'identity.invalid-credentials': () => ({
+    message: 'That email and password don’t match. Check them and try again.',
+  }),
+  'identity.too-many-attempts': () => ({
+    message:
+      'Too many failed sign-ins for this email. Wait 15 minutes, then try again.',
+  }),
+  'identity.incorrect-password': () => ({
+    message: 'Your current password is incorrect.',
+    fields: { currentPassword: 'That isn’t your current password.' },
+  }),
+  'boards.board.already-a-member': () => ({
+    message: 'They’re already a member of this board.',
+  }),
+  'boards.board.not-a-member': () => ({
+    message:
+      'They’re no longer a member of this board. Reload the page to see who is.',
+  }),
+  'boards.board.owner-must-transfer-first': () => ({
+    message:
+      'You’re the Owner. Make another member the Owner before you leave.',
+  }),
+  'boards.board.archived': () => ({
+    message: 'This board is archived. The Owner can restore it.',
+  }),
+  'boards.board.name-mismatch': () => ({
+    message: 'The name you typed doesn’t match the board’s name.',
+    fields: { confirmName: 'Type the board’s name exactly as shown.' },
+  }),
+
+  'boards.board.tag-name-taken': () => ({
+    message: 'That tag name is taken.',
+    fields: {
+      name: 'This board already has a tag with that name. Choose another.',
+    },
+  }),
+  'boards.list.archived': () => ({
+    message:
+      'That list is archived. Restore the list first, or reload the page and choose another list.',
+  }),
+  'boards.list.has-active-tasks': () => ({
+    message:
+      'This list still has active tasks. Archive them or move them to another list first.',
+  }),
+  'boards.task.archived': () => ({
+    message: 'This task is archived. Restore it to change it.',
+  }),
+  unauthenticated: () => ({ message: 'Sign in to continue.' }),
+  forbidden: () => ({ message: 'You can’t do that here.' }),
+  'not-found': () => ({
+    message: 'That no longer exists. Reload the page to see what changed.',
+  }),
+  conflict: () => ({
+    message: 'Someone else changed this. Reload the page and try again.',
+  }),
+}
+// #endregion wording
+
+function isCoded(error: unknown): error is Coded {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    typeof error.code === 'string' &&
+    error.code in WORDING
+  )
+}
+
+// #region to-action-error
+/**
+ * The only place errors become plain objects for `app/` (§7). An expected
+ * error gets the wording for its `code`. Anything else, which here means
+ * anything thrown, becomes `unexpected` with the trace id as its reference,
+ * and is logged once as `action.unexpected`.
+ */
+export function toActionError(error: unknown): ActionError {
+  if (isCoded(error)) {
+    const wording = WORDING[error.code]
+    if (wording) return { code: error.code, ...wording(error) }
+  }
+
+  const reference = traceReference()
+  logger.error('action.unexpected', { reference, err: error })
+  return {
+    code: 'unexpected',
+    message:
+      'Something went wrong on our side. Try again, and if it keeps happening, report the reference below.',
+    reference,
+  }
+}
+// #endregion to-action-error
