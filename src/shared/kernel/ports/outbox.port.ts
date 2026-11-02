@@ -58,6 +58,11 @@ export interface IOutbox {
   ): Promise<void>
   /** Records a failure that won't be retried until a replay. */
   markFailed(id: string, failure: { error: string }): Promise<void>
+  /**
+   * Makes every failed row pending again, due at once and keeping its place
+   * and attempt count, for `npm run outbox:replay`. Returns how many.
+   */
+  replayFailed(): Promise<number>
   /** Feeds the backlog gauges. */
   backlog(): Promise<OutboxBacklog>
 }

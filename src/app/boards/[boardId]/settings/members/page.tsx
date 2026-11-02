@@ -72,7 +72,7 @@ async function Members({ params, searchParams }: Props) {
         </Link>
         <h1 className='font-heading text-2xl font-semibold'>Board settings</h1>
       </div>
-      <SettingsTabs boardId={id} current='members' />
+      <SettingsTabs boardId={id} current='members' role={role} />
       <section
         aria-labelledby={MEMBERS_HEADING_ID}
         className='flex max-w-2xl flex-col gap-4'
