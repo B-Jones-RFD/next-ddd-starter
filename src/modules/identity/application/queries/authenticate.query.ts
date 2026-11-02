@@ -11,6 +11,7 @@ const Token = z.string().min(1)
  * Who the session with this raw cookie token belongs to (§9). Takes the
  * token instead of an actor, like identity's other session use cases.
  */
+// #region authenticate
 export async function authenticate(
   token: string
 ): Promise<Result<ActorDto, UnauthenticatedError>> {
@@ -28,3 +29,4 @@ export async function authenticate(
 
   return ok({ userId: user.value.id, displayName: user.value.displayName })
 }
+// #endregion authenticate

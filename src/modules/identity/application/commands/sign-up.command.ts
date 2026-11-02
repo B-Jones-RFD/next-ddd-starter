@@ -15,14 +15,17 @@ import { ValidationError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import { toUserId } from '@/shared/kernel/user-id'
 
+// #region input-schema
 const SignUpInput = z.object({
   displayName: z.string(),
   email: z.string(),
   password: z.string(),
 })
+// #endregion input-schema
 
 export type SignUpInput = z.input<typeof SignUpInput>
 
+// #region sign-up
 /**
  * Registers a user and starts their first session: two aggregates, saved one
  * after the other (§4). Returns the session's raw cookie token.
@@ -74,3 +77,4 @@ export async function signUp(
 
   return ok({ token })
 }
+// #endregion sign-up
