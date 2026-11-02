@@ -19,7 +19,7 @@ export default defineConfig({
   use: { baseURL, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `npx next build && npx next start --port ${PORT}`,
+    command: `npm run db:migrate && npx next build && npx next start --port ${PORT}`,
     url: baseURL,
     timeout: 300_000,
     reuseExistingServer: false,

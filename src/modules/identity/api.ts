@@ -1,4 +1,20 @@
 import 'server-only'
 
-// Public API of the identity context: re-export its commands, queries and their DTO types.
-export {}
+import { signUp as signUpCommand } from '@/modules/identity/application/commands/sign-up.command'
+import { authenticate as authenticateQuery } from '@/modules/identity/application/queries/authenticate.query'
+import { traced } from '@/shared/infrastructure/tracing'
+
+// Public API of the identity context (§2): its commands and queries, each
+// wrapped in `traced`, plus their DTO types and the errors they return.
+
+export const signUp = traced('identity.signUp', signUpCommand)
+export const authenticate = traced('identity.authenticate', authenticateQuery)
+
+export type { SignUpInput } from '@/modules/identity/application/commands/sign-up.command'
+export type {
+  ActorDto,
+  SessionTokenDto,
+} from '@/modules/identity/application/dto/session.dto'
+export { EmailTakenError } from '@/modules/identity/domain/user/user.errors'
+export { UnauthenticatedError } from '@/shared/kernel/errors/app-error'
+export { ValidationError } from '@/shared/kernel/errors/domain-error'

@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     agentFeedback: true,
   },
   cacheComponents: true,
+  // The dev terminal would print every Server Action's arguments, passwords
+  // included. Telemetry never carries user input (ADR 0017).
+  logging: { serverFunctions: false },
   partialPrefetching: true,
   turbopack: {
     rules: {
