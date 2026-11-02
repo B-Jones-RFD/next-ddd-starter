@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { deleteTag as deleteTagOperation } from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { toTagId } from '@/modules/boards/domain/board/tag'
@@ -35,7 +36,14 @@ export type DeleteTagInput = {
 export async function deleteTag(
   input: DeleteTagInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | BoardArchivedError
+    | ConflictError
+  >
 > {
   const shape = DeleteTagInput.safeParse(input)
   if (!shape.success) {

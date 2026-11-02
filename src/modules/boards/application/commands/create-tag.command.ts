@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { createTag as createTagOperation } from '@/modules/boards/domain/board/board'
 import type { TagNameTakenError } from '@/modules/boards/domain/board/board.errors'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
@@ -40,6 +41,7 @@ export async function createTag(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | TagNameTakenError
     | ConflictError
   >

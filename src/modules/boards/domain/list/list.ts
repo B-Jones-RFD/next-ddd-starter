@@ -80,8 +80,9 @@ export function renameList(
   list: List,
   membership: Membership,
   rawName: string
-): Result<Change, ValidationError | ForbiddenError> {
+): Result<Change, ValidationError | ForbiddenError | ListArchivedError> {
   if (!membership) return err(new ForbiddenError())
+  if (list.archived) return err(new ListArchivedError())
   const name = parseListName(rawName)
   if (!name.ok) return name
   if (name.value === list.name) return ok({ state: list, events: [] })
@@ -111,8 +112,12 @@ export function moveList(
   list: List,
   membership: Membership,
   place: { after?: List; before?: List }
-): Result<Change, ForbiddenError | NotFoundError | ConflictError> {
+): Result<
+  Change,
+  ForbiddenError | ListArchivedError | NotFoundError | ConflictError
+> {
   if (!membership) return err(new ForbiddenError())
+  if (list.archived) return err(new ListArchivedError())
   const { after, before } = place
   for (const neighbour of [after, before]) {
     if (!neighbour) continue
@@ -135,6 +140,27 @@ export function moveList(
     events: [
       {
         type: 'ListReordered',
+        payload: { listId: list.id, boardId: list.boardId },
+      },
+    ],
+  })
+}
+
+/**
+ * A Board member restores an archived list, in its old place. Its tasks keep
+ * their own state. Restoring an active list raises nothing.
+ */
+export function restoreList(
+  list: List,
+  membership: Membership
+): Result<Change, ForbiddenError> {
+  if (!membership) return err(new ForbiddenError())
+  if (!list.archived) return ok({ state: list, events: [] })
+  return ok({
+    state: { ...list, archived: false },
+    events: [
+      {
+        type: 'ListRestored',
         payload: { listId: list.id, boardId: list.boardId },
       },
     ],

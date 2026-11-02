@@ -13,15 +13,16 @@ import {
 
 // The one refocus hook (§10). When an action moves or removes the focused
 // element, its trigger asks for focus on the logical successor (after a ⋯-menu
-// reorder, the moved item's own ⋯ in its new place). The request waits for
+// reorder, the moved item's own ⋯ in its new place; after an archive, the
+// next item, or the column heading if there is none). The request waits for
 // the render in which the scope's order changes, which is when the refreshed
-// page arrives, and then focuses the successor once.
+// page arrives, and then focuses the first successor still there, once.
 
-type Pending = { targetId: string; signature: string }
+type Pending = { targetIds: readonly string[]; signature: string }
 
 type Scope = {
   register(id: string, element: HTMLElement | null): void
-  request(targetId: string): () => void
+  request(targetIds: readonly string[]): () => void
 }
 
 const RefocusContext = createContext<Scope | null>(null)
@@ -44,7 +45,10 @@ export function RefocusScope({
     const request = pending.current
     if (!request || request.signature === signature) return
     pending.current = null
-    elements.current.get(request.targetId)?.focus()
+    for (const id of request.targetIds) {
+      const element = elements.current.get(id)
+      if (element) return element.focus()
+    }
   }, [signature])
 
   const scope = useMemo<Scope>(
@@ -53,8 +57,8 @@ export function RefocusScope({
         if (element) elements.current.set(id, element)
         else elements.current.delete(id)
       },
-      request(targetId) {
-        const request = { targetId, signature: current.current }
+      request(targetIds) {
+        const request = { targetIds, signature: current.current }
         pending.current = request
         return () => {
           if (pending.current === request) pending.current = null
@@ -70,12 +74,13 @@ export function RefocusScope({
 /**
  * For the element that should get focus back for item `id`: attach `ref` to
  * it, and call `refocus()` when an action starts that will move the item (or
- * `refocus(successorId)` when it will disappear). Call the returned function
- * if the action fails, so a later change of order doesn't take focus.
+ * `refocus(...successorIds)` when it will disappear, in order of preference:
+ * the first one still there gets focus). Call the returned function if the
+ * action fails, so a later change of order doesn't take focus.
  */
 export function useRefocus(id: string): {
   ref: RefCallback<HTMLElement>
-  refocus: (targetId?: string) => () => void
+  refocus: (...targetIds: string[]) => () => void
 } {
   const scope = useContext(RefocusContext)
   if (!scope) throw new Error('useRefocus needs a RefocusScope')
@@ -88,7 +93,8 @@ export function useRefocus(id: string): {
     [scope, id]
   )
   const refocus = useCallback(
-    (targetId: string = id) => scope.request(targetId),
+    (...targetIds: string[]) =>
+      scope.request(targetIds.length > 0 ? targetIds : [id]),
     [scope, id]
   )
   return { ref, refocus }

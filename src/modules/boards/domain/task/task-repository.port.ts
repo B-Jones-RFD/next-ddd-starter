@@ -28,6 +28,11 @@ export interface ITaskRepository {
    */
   findAssignedTo(boardId: BoardId, userId: UserId): Promise<Task[]>
   /**
+   * The list's tasks by `(position, id)`, archived ones included, for
+   * read-checks such as archiving the list.
+   */
+  findInList(listId: ListId): Promise<Task[]>
+  /**
    * Writes the task, its events as `domain` outbox rows and their
    * translations as `integration` rows, in one transaction. Returns the
    * saved task at its new version, or `ConflictError` if it changed since

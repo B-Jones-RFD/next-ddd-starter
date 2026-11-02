@@ -37,7 +37,11 @@ export async function searchUsers(input: {
   }
 
   const boards = await getInjection('IBoardReader')
-  const board = await boards.getForMember(shape.data.boardId, input.actorId)
+  const board = await boards.getForMember(
+    shape.data.boardId,
+    input.actorId,
+    'active'
+  )
   if (!board.ok) return board
   if (board.value.role !== 'owner') return err(new ForbiddenError())
 

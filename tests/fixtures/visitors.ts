@@ -99,6 +99,37 @@ export async function addTaskNamed(
   ).toBeVisible()
 }
 
+/** Archives a task from its ⋯ menu and waits until its list no longer shows it. */
+export async function archiveTaskNamed(
+  page: Page,
+  listName: string,
+  title: string
+) {
+  const list = page.getByRole('region', { name: listName, exact: true })
+  await list.getByRole('button', { name: `Actions for task ${title}` }).click()
+  await page.getByRole('menuitem', { name: 'Archive task' }).click()
+  await expect(
+    list.getByRole('heading', { level: 3, name: title, exact: true })
+  ).toHaveCount(0)
+}
+
+/**
+ * As the board's Owner, archives it from its settings, typing its name to
+ * confirm, and waits for `/boards`.
+ */
+export async function archiveBoardNamed(
+  page: Page,
+  boardPath: string,
+  name: string
+) {
+  await page.goto(`${boardPath}/settings`)
+  await page.getByRole('button', { name: 'Archive board' }).click()
+  const dialog = page.getByRole('dialog', { name: `Archive “${name}”?` })
+  await dialog.getByLabel(`Type “${name}” to confirm`).fill(name)
+  await dialog.getByRole('button', { name: 'Archive board' }).click()
+  await expect(page).toHaveURL('/boards')
+}
+
 /**
  * Defines a tag on the board's Tags tab, choosing its Tag color by name.
  * Leaves the page on the tab.

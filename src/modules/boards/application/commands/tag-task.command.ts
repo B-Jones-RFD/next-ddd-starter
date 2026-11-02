@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { toTagId } from '@/modules/boards/domain/board/tag'
 import { tagTask as tagTaskOperation } from '@/modules/boards/domain/services/task-tagging.service'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -35,7 +36,14 @@ export type TagTaskInput = {
 export async function tagTask(
   input: TagTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = TagTaskInput.safeParse(input)
   if (!shape.success) {

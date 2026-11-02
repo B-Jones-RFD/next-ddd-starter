@@ -57,8 +57,9 @@ async function Members({ params, searchParams }: Props) {
   const actor = await requireActor(path)
   const board = await getBoard({ actorId: actor.userId, boardId })
   if (!board.ok) notFound()
-  const { id, name, role, members } = board.value
-  const isOwner = role === 'owner'
+  const { id, name, role, members, archived } = board.value
+  // An archived board is read-only: its members don't change (§10).
+  const isOwner = role === 'owner' && !archived
   const { email } = await searchParams
 
   return (
@@ -113,7 +114,11 @@ async function Members({ params, searchParams }: Props) {
             </li>
           ))}
         </ul>
-        {isOwner ? (
+        {archived ? (
+          <p className='text-sm text-muted-foreground'>
+            The board is archived, so its members can’t change.
+          </p>
+        ) : isOwner ? (
           <p className='text-sm text-muted-foreground'>
             To leave this board, transfer ownership to another member first.
           </p>

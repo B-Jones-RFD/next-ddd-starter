@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { NotAMemberError } from '@/modules/boards/domain/board/board.errors'
 import { assignTask as assignTaskOperation } from '@/modules/boards/domain/services/task-assignment.service'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -40,6 +41,7 @@ export async function assignTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | TaskArchivedError
     | NotAMemberError
     | ConflictError
   >

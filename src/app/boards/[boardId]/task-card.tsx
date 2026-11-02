@@ -1,6 +1,8 @@
 'use client'
 
 import {
+  Archive,
+  ArchiveRestore,
   ArrowDown,
   ArrowRightLeft,
   ArrowUp,
@@ -11,6 +13,7 @@ import {
 import Link from 'next/link'
 import { useActionState, useCallback, useId, useRef, useState } from 'react'
 
+import { ArchivedBadge } from '@/app/_components/archived-badge'
 import { AvatarStack } from '@/app/_components/avatar-stack'
 import { FormAlert } from '@/app/_components/form/form-alert'
 import { SubmitButton } from '@/app/_components/form/submit-button'
@@ -30,10 +33,16 @@ import {
 import { Select } from '@/app/_components/ui/select'
 import { IDLE, type ActionState } from '@/app/_lib/actions/action-state'
 import {
+  archiveTaskAction,
   moveTaskAction,
   reorderTaskAction,
+  restoreTaskAction,
 } from '@/app/boards/[boardId]/actions'
-import type { ListMove, ListPlace } from '@/app/boards/[boardId]/list-places'
+import type {
+  BoardMode,
+  ListMove,
+  ListPlace,
+} from '@/app/boards/[boardId]/list-places'
 import {
   placesIn,
   taskLinkId,
@@ -65,8 +74,11 @@ function initial(choices: readonly { current: boolean }[]): number {
 
 /**
  * A task in its list's column: its title as an `h3` link that opens the task
- * dialog, its "⋯" menu to move it up, down, first or last, or to another
- * list (§10), and its assignees as one avatar stack. After a move, focus returns to this ⋯ in the task's new place.
+ * dialog, and its "⋯" menu to move it up, down, first or last, or to another
+ * list, or to archive it (§10). After a move, focus returns to this ⋯ in the
+ * task's new place, and after an archive, to the next task or the column
+ * heading. Its assignees show as one avatar stack. In the Archived view it
+ * has a text badge and only "Restore task".
  */
 export function TaskCard({
   boardId,
@@ -74,6 +86,8 @@ export function TaskCard({
   task,
   moves,
   lists,
+  mode,
+  successors,
 }: {
   boardId: string
   listId: string
@@ -81,6 +95,9 @@ export function TaskCard({
   moves: Partial<Record<ListMove, ListPlace>>
   /** The board's lists, for "Move to list…". */
   lists: List[]
+  mode: BoardMode
+  /** Where focus goes when archiving or restoring takes the task away. */
+  successors: string[]
 }) {
   const formId = useId()
   const { ref, refocus } = useRefocus(task.id)
@@ -102,47 +119,83 @@ export function TaskCard({
     },
     IDLE
   )
-  const available = MOVES.filter(({ move }) => moves[move])
+  const [archiveState, archiveOrRestore] = useActionState(async () => {
+    const cancel = refocus(...successors)
+    const next =
+      mode === 'active'
+        ? await archiveTaskAction(boardId, task.id)
+        : await restoreTaskAction(boardId, task.id)
+    if (next.status !== 'success') cancel()
+    return next
+  }, IDLE)
+  const editable = mode === 'active'
+  const available = editable ? MOVES.filter(({ move }) => moves[move]) : []
 
   return (
     <li className='flex flex-col gap-2 rounded-lg border border-border bg-background p-2'>
       <div className='flex items-start justify-between gap-2'>
-        <h3 className='min-w-0 py-1 text-sm font-medium break-words'>
-          <Link
-            id={taskLinkId(task.id)}
-            href={taskPath(boardId, task.id)}
-            scroll={false}
-            className='rounded-sm px-1 underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring'
-          >
-            {task.title}
-          </Link>
-        </h3>
-        <Menu>
-          <MenuTrigger
-            ref={triggerRef}
-            render={<Button variant='ghost' size='icon-sm' />}
-            aria-label={`Actions for task ${task.title}`}
-          >
-            <Ellipsis aria-hidden />
-          </MenuTrigger>
-          <MenuContent>
-            {available.map(({ move: name, label, Icon }) => (
+        <div className='flex min-w-0 flex-col items-start gap-1'>
+          <h3 className='min-w-0 py-1 text-sm font-medium break-words'>
+            <Link
+              id={taskLinkId(task.id)}
+              href={taskPath(boardId, task.id)}
+              scroll={false}
+              className='rounded-sm px-1 underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring'
+            >
+              {task.title}
+            </Link>
+          </h3>
+          {mode === 'archived' && <ArchivedBadge className='ml-1' />}
+        </div>
+        {mode !== 'read-only' && (
+          <Menu>
+            <MenuTrigger
+              ref={triggerRef}
+              render={<Button variant='ghost' size='icon-sm' />}
+              aria-label={`Actions for task ${task.title}`}
+            >
+              <Ellipsis aria-hidden />
+            </MenuTrigger>
+            <MenuContent>
+              {available.map(({ move: name, label, Icon }) => (
+                <MenuItem
+                  key={name}
+                  nativeButton
+                  render={<button type='submit' form={`${formId}-${name}`} />}
+                >
+                  <Icon aria-hidden />
+                  {label}
+                </MenuItem>
+              ))}
+              {editable && (
+                <>
+                  {available.length > 0 && <MenuSeparator />}
+                  <MenuItem onClick={() => setMoving(true)}>
+                    <ArrowRightLeft aria-hidden />
+                    Move to list…
+                  </MenuItem>
+                  <MenuSeparator />
+                </>
+              )}
               <MenuItem
-                key={name}
                 nativeButton
-                render={<button type='submit' form={`${formId}-${name}`} />}
+                render={<button type='submit' form={`${formId}-archive`} />}
               >
-                <Icon aria-hidden />
-                {label}
+                {editable ? (
+                  <>
+                    <Archive aria-hidden />
+                    Archive task
+                  </>
+                ) : (
+                  <>
+                    <ArchiveRestore aria-hidden />
+                    Restore task
+                  </>
+                )}
               </MenuItem>
-            ))}
-            {available.length > 0 && <MenuSeparator />}
-            <MenuItem onClick={() => setMoving(true)}>
-              <ArrowRightLeft aria-hidden />
-              Move to list…
-            </MenuItem>
-          </MenuContent>
-        </Menu>
+            </MenuContent>
+          </Menu>
+        )}
       </div>
       {task.tags.length > 0 && (
         <ul aria-label='Tags' className='flex flex-wrap gap-1 px-1'>
@@ -157,6 +210,10 @@ export function TaskCard({
         <AvatarStack label='Assignees' people={task.assignees} size='sm' />
       )}
       <FormAlert error={state.status === 'error' ? state.error : undefined} />
+      <FormAlert
+        error={archiveState.status === 'error' ? archiveState.error : undefined}
+      />
+      <form id={`${formId}-archive`} action={archiveOrRestore} hidden />
       {available.map(({ move: name }) => (
         <form key={name} id={`${formId}-${name}`} action={reorder} hidden>
           <input type='hidden' name='after' value={moves[name]?.after ?? ''} />

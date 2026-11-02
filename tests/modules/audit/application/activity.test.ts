@@ -9,6 +9,7 @@ import {
 } from '@/modules/audit/api'
 import {
   addMember,
+  archiveTask,
   changeTaskDescription,
   createBoard,
   createList,
@@ -18,6 +19,7 @@ import {
   renameList,
   renameTask,
   reorderTask,
+  restoreTask,
 } from '@/modules/boards/api'
 import { rename } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
@@ -146,6 +148,39 @@ describe('getActivity', () => {
       [backlog]: 'Backlog',
       [done]: 'Shipped',
     })
+  })
+
+  it('records archiving and restoring the task, in its list', async () => {
+    vi.setSystemTime(new Date('2026-03-01T10:05:00.000Z'))
+    await archiveTask({ actorId: ada, taskId })
+    vi.setSystemTime(new Date('2026-03-01T10:10:00.000Z'))
+    await restoreTask({ actorId: ada, taskId })
+
+    const page = await activity()
+
+    expect(
+      page.entries.map(({ occurredAt, action, details }) => ({
+        occurredAt,
+        action,
+        details,
+      }))
+    ).toEqual([
+      {
+        occurredAt: '2026-03-01T10:10:00.000Z',
+        action: 'task.restored',
+        details: { listId: backlog },
+      },
+      {
+        occurredAt: '2026-03-01T10:05:00.000Z',
+        action: 'task.archived',
+        details: { listId: backlog },
+      },
+      {
+        occurredAt: '2026-03-01T10:00:00.000Z',
+        action: 'task.created',
+        details: { listId: backlog, title: 'Write the brief' },
+      },
+    ])
   })
 
   it('hides reorders', async () => {

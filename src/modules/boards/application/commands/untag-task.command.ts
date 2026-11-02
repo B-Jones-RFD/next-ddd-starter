@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { toTagId } from '@/modules/boards/domain/board/tag'
 import { untagTask as untagTaskOperation } from '@/modules/boards/domain/services/task-tagging.service'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -35,7 +36,14 @@ export type UntagTaskInput = {
 export async function untagTask(
   input: UntagTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = UntagTaskInput.safeParse(input)
   if (!shape.success) {

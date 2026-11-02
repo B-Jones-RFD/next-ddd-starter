@@ -10,6 +10,9 @@ import {
 } from '@/modules/audit/api'
 import {
   addMember,
+  archiveBoard,
+  archiveList,
+  archiveTask,
   createBoard,
   createList,
   createTask,
@@ -17,6 +20,9 @@ import {
   renameBoard,
   renameTask,
   reorderTask,
+  restoreBoard,
+  restoreList,
+  restoreTask,
   transferOwnership,
 } from '@/modules/boards/api'
 import { changePassword, rename, signIn, signOut } from '@/modules/identity/api'
@@ -136,6 +142,32 @@ describe('getBoardLog', () => {
       [taskId]: 'Write the press brief',
     })
     expect(page.olderBefore).toBeNull()
+  })
+
+  it('records archiving and restoring the board, a list and a task, and stays readable while the board is archived', async () => {
+    const empty = await createList({ actorId: ada, boardId, name: 'Someday' })
+    if (!empty.ok) throw new Error('setup failed')
+    const listId = empty.value.listId
+    vi.setSystemTime(new Date('2026-03-01T11:00:00.000Z'))
+    await archiveTask({ actorId: ada, taskId })
+    await restoreTask({ actorId: ada, taskId })
+    await archiveList({ actorId: ada, listId })
+    await restoreList({ actorId: ada, listId })
+    await archiveBoard({ actorId: ada, boardId, confirmName: 'Launch plan' })
+    await restoreBoard({ actorId: ada, boardId })
+    await archiveBoard({ actorId: ada, boardId, confirmName: 'Launch plan' })
+
+    const { entries } = await boardLog()
+
+    expect(entries.slice(0, 7).map((entry) => entry.action)).toEqual([
+      'board.archived',
+      'board.restored',
+      'board.archived',
+      'list.restored',
+      'list.archived',
+      'task.restored',
+      'task.archived',
+    ])
   })
 
   it('hides reorders unless asked for them', async () => {

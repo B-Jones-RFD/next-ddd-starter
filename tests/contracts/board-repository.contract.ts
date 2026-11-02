@@ -226,5 +226,33 @@ export function describeBoardRepositoryContract(make: Make) {
         payload: { boardId: board.id, from: 'Launch plan', to: 'Launch' },
       })
     })
+
+    it('publishes archiving and restoring the board', async () => {
+      const { repository, outbox } = make()
+      const saved = await repository.save(aBoard({ version: 0 }), [], origin)
+      if (!saved.ok) throw new Error('setup failed')
+      const payload = { boardId: saved.value.id }
+      const archived = await repository.save(
+        { ...saved.value, archived: true },
+        [{ type: 'BoardArchived', payload }],
+        origin
+      )
+      if (!archived.ok) throw new Error('setup failed')
+      await repository.save(
+        { ...archived.value, archived: false },
+        [{ type: 'BoardRestored', payload }],
+        origin
+      )
+
+      const rows = await outbox.pending(10)
+      expect(rows.map((row) => [row.scope, row.envelope.type])).toEqual([
+        ['domain', 'BoardArchived'],
+        ['integration', 'boards.BoardArchived'],
+        ['domain', 'BoardRestored'],
+        ['integration', 'boards.BoardRestored'],
+      ])
+      expect(rows[1]?.envelope).toMatchObject({ version: 1, payload })
+      expect(rows[3]?.envelope).toMatchObject({ version: 1, payload })
+    })
   })
 }

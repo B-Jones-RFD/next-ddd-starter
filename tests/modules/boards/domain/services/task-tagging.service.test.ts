@@ -7,6 +7,7 @@ import {
   tagTask,
   untagTask,
 } from '@/modules/boards/domain/services/task-tagging.service'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
@@ -124,5 +125,16 @@ describe('untagTask', () => {
       ok: false,
       error: new ForbiddenError(),
     })
+  })
+})
+
+describe('an archived task', () => {
+  const archived = aTask({ archived: true, tagIds: [urgent.id] })
+
+  it.each([
+    ['tagTask', () => tagTask(archived, board, member, design.id)],
+    ['untagTask', () => untagTask(archived, board, member, urgent.id)],
+  ])('refuses %s', (_name, change) => {
+    expect(change()).toEqual({ ok: false, error: new TaskArchivedError() })
   })
 })

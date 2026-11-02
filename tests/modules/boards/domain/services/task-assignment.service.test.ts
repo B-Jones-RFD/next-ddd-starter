@@ -7,6 +7,8 @@ import {
   handOverToOwner,
   unassignTask,
 } from '@/modules/boards/domain/services/task-assignment.service'
+import type { Task } from '@/modules/boards/domain/task/task'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { toUserId } from '@/shared/kernel/user-id'
 
@@ -165,5 +167,22 @@ describe('handOverToOwner', () => {
       state: task,
       events: [],
     })
+  })
+})
+
+describe('an archived task', () => {
+  it.each([
+    ['assignTask', (task: Task) => assignTask(task, board, ada, ben)],
+    ['unassignTask', (task: Task) => unassignTask(task, board, ada, ben)],
+  ])('refuses %s', (_name, change) => {
+    const task = aTask({ boardId, archived: true, assignees: [ben] })
+
+    expect(change(task)).toEqual({ ok: false, error: new TaskArchivedError() })
+  })
+
+  it('still hands over to the Owner when an assignee leaves (§13)', () => {
+    const task = aTask({ boardId, archived: true, assignees: [cy] })
+
+    expect(handOverToOwner(task, board, cy).state.assignees).toEqual([ada])
   })
 })

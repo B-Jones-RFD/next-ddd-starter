@@ -45,6 +45,21 @@ export type TaskReordered = DomainEvent<
   { taskId: TaskId; boardId: BoardId; listId: ListId }
 >
 
+/**
+ * A Board member archived a task. It keeps its list and place. Translated to
+ * `boards.TaskArchived.v1`.
+ */
+export type TaskArchived = DomainEvent<
+  'TaskArchived',
+  { taskId: TaskId; boardId: BoardId; listId: ListId }
+>
+
+/** A Board member restored an archived task. Translated to `boards.TaskRestored.v1`. */
+export type TaskRestored = DomainEvent<
+  'TaskRestored',
+  { taskId: TaskId; boardId: BoardId; listId: ListId }
+>
+
 /** A Board member attached a tag to a task. Translated to `boards.TaskTagged.v1`. */
 export type TaskTagged = DomainEvent<
   'TaskTagged',
@@ -81,6 +96,8 @@ export type TaskEvent =
   | TaskDescriptionChanged
   | TaskMoved
   | TaskReordered
+  | TaskArchived
+  | TaskRestored
   | TaskTagged
   | TaskUntagged
   | TaskAssigned

@@ -4,6 +4,7 @@ import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import { moveTask } from '@/modules/boards/domain/services/task-placement.service'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 
@@ -107,6 +108,17 @@ describe('moveTask', () => {
     expect(moveTask(task, undefined, { toList: to })).toEqual({
       ok: false,
       error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('moveTask of an archived task', () => {
+  it('returns TaskArchivedError', () => {
+    const task = aTask({ listId: from.id, archived: true })
+
+    expect(moveTask(task, 'member', { toList: to })).toEqual({
+      ok: false,
+      error: new TaskArchivedError(),
     })
   })
 })

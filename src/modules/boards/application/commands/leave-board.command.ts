@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { leaveBoard as leaveBoardOperation } from '@/modules/boards/domain/board/board'
 import type { OwnerMustTransferFirstError } from '@/modules/boards/domain/board/board.errors'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
@@ -29,6 +30,7 @@ export async function leaveBoard(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | OwnerMustTransferFirstError
     | ConflictError
   >

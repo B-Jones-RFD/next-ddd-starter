@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { unassignTask as unassignTaskOperation } from '@/modules/boards/domain/services/task-assignment.service'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import type {
@@ -34,7 +35,14 @@ export type UnassignTaskInput = {
 export async function unassignTask(
   input: UnassignTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = UnassignTaskInput.safeParse(input)
   if (!shape.success) {

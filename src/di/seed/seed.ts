@@ -3,6 +3,8 @@ import { getActivity } from '@/modules/audit/api'
 import {
   addComment,
   addMember,
+  archiveList,
+  archiveTask,
   assignTask,
   createBoard,
   createList,
@@ -84,6 +86,45 @@ async function tasks(
       if (!created.ok) throw created.error
     }
   }
+}
+
+/** Adds an archived list to the board, unless the Archived view has it. */
+async function archivedList(
+  actorId: UserId,
+  boardId: string,
+  name: string
+): Promise<void> {
+  const archived = await getBoard({ actorId, boardId, view: 'archived' })
+  if (!archived.ok) throw archived.error
+  if (archived.value.lists.some((l) => l.archived && l.name === name)) return
+  const created = await createList({ actorId, boardId, name })
+  if (!created.ok) throw created.error
+  const done = await archiveList({ actorId, listId: created.value.listId })
+  if (!done.ok) throw done.error
+}
+
+/**
+ * Adds an archived task to the end of the named list, unless the Archived
+ * view has it there.
+ */
+async function archivedTask(
+  actorId: UserId,
+  boardId: string,
+  listName: string,
+  title: string
+): Promise<void> {
+  const archived = await getBoard({ actorId, boardId, view: 'archived' })
+  if (!archived.ok) throw archived.error
+  const seen = archived.value.lists.find((list) => list.name === listName)
+  if (seen?.tasks.some((task) => task.title === title)) return
+  const active = await getBoard({ actorId, boardId })
+  if (!active.ok) throw active.error
+  const list = active.value.lists.find((l) => l.name === listName)
+  if (!list) throw new Error(`Seed list ${listName} is missing`)
+  const created = await createTask({ actorId, listId: list.id, title })
+  if (!created.ok) throw created.error
+  const done = await archiveTask({ actorId, taskId: created.value.taskId })
+  if (!done.ok) throw done.error
 }
 
 type SeedComment = { task: string; authorId: UserId; text: string }
@@ -257,5 +298,8 @@ export async function seed(): Promise<void> {
       text: 'Locked in for the 14th.',
     },
   ])
+  // One archived list and one archived task, for the Archived view.
+  await archivedTask(ada, launchPlan, 'Backlog', 'Print the flyers')
+  await archivedList(ada, launchPlan, 'Someday')
   await relay.drain()
 }

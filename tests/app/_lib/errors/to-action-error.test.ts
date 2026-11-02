@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import {
   AlreadyAMemberError,
+  BoardArchivedError,
+  BoardNameMismatchError,
   ListArchivedError,
+  ListHasActiveTasksError,
   NotAMemberError,
   OwnerMustTransferFirstError,
   TaskArchivedError,
@@ -153,15 +156,44 @@ describe('toActionError', () => {
     expect(toActionError(new ListArchivedError())).toEqual({
       code: 'boards.list.archived',
       message:
-        'That list was archived. Reload the page and choose another list.',
+        'That list is archived. Restore the list first, or reload the page and choose another list.',
+    })
+  })
+
+  it('words boards.list.has-active-tasks with what to do first', () => {
+    expect(toActionError(new ListHasActiveTasksError())).toEqual({
+      code: 'boards.list.has-active-tasks',
+      message:
+        'This list still has active tasks. Archive them or move them to another list first.',
     })
   })
 
   it('words boards.task.archived', () => {
     expect(toActionError(new TaskArchivedError())).toEqual({
       code: 'boards.task.archived',
-      message: 'That task was archived, so it can’t be changed.',
+      message: 'This task is archived. Restore it to change it.',
     })
+  })
+
+  it('words boards.board.archived', () => {
+    expect(toActionError(new BoardArchivedError())).toEqual({
+      code: 'boards.board.archived',
+      message: 'This board is archived. The Owner can restore it.',
+    })
+  })
+
+  it('puts boards.board.name-mismatch under the confirm name field', () => {
+    expect(toActionError(new BoardNameMismatchError())).toEqual({
+      code: 'boards.board.name-mismatch',
+      message: 'The name you typed doesn’t match the board’s name.',
+      fields: { confirmName: 'Type the board’s name exactly as shown.' },
+    })
+  })
+
+  it('words the confirm name field', () => {
+    expect(
+      toActionError(new ValidationError({ confirmName: 'required' })).fields
+    ).toEqual({ confirmName: 'Type the board’s name to confirm.' })
   })
 
   it('words an empty or too-long comment under its field', () => {

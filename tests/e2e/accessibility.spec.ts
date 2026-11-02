@@ -8,6 +8,8 @@ import {
   addTaskNamed,
   aNewVisitor,
   addMemberByEmail,
+  archiveBoardNamed,
+  archiveTaskNamed,
   addTagNamed,
   createBoardNamed,
   signOut,
@@ -150,6 +152,35 @@ async function withAssignee(page: Page) {
 const PHONE = { width: 390, height: 844 }
 
 /**
+ * Tasks with one archived, and an archived list, leaving the page on the
+ * board's Active view.
+ */
+async function withArchivedWork(page: Page) {
+  await withTasks(page)
+  await archiveTaskNamed(page, 'Backlog', 'Book the venue')
+  await addListNamed(page, 'Someday')
+  await page.getByRole('button', { name: 'Actions for list Someday' }).click()
+  await page.getByRole('menuitem', { name: 'Archive list' }).click()
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Someday' })
+  ).toHaveCount(0)
+}
+
+/** Signs up and archives a board, leaving the page on `/boards`. */
+async function withArchivedBoard(page: Page) {
+  await signUp(page)
+  const boardPath = await createBoardNamed(page, 'Launch plan')
+  await archiveBoardNamed(page, boardPath, 'Launch plan')
+}
+
+/** Opens the board's type-the-name archive confirm from its settings. */
+async function openArchiveConfirm(page: Page) {
+  await page.getByRole('button', { name: 'Archive board' }).click()
+  await expect(page.getByLabel('Type “Launch plan” to confirm')).toBeFocused()
+  await settled(page)
+}
+
+/**
  * Signs Ben up, then Ada, who creates a board and adds Ben. Leaves the page
  * on the board's Members tab, as its Owner.
  */
@@ -214,6 +245,22 @@ const SCREENS: Screen[] = [
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
     arrange: withBoard,
+  },
+  {
+    name: 'archive board confirm',
+    path: (page) => `${here(page)}/settings`,
+    arrange: withBoard,
+    act: openArchiveConfirm,
+  },
+  {
+    name: 'boards (archived view)',
+    path: '/boards?view=archived',
+    arrange: withArchivedBoard,
+  },
+  {
+    name: 'board (archived view)',
+    path: (page) => `${here(page)}?view=archived`,
+    arrange: withArchivedWork,
   },
   {
     name: 'board tags',

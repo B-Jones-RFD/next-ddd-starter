@@ -187,6 +187,31 @@ describe('seed', () => {
       ['Pick the launch date', 'Ada', 'Locked in for the 14th.'],
     ])
   })
+
+  it('archives one list and one task on “Launch plan”, once however often it runs', async () => {
+    await seed()
+    await seed()
+
+    const ada = await actorFor('ada@example.com')
+    const boards = await listBoards({ actorId: ada })
+    const boardId = boards.ok ? boards.value[0]?.id : undefined
+    const board = await getBoard({
+      actorId: ada,
+      boardId: boardId ?? '',
+      view: 'archived',
+    })
+    expect(
+      board.ok &&
+        board.value.lists.map((list) => [
+          list.name,
+          list.archived,
+          list.tasks.map((task) => task.title),
+        ])
+    ).toEqual([
+      ['Backlog', false, ['Print the flyers']],
+      ['Someday', true, []],
+    ])
+  })
 })
 
 async function actorFor(email: string) {

@@ -5,19 +5,29 @@ import { RefocusScope, useRefocus } from '@/app/_components/refocus'
 
 let cancels: Record<string, () => void> = {}
 
-/** An item whose ⋯ button asks for focus on `target` once the order changes. */
-function Item({ id, target }: { id: string; target?: string }) {
+/** An item whose ⋯ button asks for focus on `targets` once the order changes. */
+function Item({ id, targets = [] }: { id: string; targets?: string[] }) {
   const { ref, refocus } = useRefocus(id)
   return (
     <button
       ref={ref}
       type='button'
       onClick={() => {
-        cancels[id] = refocus(target)
+        cancels[id] = refocus(...targets)
       }}
     >
       Actions for {id}
     </button>
+  )
+}
+
+/** A column heading that can take focus by script, keyed `heading`. */
+function Heading() {
+  const { ref } = useRefocus('heading')
+  return (
+    <h2 ref={ref} tabIndex={-1}>
+      Column
+    </h2>
   )
 }
 
@@ -26,13 +36,21 @@ function Items({
   targets = {},
 }: {
   order: string[]
-  targets?: Record<string, string>
+  targets?: Record<string, string | string[]>
 }) {
   return (
     <RefocusScope order={order}>
-      {order.map((id) => (
-        <Item key={id} id={id} target={targets[id]} />
-      ))}
+      <Heading />
+      {order.map((id) => {
+        const target = targets[id]
+        return (
+          <Item
+            key={id}
+            id={id}
+            targets={typeof target === 'string' ? [target] : target}
+          />
+        )
+      })}
       <input aria-label='Elsewhere' />
     </RefocusScope>
   )
@@ -82,6 +100,20 @@ describe('useRefocus', () => {
     rerender(<Items order={['a', 'c']} />)
 
     expect(document.activeElement).toBe(button('c'))
+  })
+
+  it('focuses the first successor still there, as after archiving the last item', () => {
+    cancels = {}
+    const { rerender } = render(
+      <Items order={['a', 'b']} targets={{ b: ['c', 'heading'] }} />
+    )
+    requestFrom('b')
+
+    rerender(<Items order={['a']} />)
+
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: 'Column' })
+    )
   })
 
   it('does nothing once cancelled, as after a failed move', () => {

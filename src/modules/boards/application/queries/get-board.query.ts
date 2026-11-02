@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
+import type { View } from '@/modules/boards/application/ports/board-reader.port'
 import type { NotFoundError } from '@/shared/kernel/errors/app-error'
 import {
   type ForbiddenError,
@@ -13,15 +14,18 @@ import type { UserId } from '@/shared/kernel/user-id'
 const GetBoardInput = z.object({
   actorId: z.string().min(1),
   boardId: z.string().min(1),
+  view: z.enum(['active', 'archived']).default('active'),
 })
 
 /**
- * One board, for a Board member of it. `ForbiddenError` for anyone else, and
+ * One board, archived or not, for a Board member of it, with its lists and
+ * tasks in `view` (default `active`). `ForbiddenError` for anyone else, and
  * `NotFoundError` if there is no such board.
  */
 export async function getBoard(input: {
   actorId: UserId
   boardId: string
+  view?: View
 }): Promise<
   Result<BoardDto, ValidationError | NotFoundError | ForbiddenError>
 > {
@@ -30,5 +34,5 @@ export async function getBoard(input: {
     return err(ValidationError.fromShape(input, shape.error.issues))
   }
   const boards = await getInjection('IBoardReader')
-  return boards.getForMember(shape.data.boardId, input.actorId)
+  return boards.getForMember(shape.data.boardId, input.actorId, shape.data.view)
 }

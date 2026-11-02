@@ -208,5 +208,33 @@ export function describeListRepositoryContract(make: Make) {
         payload: ids,
       })
     })
+
+    it('publishes archiving and restoring the list', async () => {
+      const { repository, outbox } = make()
+      const saved = await repository.save(aList({ version: 0 }), [], origin)
+      if (!saved.ok) throw new Error('setup failed')
+      const ids = { listId: saved.value.id, boardId: saved.value.boardId }
+      const archived = await repository.save(
+        { ...saved.value, archived: true },
+        [{ type: 'ListArchived', payload: ids }],
+        origin
+      )
+      if (!archived.ok) throw new Error('setup failed')
+      await repository.save(
+        { ...archived.value, archived: false },
+        [{ type: 'ListRestored', payload: ids }],
+        origin
+      )
+
+      const rows = await outbox.pending(10)
+      expect(rows.map((row) => [row.scope, row.envelope.type])).toEqual([
+        ['domain', 'ListArchived'],
+        ['integration', 'boards.ListArchived'],
+        ['domain', 'ListRestored'],
+        ['integration', 'boards.ListRestored'],
+      ])
+      expect(rows[1]?.envelope).toMatchObject({ version: 1, payload: ids })
+      expect(rows[3]?.envelope).toMatchObject({ version: 1, payload: ids })
+    })
   })
 }

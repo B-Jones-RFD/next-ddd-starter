@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { recolorTag as recolorTagOperation } from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { toTagId } from '@/modules/boards/domain/board/tag'
@@ -34,7 +35,14 @@ export type RecolorTagInput = {
 export async function recolorTag(
   input: RecolorTagInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | BoardArchivedError
+    | ConflictError
+  >
 > {
   const shape = RecolorTagInput.safeParse(input)
   if (!shape.success) {

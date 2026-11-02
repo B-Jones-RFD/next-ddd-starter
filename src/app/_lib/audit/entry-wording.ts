@@ -40,6 +40,10 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `created the board “${entry.details.name}”`
     case 'board.renamed':
       return `renamed the board from “${entry.details.from}” to “${entry.details.to}”`
+    case 'board.archived':
+      return 'archived the board'
+    case 'board.restored':
+      return 'restored the board'
     case 'member.added':
       return `added ${personName(names, entry.details.userId)} to the board`
     case 'member.removed':
@@ -54,6 +58,10 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `renamed the list from “${entry.details.from}” to “${entry.details.to}”`
     case 'list.reordered':
       return 'reordered the lists'
+    case 'list.archived':
+      return 'archived a list'
+    case 'list.restored':
+      return 'restored a list'
     case 'task.created':
       return `created the task in ${listName(names, entry.details.listId)}`
     case 'task.renamed':
@@ -64,6 +72,10 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `moved the task from ${listName(names, entry.details.fromListId)} to ${listName(names, entry.details.toListId)}`
     case 'task.reordered':
       return `reordered the task in ${listName(names, entry.details.listId)}`
+    case 'task.archived':
+      return 'archived the task'
+    case 'task.restored':
+      return `restored the task to ${listName(names, entry.details.listId)}`
     case 'comment.added':
       return 'commented'
     case 'tag.created':

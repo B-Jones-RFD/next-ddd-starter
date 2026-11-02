@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { roleOf } from '@/modules/boards/domain/board/board'
 import { changeTaskDescription as changeTaskDescriptionOperation } from '@/modules/boards/domain/task/task'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -31,7 +32,14 @@ export type ChangeTaskDescriptionInput = {
 export async function changeTaskDescription(
   input: ChangeTaskDescriptionInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = ChangeTaskDescriptionInput.safeParse(input)
   if (!shape.success) {

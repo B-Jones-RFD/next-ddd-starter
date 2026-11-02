@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { removeMember as removeMemberOperation } from '@/modules/boards/domain/board/board'
 import type {
   NotAMemberError,
@@ -37,6 +38,7 @@ export async function removeMember(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | NotAMemberError
     | OwnerMustTransferFirstError
     | ConflictError

@@ -5,7 +5,9 @@ import {
   createList,
   moveList,
   renameList,
+  restoreList,
 } from '@/modules/boards/domain/list/list'
+import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import type { ListName } from '@/modules/boards/domain/list/list-name'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
@@ -198,5 +200,52 @@ describe('moveList', () => {
       ok: false,
       error: new ForbiddenError(),
     })
+  })
+})
+
+describe('restoreList', () => {
+  const list = aList({ archived: true, position: 'k' })
+
+  it('restores the list in its old place and raises ListRestored', () => {
+    expect(restoreList(list, 'member')).toEqual({
+      ok: true,
+      value: {
+        state: { ...list, archived: false },
+        events: [
+          {
+            type: 'ListRestored',
+            payload: { listId: list.id, boardId: list.boardId },
+          },
+        ],
+      },
+    })
+  })
+
+  it('raises nothing for an active list', () => {
+    const active = aList()
+
+    expect(restoreList(active, 'owner')).toEqual({
+      ok: true,
+      value: { state: active, events: [] },
+    })
+  })
+
+  it('returns ForbiddenError for a user who isn’t a Board member', () => {
+    expect(restoreList(list, undefined)).toEqual({
+      ok: false,
+      error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('an archived list', () => {
+  const list = aList({ archived: true })
+  const other = aList({ position: 'l' })
+
+  it.each([
+    ['renameList', () => renameList(list, 'member', 'Ideas')],
+    ['moveList', () => moveList(list, 'member', { after: other })],
+  ])('refuses %s', (_name, change) => {
+    expect(change()).toEqual({ ok: false, error: new ListArchivedError() })
   })
 })

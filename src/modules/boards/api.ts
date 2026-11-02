@@ -4,6 +4,9 @@ import { changeTaskDescription as changeTaskDescriptionCommand } from '@/modules
 import { addComment as addCommentCommand } from '@/modules/boards/application/commands/add-comment.command'
 import { assignTask as assignTaskCommand } from '@/modules/boards/application/commands/assign-task.command'
 import { addMember as addMemberCommand } from '@/modules/boards/application/commands/add-member.command'
+import { archiveBoard as archiveBoardCommand } from '@/modules/boards/application/commands/archive-board.command'
+import { archiveList as archiveListCommand } from '@/modules/boards/application/commands/archive-list.command'
+import { archiveTask as archiveTaskCommand } from '@/modules/boards/application/commands/archive-task.command'
 import { createBoard as createBoardCommand } from '@/modules/boards/application/commands/create-board.command'
 import { createList as createListCommand } from '@/modules/boards/application/commands/create-list.command'
 import { createTag as createTagCommand } from '@/modules/boards/application/commands/create-tag.command'
@@ -19,6 +22,9 @@ import { renameList as renameListCommand } from '@/modules/boards/application/co
 import { renameTag as renameTagCommand } from '@/modules/boards/application/commands/rename-tag.command'
 import { renameTask as renameTaskCommand } from '@/modules/boards/application/commands/rename-task.command'
 import { reorderTask as reorderTaskCommand } from '@/modules/boards/application/commands/reorder-task.command'
+import { restoreBoard as restoreBoardCommand } from '@/modules/boards/application/commands/restore-board.command'
+import { restoreList as restoreListCommand } from '@/modules/boards/application/commands/restore-list.command'
+import { restoreTask as restoreTaskCommand } from '@/modules/boards/application/commands/restore-task.command'
 import { tagTask as tagTaskCommand } from '@/modules/boards/application/commands/tag-task.command'
 import { transferOwnership as transferOwnershipCommand } from '@/modules/boards/application/commands/transfer-ownership.command'
 import { untagTask as untagTaskCommand } from '@/modules/boards/application/commands/untag-task.command'
@@ -63,6 +69,12 @@ export const transferOwnership = traced(
   'boards.transferOwnership',
   transferOwnershipCommand
 )
+export const archiveBoard = traced('boards.archiveBoard', archiveBoardCommand)
+export const restoreBoard = traced('boards.restoreBoard', restoreBoardCommand)
+export const archiveList = traced('boards.archiveList', archiveListCommand)
+export const restoreList = traced('boards.restoreList', restoreListCommand)
+export const archiveTask = traced('boards.archiveTask', archiveTaskCommand)
+export const restoreTask = traced('boards.restoreTask', restoreTaskCommand)
 export const listBoards = traced('boards.listBoards', listBoardsQuery)
 export const getBoard = traced('boards.getBoard', getBoardQuery)
 export const getTask = traced('boards.getTask', getTaskQuery)
@@ -73,6 +85,13 @@ export const listTags = traced('boards.listTags', listTagsQuery)
 export type { AddCommentInput } from '@/modules/boards/application/commands/add-comment.command'
 export type { AssignTaskInput } from '@/modules/boards/application/commands/assign-task.command'
 export type { AddMemberInput } from '@/modules/boards/application/commands/add-member.command'
+export type { ArchiveBoardInput } from '@/modules/boards/application/commands/archive-board.command'
+export type { ArchiveListInput } from '@/modules/boards/application/commands/archive-list.command'
+export type { ArchiveTaskInput } from '@/modules/boards/application/commands/archive-task.command'
+export type { RestoreBoardInput } from '@/modules/boards/application/commands/restore-board.command'
+export type { RestoreListInput } from '@/modules/boards/application/commands/restore-list.command'
+export type { RestoreTaskInput } from '@/modules/boards/application/commands/restore-task.command'
+export type { View } from '@/modules/boards/application/ports/board-reader.port'
 export type { CreateBoardInput } from '@/modules/boards/application/commands/create-board.command'
 export type { CreateListInput } from '@/modules/boards/application/commands/create-list.command'
 export type { ChangeTaskDescriptionInput } from '@/modules/boards/application/commands/change-task-description.command'
@@ -108,11 +127,16 @@ export type {
 export type { UserSearchResultDto } from '@/modules/boards/application/dto/user-search-result.dto'
 export {
   AlreadyAMemberError,
+  BoardArchivedError,
+  BoardNameMismatchError,
   NotAMemberError,
   OwnerMustTransferFirstError,
   TagNameTakenError,
 } from '@/modules/boards/domain/board/board.errors'
-export { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
+export {
+  ListArchivedError,
+  ListHasActiveTasksError,
+} from '@/modules/boards/domain/list/list.errors'
 export { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 export { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 export {

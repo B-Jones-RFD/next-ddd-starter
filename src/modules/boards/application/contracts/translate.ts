@@ -1,13 +1,18 @@
+import { toBoardArchivedV1 } from '@/modules/boards/application/contracts/board-archived.v1'
 import { toBoardCreatedV1 } from '@/modules/boards/application/contracts/board-created.v1'
 import { toBoardRenamedV1 } from '@/modules/boards/application/contracts/board-renamed.v1'
+import { toBoardRestoredV1 } from '@/modules/boards/application/contracts/board-restored.v1'
+import { toListArchivedV1 } from '@/modules/boards/application/contracts/list-archived.v1'
 import { toCommentAddedV1 } from '@/modules/boards/application/contracts/comment-added.v1'
 import { toListCreatedV1 } from '@/modules/boards/application/contracts/list-created.v1'
 import { toListRenamedV1 } from '@/modules/boards/application/contracts/list-renamed.v1'
 import { toListReorderedV1 } from '@/modules/boards/application/contracts/list-reordered.v1'
+import { toListRestoredV1 } from '@/modules/boards/application/contracts/list-restored.v1'
 import { toMemberAddedV1 } from '@/modules/boards/application/contracts/member-added.v1'
 import { toMemberLeftV1 } from '@/modules/boards/application/contracts/member-left.v1'
 import { toMemberRemovedV1 } from '@/modules/boards/application/contracts/member-removed.v1'
 import { toOwnershipTransferredV1 } from '@/modules/boards/application/contracts/ownership-transferred.v1'
+import { toTaskArchivedV1 } from '@/modules/boards/application/contracts/task-archived.v1'
 import { toTagCreatedV1 } from '@/modules/boards/application/contracts/tag-created.v1'
 import { toTagDeletedV1 } from '@/modules/boards/application/contracts/tag-deleted.v1'
 import { toTagRecoloredV1 } from '@/modules/boards/application/contracts/tag-recolored.v1'
@@ -18,6 +23,7 @@ import { toTaskDescriptionChangedV1 } from '@/modules/boards/application/contrac
 import { toTaskMovedV1 } from '@/modules/boards/application/contracts/task-moved.v1'
 import { toTaskRenamedV1 } from '@/modules/boards/application/contracts/task-renamed.v1'
 import { toTaskReorderedV1 } from '@/modules/boards/application/contracts/task-reordered.v1'
+import { toTaskRestoredV1 } from '@/modules/boards/application/contracts/task-restored.v1'
 import { toTaskTaggedV1 } from '@/modules/boards/application/contracts/task-tagged.v1'
 import { toTaskUntaggedV1 } from '@/modules/boards/application/contracts/task-untagged.v1'
 import { toTaskUnassignedV1 } from '@/modules/boards/application/contracts/task-unassigned.v1'
@@ -37,6 +43,10 @@ export function translateBoardEvents(
         return toBoardCreatedV1(event)
       case 'BoardRenamed':
         return toBoardRenamedV1(event)
+      case 'BoardArchived':
+        return toBoardArchivedV1(event)
+      case 'BoardRestored':
+        return toBoardRestoredV1(event)
       case 'MemberAdded':
         return toMemberAddedV1(event)
       case 'MemberRemoved':
@@ -69,6 +79,10 @@ export function translateListEvents(
         return toListRenamedV1(event)
       case 'ListReordered':
         return toListReorderedV1(event)
+      case 'ListArchived':
+        return toListArchivedV1(event)
+      case 'ListRestored':
+        return toListRestoredV1(event)
     }
   })
 }
@@ -89,6 +103,10 @@ export function translateTaskEvents(
         return toTaskMovedV1(event)
       case 'TaskReordered':
         return toTaskReorderedV1(event)
+      case 'TaskArchived':
+        return toTaskArchivedV1(event)
+      case 'TaskRestored':
+        return toTaskRestoredV1(event)
       case 'TaskTagged':
         return toTaskTaggedV1(event)
       case 'TaskUntagged':

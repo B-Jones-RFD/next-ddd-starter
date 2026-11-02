@@ -43,7 +43,7 @@ async function Tags({ params }: Pick<Props, 'params'>) {
   if (!board.ok) notFound()
   const tags = await listTags({ actorId: actor.userId, boardId })
   if (!tags.ok) notFound()
-  const { id, name } = board.value
+  const { id, name, archived } = board.value
 
   return (
     <div className='flex flex-col gap-6'>
@@ -78,27 +78,36 @@ async function Tags({ params }: Pick<Props, 'params'>) {
                 className='flex flex-wrap items-center justify-between gap-3 p-3'
               >
                 <TagBadge tag={tag} className='text-sm' />
-                <div className='flex flex-wrap items-start justify-end gap-2'>
-                  <EditTagDialog boardId={id} tag={tag} />
-                  <DeleteTagForm boardId={id} tag={tag} />
-                </div>
+                {!archived && (
+                  <div className='flex flex-wrap items-start justify-end gap-2'>
+                    <EditTagDialog boardId={id} tag={tag} />
+                    <DeleteTagForm boardId={id} tag={tag} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
         <p className='text-sm text-muted-foreground'>
-          Deleting a tag removes it from every task that has it.
+          {archived
+            ? 'The board is archived, so its tags can’t change.'
+            : 'Deleting a tag removes it from every task that has it.'}
         </p>
       </section>
-      <section
-        aria-labelledby='new-tag-heading'
-        className='flex max-w-2xl flex-col gap-4'
-      >
-        <h2 id='new-tag-heading' className='font-heading text-lg font-semibold'>
-          New tag
-        </h2>
-        <CreateTagForm key={tags.value.length} boardId={id} />
-      </section>
+      {!archived && (
+        <section
+          aria-labelledby='new-tag-heading'
+          className='flex max-w-2xl flex-col gap-4'
+        >
+          <h2
+            id='new-tag-heading'
+            className='font-heading text-lg font-semibold'
+          >
+            New tag
+          </h2>
+          <CreateTagForm key={tags.value.length} boardId={id} />
+        </section>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { transferOwnership as transferOwnershipOperation } from '@/modules/boards/domain/board/board'
 import type { NotAMemberError } from '@/modules/boards/domain/board/board.errors'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
@@ -35,6 +36,7 @@ export async function transferOwnership(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | NotAMemberError
     | ConflictError
   >

@@ -45,6 +45,9 @@ const FIELD_WORDING: Record<string, Record<string, string>> = {
   currentPassword: {
     required: 'Enter your current password.',
   },
+  confirmName: {
+    required: 'Type the board’s name to confirm.',
+  },
   newPassword: {
     required: 'Enter a new password.',
     'too-short': 'Use at least 8 characters.',
@@ -103,6 +106,14 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     message:
       'You’re the Owner. Make another member the Owner before you leave.',
   }),
+  'boards.board.archived': () => ({
+    message: 'This board is archived. The Owner can restore it.',
+  }),
+  'boards.board.name-mismatch': () => ({
+    message: 'The name you typed doesn’t match the board’s name.',
+    fields: { confirmName: 'Type the board’s name exactly as shown.' },
+  }),
+
   'boards.board.tag-name-taken': () => ({
     message: 'That tag name is taken.',
     fields: {
@@ -110,10 +121,15 @@ const WORDING: Record<string, (error: Coded) => Omit<ActionError, 'code'>> = {
     },
   }),
   'boards.list.archived': () => ({
-    message: 'That list was archived. Reload the page and choose another list.',
+    message:
+      'That list is archived. Restore the list first, or reload the page and choose another list.',
+  }),
+  'boards.list.has-active-tasks': () => ({
+    message:
+      'This list still has active tasks. Archive them or move them to another list first.',
   }),
   'boards.task.archived': () => ({
-    message: 'That task was archived, so it can’t be changed.',
+    message: 'This task is archived. Restore it to change it.',
   }),
   unauthenticated: () => ({ message: 'Sign in to continue.' }),
   forbidden: () => ({ message: 'You can’t do that here.' }),
