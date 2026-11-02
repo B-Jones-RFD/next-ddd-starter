@@ -197,7 +197,7 @@ Site: [Observability](https://b-jones-rfd.github.io/next-ddd-starter/observabili
 Site: [Auth](https://b-jones-rfd.github.io/next-ddd-starter/auth/)
 
 - **Choose authentication and sessions per project.** Here, sessions are rows in identity's database, with an opaque 256-bit cookie token and only its SHA-256 hash stored, plus scrypt passwords and 7-day idle and 30-day absolute expiry. _This app's choice; decide per project_. The rest of this section is the seam to keep. `review`
-- **Reach authentication from `app/` only through identity's `api.ts`.** `authenticate(token)` returns `{ userId, displayName }`, and session ids never leave identity. Cookies are read only in `src/app/`, which passes the raw token in. `lint`
+- **Reach authentication from `app/` only through identity's `api.ts`.** `authenticate(token)` returns `{ userId, displayName }`, and session ids never leave identity. Cookies are read only in `src/app/`, which passes the raw token in, and in `proxy.ts`, which only checks that one exists. `lint`
 - **Pass an explicit `actorId: UserId` to every other context.** Swapping in an external provider then changes only identity, the cookie handling in `app/` and `proxy.ts`. `type`
 - **Get the actor with `getActor()`** from `src/app/_lib/auth/`. It is server-only, memoized with React `cache()` and never `'use cache: private'`. Read it inside `<Suspense>`, in every page and action that needs it, never only in a layout. `review`
 - **Authorize commands in the domain and queries in the read.** `app/` only hides UI. `test`

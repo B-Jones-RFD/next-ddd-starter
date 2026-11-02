@@ -18,11 +18,13 @@ const noParentRelative = {
   regex: '^\\.\\.(?:/|$)',
   message: "Use the '@/' alias instead of '../'.",
 }
+// #region no-next-or-react
 const noNextOrReact = {
   group: ['next', 'next/*', 'react', 'react/*', 'react-dom', 'react-dom/*'],
   message:
     'Next and React are imported only in src/app/ and the root proxy.ts/instrumentation.ts shims.',
 }
+// #endregion no-next-or-react
 const noZod = {
   group: ['zod', 'zod/*'],
   message: 'Zod is imported only in a module’s application/ input schemas.',
@@ -231,12 +233,14 @@ const boundaries = [
     files: [`src/app/${TS}`],
     rules: {
       ...restrictSrc(
+        // #region app-imports
         {
           regex:
             '^@/(?!app/|modules/[^/]+/api$|shared/infrastructure/logging$)',
           message:
             'src/app/ imports only @/modules/*/api, @/app/** and @/shared/infrastructure/logging.',
         },
+        // #endregion app-imports
         {
           group: ['@opentelemetry/*'],
           message:
