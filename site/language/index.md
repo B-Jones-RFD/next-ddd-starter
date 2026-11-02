@@ -14,10 +14,10 @@ The standards give the language one rule, in [§3 Domain](/standards/#_3-domain)
 Each bounded context keeps its own glossary beside its code, in `src/modules/<context>/GLOSSARY.md`, as [§2 Layout](/standards/#_2-layout-and-boundaries) requires. One file at the repo root, `GLOSSARY-MAP.md`, indexes them:
 
 - **[Identity](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/identity/GLOSSARY.md)**: User, Display name, Credentials, Session, Sign-in, Sign-out.
-- **[Boards](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/boards/GLOSSARY.md)**: Board member, Owner, Member, Board, List, Task, Assignee, Tag, Tag color, Archived, Active, Comment.
+- **[Boards](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/boards/GLOSSARY.md)**: Person, Board member, Owner, Member, Board, List, Task, Assignee, Tag, Tag color, Archived, Active, Comment.
 - **[Audit](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/src/modules/audit/GLOSSARY.md)**: Audit log, Audit entry, Consequence, Activity, Board log, User log.
 
-The map also says how the contexts relate, in their own words: a Board member is a user seen from boards, every boards state change becomes an Audit entry, and `UserId` is the only domain type all three share.
+The map also says how the contexts relate, in their own words: a Person is a user seen from boards and a Board member is a Person an Owner has added, every boards state change becomes an Audit entry, and `UserId` is the only domain type all three share.
 
 ```mermaid
 flowchart TD

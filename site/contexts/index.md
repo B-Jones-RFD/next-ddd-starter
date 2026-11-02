@@ -9,7 +9,7 @@ How bounded contexts ask through consumer-owned ports and tell through versioned
 
 This page explains the rules in [§6 Between contexts](/standards/#_6-between-contexts) of the standards, using the code that follows them. The standards own the rules. This page only says what they look like and why they exist.
 
-The app has three contexts. **Identity** owns the User and the Session. **Boards** owns the Board, the List and the Task. **Audit** owns the Audit log. They work together in only two ways:
+The app has three contexts. **Identity** owns the User and the Session. **Boards** owns the Board (with its Tags), the List, the Task and the Comment. **Audit** owns the Audit log. They work together in only two ways:
 
 - **Ask.** A context that needs an answer now calls a port it owns, and that port's adapter calls the other context's `api.ts`.
 - **Tell.** A context that changes state publishes an integration event, and any context that cares handles it later.
@@ -43,7 +43,7 @@ Solid arrows are calls that wait for an answer. Dotted arrows are events the rel
 
 ## Ask through a port the consumer owns
 
-When a Board member adds someone by email, boards has to ask identity who that is. It doesn't import identity's `findUserByEmail` into a use case. It declares the question in its own words, in its own `application/ports/`:
+When a board's Owner adds someone by email, boards has to ask identity who that is. It doesn't import identity's `findUserByEmail` into a use case. It declares the question in its own words, in its own `application/ports/`:
 
 <<< @/../src/modules/boards/application/ports/people-directory.port.ts{ts}
 

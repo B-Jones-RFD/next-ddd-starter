@@ -29,8 +29,8 @@ sequenceDiagram
   participant Au as audit handler
   A->>API: renameTask({ actorId, taskId, title })
   API->>C: traced('boards.renameTask')
-  C->>R: findById(taskId)
-  C->>D: renameTask(task, role, title)
+  C->>R: findById(taskId), then the task's Board
+  C->>D: renameTask(task, membershipOn(board, actorId), title)
   D-->>C: { state, events: [TaskRenamed] }
   C->>R: save(state, events, origin)
   R->>O: same transaction: task row + outbox rows

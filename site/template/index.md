@@ -133,7 +133,7 @@ Application tests call `api.ts` on the mock adapters, the way `app/` does. `test
 
 <<< @/../tests/modules/boards/application/comments.test.ts#non-member{ts}
 
-It checks both halves: the result is the declared error, and nothing reached Activity. Comments added a command but no query, so the membership test is unchanged. Activity is audit's query, and its membership case already covers it.
+It checks both halves: the result is the declared error, and nothing reached Activity. Comments added a command but no query, so the membership proof only gained `addComment` in its list of commands. Activity is audit's query, and its membership case already covers it.
 
 ### 8. Edge
 

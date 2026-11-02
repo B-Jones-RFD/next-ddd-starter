@@ -7,7 +7,7 @@ adrs: ['0003', '0007', '0008', '0011', '0012']
 
 What is tested where, how the mocks are kept honest, and when work is done.
 
-The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the tests the build has landed so far: identity's sign-up, sign-in and sessions, and boards with its Board members and lists. The standards own the rules. This page only explains them.
+The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the repo's own tests: identity's accounts and sessions, boards' boards, lists, tasks, tags, assignees and comments, and audit's Activity and logs. The standards own the rules. This page only explains them.
 
 ## Four seams, chosen on purpose
 
@@ -161,7 +161,7 @@ Three details make it a proof rather than a check:
 - **Someone else's data exists.** Ada's board is created in `beforeEach`, so an empty list means the read filtered, not that there was nothing to find.
 - **An exemption needs a reason.** A query that takes no actor can't be called as a non-member, so it is listed as exempt with why. Identity exempts only `authenticate`, which takes a session token. Its `findUserByEmail` does take an actor, and in identity membership means being a registered user, so its case calls it with an id nobody registered and expects `ForbiddenError`.
 
-Audit exports nothing yet, and still has its proof file, so its first query fails until it has a case.
+Audit's proof covers `getActivity`, `getBoardLog` and `getUserLog`. Its `isDenied` also accepts an empty page (`entries: []`), the shape audit's views return.
 
 ## E2E: a few critical flows, on a real build
 

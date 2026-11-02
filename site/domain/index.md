@@ -11,12 +11,12 @@ The domain is where a context's rules live: who may rename a task, how long a ti
 
 ## Speak the context's language
 
-Every name in a context's domain comes from its glossary: `src/modules/<context>/GLOSSARY.md`, indexed by `GLOSSARY-MAP.md` at the repo root. In boards, the things are a Board, a List and a Task. The people are Board members, and each one is the Owner or a Member. The glossary lists the synonyms to avoid next to each term, so a task is never a "card" and a list is never a "column" or "status" in code, UI or docs.
+Every name in a context's domain comes from its glossary: `src/modules/<context>/GLOSSARY.md`, indexed by `GLOSSARY-MAP.md` at the repo root. In boards, the things are a Board, a List, a Task, a Tag and a Comment. The people are Persons, and on a board they are Board members, each one the Owner or a Member. The glossary lists the synonyms to avoid next to each term, so a task is never a "card" and a list is never a "column" or "status" in code, UI or docs.
 
 Why:
 
 - **One word means one thing.** When code, screens and conversation use the same term, nobody has to translate. A reader who knows the glossary can find the code, and the reverse.
-- **The same word can mean different things in different contexts.** A "user" in identity is a person who can sign in. In boards that person appears only as a Board member. Each context's glossary is the authority inside that context ([ADR 0006](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0006-contexts-integrate-through-consumer-owned-ports-and-published-events.md); see [Language](/language/)).
+- **The same word can mean different things in different contexts.** A "user" in identity is a person who can sign in. In boards that person is a Person, and a Board member once an Owner adds them. Each context's glossary is the authority inside that context ([ADR 0006](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0006-contexts-integrate-through-consumer-owned-ports-and-published-events.md); see [Language](/language/)).
 - **Changing the glossary comes first.** A new or renamed term goes into `GLOSSARY.md` before it goes into code, so the code never invents vocabulary.
 
 ## Immutable types and pure functions
@@ -55,15 +55,18 @@ The events an aggregate can raise are a union in `<aggregate>.events.ts`, one ty
 
 ## Small aggregates, referred to by id
 
-The design has five aggregates: Board, List, Task, Comment and User (Comment arrives with comments). Each one refers to the others only by id. A Task holds its `boardId` and `listId`, and a List holds its `boardId`, as the type above shows. A Board doesn't hold its lists, and a List doesn't hold its tasks ([ADR 0001](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0001-small-aggregates-with-parent-owned-order.md)).
+The design has six aggregates: Board, List, Task and Comment in boards, and User and Session in identity. Each one refers to the others only by id. A Task holds its `boardId` and `listId`, and a List holds its `boardId`, as the type above shows. A Board doesn't hold its lists, and a List doesn't hold its tasks ([ADR 0001](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0001-small-aggregates-with-parent-owned-order.md)).
 
 ```mermaid
 flowchart LR
   board["Board<br/>members, roles"]
   list["List<br/>boardId, position"]
   task["Task<br/>boardId, listId, position"]
+  comment["Comment<br/>taskId, boardId"]
   user["User<br/>(identity)"]
   list -->|boardId| board
+  comment -->|taskId| task
+  comment -->|boardId| board
   task -->|listId| list
   task -->|boardId| board
   board -.->|"members[].userId"| user
@@ -81,10 +84,11 @@ Each aggregate's folder in `domain/` holds its root, its value objects, its even
 
 ```
 src/modules/boards/domain/
-  board/     board.ts  board-id.ts  board-name.ts  board.events.ts  board.errors.ts  board-repository.port.ts
+  board/     board.ts  board-id.ts  board-name.ts  tag.ts  tag-name.ts  tag-color.ts  board.events.ts  board.errors.ts  board-repository.port.ts
   list/      list.ts   list-id.ts   list-name.ts   list.events.ts   list.errors.ts   list-repository.port.ts
-  task/      task.ts   task-id.ts   task-title.ts  task-description.ts  task.events.ts  task-repository.port.ts
-  services/  task-placement.service.ts
+  task/      task.ts   task-id.ts   task-title.ts  task-description.ts  task.events.ts  task.errors.ts  task-repository.port.ts
+  comment/   comment.ts  comment-id.ts  comment-text.ts  comment.events.ts  comment-repository.port.ts
+  services/  archiving.service.ts  task-assignment.service.ts  task-placement.service.ts  task-tagging.service.ts
 ```
 
 The repository port lives with the aggregate, not in `application/ports/`, because what the domain can load and save is part of its language. `ITaskRepository.findLastInList` exists because a new task goes after the last one. Its adapters live in `infrastructure/` (see [Infrastructure](/infrastructure/)).
