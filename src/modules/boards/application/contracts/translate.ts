@@ -11,6 +11,7 @@ import { toTagCreatedV1 } from '@/modules/boards/application/contracts/tag-creat
 import { toTagDeletedV1 } from '@/modules/boards/application/contracts/tag-deleted.v1'
 import { toTagRecoloredV1 } from '@/modules/boards/application/contracts/tag-recolored.v1'
 import { toTagRenamedV1 } from '@/modules/boards/application/contracts/tag-renamed.v1'
+import { toTaskAssignedV1 } from '@/modules/boards/application/contracts/task-assigned.v1'
 import { toTaskCreatedV1 } from '@/modules/boards/application/contracts/task-created.v1'
 import { toTaskDescriptionChangedV1 } from '@/modules/boards/application/contracts/task-description-changed.v1'
 import { toTaskMovedV1 } from '@/modules/boards/application/contracts/task-moved.v1'
@@ -18,6 +19,7 @@ import { toTaskRenamedV1 } from '@/modules/boards/application/contracts/task-ren
 import { toTaskReorderedV1 } from '@/modules/boards/application/contracts/task-reordered.v1'
 import { toTaskTaggedV1 } from '@/modules/boards/application/contracts/task-tagged.v1'
 import { toTaskUntaggedV1 } from '@/modules/boards/application/contracts/task-untagged.v1'
+import { toTaskUnassignedV1 } from '@/modules/boards/application/contracts/task-unassigned.v1'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
 import type { ListEvent } from '@/modules/boards/domain/list/list.events'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
@@ -89,6 +91,10 @@ export function translateTaskEvents(
         return toTaskTaggedV1(event)
       case 'TaskUntagged':
         return toTaskUntaggedV1(event)
+      case 'TaskAssigned':
+        return toTaskAssignedV1(event)
+      case 'TaskUnassigned':
+        return toTaskUnassignedV1(event)
     }
   })
 }

@@ -20,6 +20,7 @@ import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { EventOrigin } from '@/shared/kernel/events'
 import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
+import type { UserId } from '@/shared/kernel/user-id'
 
 const PORT = 'ITaskRepository'
 
@@ -35,7 +36,11 @@ type TaskRow = {
   version: number
 }
 
-function toTask(row: TaskRow, tagIds: readonly TagId[]): Task {
+function toTask(
+  row: TaskRow,
+  assignees: readonly UserId[],
+  tagIds: readonly TagId[]
+): Task {
   return {
     id: row.id as TaskId,
     boardId: row.board_id as BoardId,
@@ -44,6 +49,7 @@ function toTask(row: TaskRow, tagIds: readonly TagId[]): Task {
     description: row.description as TaskDescription,
     tagIds,
     position: row.position,
+    assignees,
     archived: row.archived === 1,
     createdAt: new Date(row.created_at),
     version: row.version,
@@ -51,8 +57,8 @@ function toTask(row: TaskRow, tagIds: readonly TagId[]): Task {
 }
 
 /**
- * Tasks in `boards_tasks`, one row per task, with their tags in
- * `boards_task_tags`.
+ * Tasks in `boards_tasks`, one row per task, with their assignees in
+ * `boards_task_assignees` and their tags in `boards_task_tags`.
  */
 export class TaskRepository implements ITaskRepository {
   constructor(
@@ -60,61 +66,83 @@ export class TaskRepository implements ITaskRepository {
     private readonly outbox: IOutbox
   ) {}
 
-  /** The rows as tasks, each with its tag ids in the order attached. */
-  private withTags(rows: readonly TaskRow[]): Task[] {
-    if (rows.length === 0) return []
-    const tagRows = this.db
-      .prepare(
-        `SELECT task_id, tag_id FROM boards_task_tags
-         WHERE task_id IN (SELECT value FROM json_each(?))
-         ORDER BY task_id, position`
-      )
-      .all(JSON.stringify(rows.map((row) => row.id))) as {
-      task_id: string
-      tag_id: string
-    }[]
-    const byTask = new Map<string, TagId[]>()
-    for (const { task_id, tag_id } of tagRows) {
-      byTask.set(task_id, [...(byTask.get(task_id) ?? []), toTagId(tag_id)])
-    }
-    return rows.map((row) => toTask(row, byTask.get(row.id) ?? []))
-  }
-
   async findById(id: TaskId): Promise<Result<Task, NotFoundError>> {
-    const [task] = query(PORT, () => {
-      const row = this.db
-        .prepare('SELECT * FROM boards_tasks WHERE id = ?')
-        .get(id) as TaskRow | undefined
-      return this.withTags(row ? [row] : [])
-    })
-    return task ? ok(task) : err(new NotFoundError('Task', id))
+    const row = query(
+      PORT,
+      () =>
+        this.db.prepare('SELECT * FROM boards_tasks WHERE id = ?').get(id) as
+          TaskRow | undefined
+    )
+    return row ? ok(this.withChildren(row)) : err(new NotFoundError('Task', id))
   }
 
   async findLastInList(listId: ListId): Promise<Task | null> {
-    const [task] = query(PORT, () => {
-      const row = this.db
+    const row = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT * FROM boards_tasks WHERE list_id = ?
+             ORDER BY position DESC, id DESC LIMIT 1`
+          )
+          .get(listId) as TaskRow | undefined
+    )
+    return row ? this.withChildren(row) : null
+  }
+
+  async findAssignedTo(boardId: BoardId, userId: UserId): Promise<Task[]> {
+    return query(PORT, () => {
+      const rows = this.db
         .prepare(
-          `SELECT * FROM boards_tasks WHERE list_id = ?
-           ORDER BY position DESC, id DESC LIMIT 1`
+          `SELECT t.* FROM boards_tasks t
+           JOIN boards_task_assignees a ON a.task_id = t.id AND a.user_id = ?
+           WHERE t.board_id = ?
+           ORDER BY t.id`
         )
-        .get(listId) as TaskRow | undefined
-      return this.withTags(row ? [row] : [])
+        .all(userId, boardId) as TaskRow[]
+      return rows.map((row) => this.withChildren(row))
     })
-    return task ?? null
   }
 
   async findTaggedWith(tagId: TagId): Promise<Task[]> {
-    return query(PORT, () =>
-      this.withTags(
+    return query(PORT, () => {
+      const rows = this.db
+        .prepare(
+          `SELECT t.* FROM boards_tasks t
+           JOIN boards_task_tags tt ON tt.task_id = t.id AND tt.tag_id = ?
+           ORDER BY t.id`
+        )
+        .all(tagId) as TaskRow[]
+      return rows.map((row) => this.withChildren(row))
+    })
+  }
+
+  /** The row as a task, with its assignees and tags in the order added. */
+  private withChildren(row: TaskRow): Task {
+    const assignees = query(
+      PORT,
+      () =>
         this.db
           .prepare(
-            `SELECT t.* FROM boards_tasks t
-             JOIN boards_task_tags tt ON tt.task_id = t.id
-             WHERE tt.tag_id = ?
-             ORDER BY t.id`
+            `SELECT user_id FROM boards_task_assignees
+             WHERE task_id = ? ORDER BY position`
           )
-          .all(tagId) as TaskRow[]
-      )
+          .all(row.id) as { user_id: string }[]
+    )
+    const tags = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT tag_id FROM boards_task_tags
+             WHERE task_id = ? ORDER BY position`
+          )
+          .all(row.id) as { tag_id: string }[]
+    )
+    return toTask(
+      row,
+      assignees.map((assignee) => assignee.user_id as UserId),
+      tags.map((tag) => toTagId(tag.tag_id))
     )
   }
 
@@ -179,6 +207,16 @@ export class TaskRepository implements ITaskRepository {
       )
       task.tagIds.forEach((tagId, position) => {
         insertTag.run(task.id, tagId, position)
+      })
+      this.db
+        .prepare('DELETE FROM boards_task_assignees WHERE task_id = ?')
+        .run(task.id)
+      const assign = this.db.prepare(
+        `INSERT INTO boards_task_assignees (task_id, user_id, position)
+         VALUES (?, ?, ?)`
+      )
+      task.assignees.forEach((userId, position) => {
+        assign.run(task.id, userId, position)
       })
       this.outbox.append(entries)
       return true

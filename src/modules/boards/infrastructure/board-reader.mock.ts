@@ -3,11 +3,15 @@ import type {
   BoardSummaryDto,
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
-import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
 import type { TagDto } from '@/modules/boards/application/dto/tag.dto'
+import type {
+  AssigneeDto,
+  TaskDto,
+} from '@/modules/boards/application/dto/task.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
 import type { Tag } from '@/modules/boards/domain/board/tag'
+import type { Task } from '@/modules/boards/domain/task/task'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
 import {
   byPositionThenId,
@@ -30,6 +34,14 @@ function membersOf(board: Board): BoardMemberDto[] {
     userId: member.userId,
     displayName: people.get(member.userId)?.person.displayName ?? null,
     role: member.role,
+  }))
+}
+
+function assigneesOf(task: Task): AssigneeDto[] {
+  const { people } = mockPeople()
+  return task.assignees.map((userId) => ({
+    userId,
+    displayName: people.get(userId)?.person.displayName ?? null,
   }))
 }
 
@@ -87,6 +99,7 @@ export class MockBoardReader implements IBoardReader {
               id: task.id,
               title: task.title,
               tags: tagsOf(board, task.tagIds),
+              assignees: assigneesOf(task),
             })),
         })),
     })
@@ -113,6 +126,7 @@ export class MockBoardReader implements IBoardReader {
       listId: list.id,
       listName: list.name,
       tags: tagsOf(board, task.tagIds),
+      assignees: assigneesOf(task),
     })
   }
 

@@ -380,7 +380,7 @@ describe('deleteTag', () => {
 
     await deleteTag({ actorId: ben, boardId, tagId: urgent })
     const tagDeleted = (await new MockOutbox('boards').pending(100)).find(
-      (row) => row.scope === 'domain' && row.envelope.type === 'TagDeleted'
+      (row) => row.envelope.type === 'boards.TagDeleted'
     )
     const saves = vi.spyOn(await getInjection('ITaskRepository'), 'save')
     await relay.drain()
@@ -412,7 +412,7 @@ describe('deleteTag', () => {
     await tagTask({ actorId: ada, taskId, tagId: urgent })
     await deleteTag({ actorId: ada, boardId, tagId: urgent })
     const tagDeleted = (await new MockOutbox('boards').pending(100)).find(
-      (row) => row.envelope.type === 'TagDeleted'
+      (row) => row.envelope.type === 'boards.TagDeleted'
     )
     if (!tagDeleted) throw new Error('setup failed')
     await (await getInjection('IEventRelay')).drain()

@@ -12,6 +12,10 @@ import {
   untagDeletedTag,
 } from '@/modules/boards/application/handlers/untag-deleted-tag'
 import {
+  REASSIGN_TO_OWNER,
+  reassignToOwner,
+} from '@/modules/boards/application/handlers/reassign-to-owner'
+import {
   eventHandler,
   type EventHandler,
 } from '@/shared/kernel/ports/event-relay.port'
@@ -33,10 +37,22 @@ export const EVENT_HANDLERS: readonly EventHandler[] = [
     version: 1,
     handle: recordUserRenamed,
   }),
-  // A domain row: only boards' own handlers receive it (§6).
+  // The published events, so causationId names an Audit entry (ADR 0010).
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'boards.MemberRemoved',
+    version: 1,
+    handle: reassignToOwner,
+  }),
+  eventHandler({
+    name: REASSIGN_TO_OWNER,
+    eventType: 'boards.MemberLeft',
+    version: 1,
+    handle: reassignToOwner,
+  }),
   eventHandler({
     name: UNTAG_DELETED_TAG,
-    eventType: 'TagDeleted',
+    eventType: 'boards.TagDeleted',
     version: 1,
     handle: untagDeletedTag,
   }),

@@ -76,6 +76,10 @@ export function entryWording(entry: AuditEntryDto, names: Names): string {
       return `added the tag ${tagName(names, entry.details.tagId)}`
     case 'task.untagged':
       return `removed the tag ${tagName(names, entry.details.tagId)}`
+    case 'task.assigned':
+      return `assigned ${personName(names, entry.details.userId)}`
+    case 'task.unassigned':
+      return `unassigned ${personName(names, entry.details.userId)}`
   }
 }
 // #endregion wording

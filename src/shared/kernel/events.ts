@@ -9,6 +9,7 @@ export type DomainEvent<Type extends string = string, Payload = unknown> = {
   readonly payload: Payload
 }
 
+// #region integration-event
 /**
  * A published fact for other contexts: `<context>.<Name>` at a version, with
  * a plain, serializable payload (§6). Translated from a domain event.
@@ -21,7 +22,9 @@ export type IntegrationEvent<
   readonly version: number
   readonly payload: Payload
 }
+// #endregion integration-event
 
+// #region origin
 /**
  * Who and what started a change. `actorId` is the user who started the
  * chain, and `causationId` is the id of the event a handler reacted to, or
@@ -31,7 +34,9 @@ export type EventOrigin = {
   readonly actorId: UserId
   readonly causationId: string | null
 }
+// #endregion origin
 
+// #region envelope
 /** The envelope every outbox row carries, and every handler receives (§6). */
 export type EventEnvelope<Type extends string = string, Payload = unknown> = {
   /** UUID v7. */
@@ -46,6 +51,7 @@ export type EventEnvelope<Type extends string = string, Payload = unknown> = {
   readonly causationId: string | null
   readonly payload: Payload
 }
+// #endregion envelope
 
 /** The envelope a handler of integration event `E` receives. */
 export type EnvelopeOf<E extends IntegrationEvent> = EventEnvelope<

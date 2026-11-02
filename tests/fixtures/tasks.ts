@@ -21,6 +21,7 @@ export function aTask(overrides: Partial<Task> = {}): Task {
     description: '' as TaskDescription,
     tagIds: [],
     position: 'V',
+    assignees: [],
     archived: false,
     createdAt: new Date('2026-01-01T10:00:00.000Z'),
     version: 1,

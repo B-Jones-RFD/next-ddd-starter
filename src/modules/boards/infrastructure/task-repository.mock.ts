@@ -1,5 +1,6 @@
 import { translateTaskEvents } from '@/modules/boards/application/contracts/translate'
 import type { TagId } from '@/modules/boards/domain/board/tag'
+import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskId } from '@/modules/boards/domain/task/task-id'
@@ -12,6 +13,7 @@ import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import type { EventOrigin } from '@/shared/kernel/events'
 import type { IOutbox } from '@/shared/kernel/ports/outbox.port'
 import { err, ok, type Result } from '@/shared/kernel/result'
+import type { UserId } from '@/shared/kernel/user-id'
 
 /** The mock tasks store, shared with `MockBoardReader`. */
 export function mockTasks(): Map<string, Task> {
@@ -39,6 +41,15 @@ export class MockTaskRepository implements ITaskRepository {
     return [...mockTasks().values()]
       .filter((task) => task.tagIds.includes(tagId))
       .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .map((task) => structuredClone(task))
+  }
+
+  async findAssignedTo(boardId: BoardId, userId: UserId): Promise<Task[]> {
+    return [...mockTasks().values()]
+      .filter(
+        (task) => task.boardId === boardId && task.assignees.includes(userId)
+      )
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
       .map((task) => structuredClone(task))
   }
 

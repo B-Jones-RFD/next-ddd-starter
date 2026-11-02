@@ -454,6 +454,7 @@ describe('getTask', () => {
         listId: backlog,
         listName: 'Backlog',
         tags: [],
+        assignees: [],
       },
     })
   })

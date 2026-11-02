@@ -66,6 +66,8 @@ export type AuditEntry =
   | Entry<'board', 'tag.deleted', { tagId: string; name: string }>
   | Entry<'task', 'task.tagged', { tagId: string }>
   | Entry<'task', 'task.untagged', { tagId: string }>
+  | Entry<'task', 'task.assigned', { userId: string }>
+  | Entry<'task', 'task.unassigned', { userId: string }>
 // #endregion audit-entry
 
 export type AuditAction = AuditEntry['action']

@@ -43,7 +43,7 @@ describe('createTask', () => {
       ...overrides,
     })
 
-  it('creates an active task with no description at version 0 and raises TaskCreated', () => {
+  it('creates an active task with no description or assignees at version 0 and raises TaskCreated', () => {
     expect(create()).toEqual({
       ok: true,
       value: {
@@ -55,6 +55,7 @@ describe('createTask', () => {
           description: '',
           tagIds: [],
           position: 'V',
+          assignees: [],
           archived: false,
           createdAt: now,
           version: 0,
