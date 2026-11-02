@@ -7,7 +7,7 @@ adrs: ['0003', '0007', '0008', '0011', '0012']
 
 What is tested where, how the mocks are kept honest, and when work is done.
 
-The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the tests the build has landed so far: identity's sign-up, sign-in and sessions, and boards with its Board members. The standards own the rules. This page only explains them.
+The rules are in [§11 Testing and definition of done](/standards/#_11-testing-and-definition-of-done). This page explains them with the tests the build has landed so far: identity's sign-up, sign-in and sessions, and boards with its Board members and lists. The standards own the rules. This page only explains them.
 
 ## Four seams, chosen on purpose
 
