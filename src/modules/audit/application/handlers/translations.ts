@@ -435,6 +435,7 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
       },
       names: [],
     }),
+    // #region comment-added
     // A comment is filed on its task, so it shows in the task's Activity.
     'boards.CommentAdded': (e) => ({
       entry: {
@@ -444,6 +445,7 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
       },
       names: [],
     }),
+    // #endregion comment-added
   }
 // #endregion translations
 

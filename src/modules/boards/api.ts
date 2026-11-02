@@ -53,7 +53,9 @@ export const changeTaskDescription = traced(
 )
 export const reorderTask = traced('boards.reorderTask', reorderTaskCommand)
 export const moveTask = traced('boards.moveTask', moveTaskCommand)
+// #region add-comment
 export const addComment = traced('boards.addComment', addCommentCommand)
+// #endregion add-comment
 export const createTag = traced('boards.createTag', createTagCommand)
 export const renameTag = traced('boards.renameTag', renameTagCommand)
 export const recolorTag = traced('boards.recolorTag', recolorTagCommand)

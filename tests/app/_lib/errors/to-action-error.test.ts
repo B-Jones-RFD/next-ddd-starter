@@ -196,6 +196,7 @@ describe('toActionError', () => {
     ).toEqual({ confirmName: 'Type the board’s name to confirm.' })
   })
 
+  // #region comment-field
   it('words an empty or too-long comment under its field', () => {
     expect(
       toActionError(new ValidationError({ text: 'required' })).fields
@@ -204,6 +205,7 @@ describe('toActionError', () => {
       toActionError(new ValidationError({ text: 'too-long' })).fields
     ).toEqual({ text: 'Use 2000 characters or fewer.' })
   })
+  // #endregion comment-field
 
   it('turns anything thrown into unexpected, with the trace id as its reference', async () => {
     const outage = new PersistenceError('IUserRepository', { retryable: true })

@@ -127,6 +127,7 @@ describe('addComment', () => {
     )
   })
 
+  // #region non-member
   it('rejects someone who isn’t a Board member, adding nothing', async () => {
     const cy = await givenUser('Cy', 'cy@example.com')
 
@@ -136,6 +137,7 @@ describe('addComment', () => {
     })
     expect((await activity()).entries).toHaveLength(1)
   })
+  // #endregion non-member
 
   it('rejects a comment on an archived task', async () => {
     await archivedFromNow(taskId)
