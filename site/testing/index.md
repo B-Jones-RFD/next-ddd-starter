@@ -159,7 +159,7 @@ Three details make it a proof rather than a check:
 
 - **It reads the exports.** The first case compares the names `api.ts` exports with the names the proof lists. Add a query without a case and the test fails, before anyone has written a test for the query itself.
 - **Someone else's data exists.** Ada's board is created in `beforeEach`, so an empty list means the read filtered, not that there was nothing to find.
-- **An exemption needs a reason.** A query that takes no actor can't be called as a non-member, so it is listed as exempt with why. Identity exempts `authenticate`, which takes a session token, and `findUserByEmail`, which boards lets only an Owner call.
+- **An exemption needs a reason.** A query that takes no actor can't be called as a non-member, so it is listed as exempt with why. Identity exempts only `authenticate`, which takes a session token. Its `findUserByEmail` does take an actor, and in identity membership means being a registered user, so its case calls it with an id nobody registered and expects `ForbiddenError`.
 
 Audit exports nothing yet, and still has its proof file, so its first query fails until it has a case.
 

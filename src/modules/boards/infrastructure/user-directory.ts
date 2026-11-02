@@ -2,8 +2,16 @@ import type {
   DirectoryUser,
   IUserDirectory,
 } from '@/modules/boards/application/ports/user-directory.port'
-import { findUserByEmail, NotFoundError } from '@/modules/identity/api'
-import { ValidationError } from '@/shared/kernel/errors/domain-error'
+import {
+  findUserByEmail,
+  ForbiddenError as IdentityForbiddenError,
+  NotFoundError,
+  ValidationError as IdentityValidationError,
+} from '@/modules/identity/api'
+import {
+  ForbiddenError,
+  ValidationError,
+} from '@/shared/kernel/errors/domain-error'
 import {
   InfrastructureError,
   PersistenceError,
@@ -24,7 +32,7 @@ export class UserDirectory implements IUserDirectory {
   async findByEmail(
     actorId: UserId,
     email: string
-  ): Promise<Result<DirectoryUser | null, ValidationError>> {
+  ): Promise<Result<DirectoryUser | null, ValidationError | ForbiddenError>> {
     let found: Awaited<ReturnType<typeof findUserByEmail>>
     try {
       found = await findUserByEmail({ actorId, email })
@@ -43,8 +51,11 @@ export class UserDirectory implements IUserDirectory {
       return ok({ userId, displayName, email: address })
     }
     if (found.error instanceof NotFoundError) return ok(null)
-    if (found.error instanceof ValidationError) {
+    if (found.error instanceof IdentityValidationError) {
       return err(new ValidationError(found.error.fields))
+    }
+    if (found.error instanceof IdentityForbiddenError) {
+      return err(new ForbiddenError())
     }
     return found.error satisfies never
   }

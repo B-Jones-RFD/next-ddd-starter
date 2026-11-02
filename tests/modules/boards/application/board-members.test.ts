@@ -343,10 +343,10 @@ describe('searchUsers', () => {
 
   it('throws an outage from identity as the directory’s own', async () => {
     vi.spyOn(
-      await getInjection('IUserRepository'),
+      await getInjection('IUserReader'),
       'findByEmail'
     ).mockRejectedValueOnce(
-      new PersistenceError('IUserRepository', { retryable: true })
+      new PersistenceError('IUserReader', { retryable: true })
     )
 
     await expect(
@@ -356,25 +356,25 @@ describe('searchUsers', () => {
 })
 
 describe('roleOf', () => {
-  it('gives each user’s role on the board, and null for anyone else', async () => {
+  it('gives the actor their own role on the board, and null to anyone else', async () => {
     await givenMember(ben)
 
-    expect(await roleOf({ boardId, userId: ada })).toEqual({
+    expect(await roleOf({ actorId: ada, boardId })).toEqual({
       ok: true,
       value: 'owner',
     })
-    expect(await roleOf({ boardId, userId: ben })).toEqual({
+    expect(await roleOf({ actorId: ben, boardId })).toEqual({
       ok: true,
       value: 'member',
     })
-    expect(await roleOf({ boardId, userId: cy })).toEqual({
+    expect(await roleOf({ actorId: cy, boardId })).toEqual({
       ok: true,
       value: null,
     })
   })
 
   it('returns ValidationError without a board id', async () => {
-    const result = await roleOf({ boardId: '', userId: ada })
+    const result = await roleOf({ actorId: ada, boardId: '' })
 
     expect(result.ok).toBe(false)
     expect(!result.ok && result.error).toBeInstanceOf(ValidationError)

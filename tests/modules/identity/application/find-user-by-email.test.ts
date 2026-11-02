@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   authenticate,
   findUserByEmail,
+  ForbiddenError,
   NotFoundError,
   signUp,
   ValidationError,
 } from '@/modules/identity/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
+import { toUserId } from '@/shared/kernel/user-id'
 
 import { aSignUp } from '@tests/fixtures/identity'
 
@@ -59,5 +61,16 @@ describe('findUserByEmail', () => {
     expect((result.error as ValidationError).fields).toEqual({
       email: 'invalid',
     })
+  })
+
+  it('returns ForbiddenError to an actor who isn’t a registered user', async () => {
+    await signedUp('Ben', 'ben@example.com')
+
+    expect(
+      await findUserByEmail({
+        actorId: toUserId('user-never-registered'),
+        email: 'ben@example.com',
+      })
+    ).toEqual({ ok: false, error: new ForbiddenError() })
   })
 })

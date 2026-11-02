@@ -91,7 +91,7 @@ describeMembershipProof('boards', api, {
     getTask: () => api.getTask({ actorId: outsider, taskId }),
     searchUsers: () =>
       api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),
-    roleOf: () => api.roleOf({ boardId, userId: outsider }),
+    roleOf: () => api.roleOf({ actorId: outsider, boardId }),
     listTags: () => api.listTags({ actorId: outsider, boardId }),
   },
 })

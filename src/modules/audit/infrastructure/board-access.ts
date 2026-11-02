@@ -19,10 +19,10 @@ const PORT = 'IBoardAccess'
  * mode, boards' `api.ts` runs on boards' mocks.
  */
 export class BoardAccess implements IBoardAccess {
-  async roleOf(boardId: string, userId: UserId): Promise<BoardRole | null> {
+  async roleOf(boardId: string, actorId: UserId): Promise<BoardRole | null> {
     let found: Awaited<ReturnType<typeof roleOf>>
     try {
-      found = await roleOf({ boardId, userId })
+      found = await roleOf({ actorId, boardId })
     } catch (error) {
       if (error instanceof InfrastructureError) {
         throw new PersistenceError(PORT, {
@@ -34,7 +34,7 @@ export class BoardAccess implements IBoardAccess {
     }
 
     if (found.ok) return found.value
-    // An id boards can't even read names no board the user is on.
+    // An id boards can't even read names no board the actor is on.
     if (found.error instanceof ValidationError) return null
     return found.error satisfies never
   }

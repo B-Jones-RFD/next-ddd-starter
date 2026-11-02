@@ -33,8 +33,15 @@ const DAY_MS = 24 * 60 * MINUTE_MS
 export const SESSION_IDLE_LIMIT_MS = 7 * DAY_MS
 /** …and 30 days after it started, however much it is used. */
 export const SESSION_ABSOLUTE_LIMIT_MS = 30 * DAY_MS
-/** `lastSeenAt` is written at most this often (§13). */
+
+// #region touch
+/**
+ * `lastSeenAt` is written at most this often, when `authenticate` sees the
+ * session used: straight through the repository's `touch`, with no event
+ * and no version change (§13).
+ */
 export const SESSION_TOUCH_INTERVAL_MS = MINUTE_MS
+// #endregion touch
 
 type Change = { state: Session; events: SessionEvent[] }
 
@@ -74,20 +81,6 @@ export function isSessionActive(session: Session, now: Date): boolean {
   )
 }
 // #endregion expiry
-
-// #region touch
-/** Whether a use now should record `lastSeenAt`: at most once a minute. */
-export function isTouchDue(session: Session, now: Date): boolean {
-  return (
-    now.getTime() - session.lastSeenAt.getTime() >= SESSION_TOUCH_INTERVAL_MS
-  )
-}
-
-/** The session, seen now. No event: it is written straight through (§13). */
-export function touchSession(session: Session, now: Date): Session {
-  return { ...session, lastSeenAt: now }
-}
-// #endregion touch
 
 /**
  * The user signs out of this session, on its own or as the one they signed

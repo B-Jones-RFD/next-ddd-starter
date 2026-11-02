@@ -1,4 +1,7 @@
-import type { ValidationError } from '@/shared/kernel/errors/domain-error'
+import type {
+  ForbiddenError,
+  ValidationError,
+} from '@/shared/kernel/errors/domain-error'
 import type { Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -15,11 +18,12 @@ export type DirectoryUser = {
  */
 export interface IUserDirectory {
   /**
-   * The user registered with `email`, or null if nobody is.
-   * `ValidationError` if `email` isn't an email address.
+   * The user registered with `email`, or null if nobody is, as `actorId`
+   * may see them. `ValidationError` if `email` isn't an email address, and
+   * `ForbiddenError` if the actor isn't a registered user.
    */
   findByEmail(
     actorId: UserId,
     email: string
-  ): Promise<Result<DirectoryUser | null, ValidationError>>
+  ): Promise<Result<DirectoryUser | null, ValidationError | ForbiddenError>>
 }

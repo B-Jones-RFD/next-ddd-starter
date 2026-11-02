@@ -11,6 +11,7 @@ import type { ITaskRepository } from '@/modules/boards/domain/task/task-reposito
 import type { IPasswordHasher } from '@/modules/identity/application/ports/password-hasher.port'
 import type { ISignInThrottle } from '@/modules/identity/application/ports/sign-in-throttle.port'
 import type { ITokenGenerator } from '@/modules/identity/application/ports/token-generator.port'
+import type { IUserReader } from '@/modules/identity/application/ports/user-reader.port'
 import type { ISessionRepository } from '@/modules/identity/domain/session/session-repository.port'
 import type { IUserRepository } from '@/modules/identity/domain/user/user-repository.port'
 import type { IEventRelay } from '@/shared/kernel/ports/event-relay.port'
@@ -27,6 +28,7 @@ export type Registry = {
   // identity
   IUserRepository: IUserRepository
   ISessionRepository: ISessionRepository
+  IUserReader: IUserReader
   IPasswordHasher: IPasswordHasher
   ITokenGenerator: ITokenGenerator
   ISignInThrottle: ISignInThrottle

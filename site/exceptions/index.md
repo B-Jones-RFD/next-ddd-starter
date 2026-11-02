@@ -51,11 +51,11 @@ Don't copy the edge anywhere else. `domain/` never imports the container, and no
 
 The write is `lastSeenAt`, which the 7-day idle limit is measured from ([ADR 0009](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0009-database-sessions-with-opaque-tokens-not-jwts.md)). A session nobody records using can't expire for idleness, so the write has to happen on the one path every request takes. Two things keep it small.
 
-It happens at most once a minute. The domain decides when a touch is due, and the touch is a plain new state with no event:
+It happens at most once a minute. The domain sets the interval, and `authenticate` compares it with the `lastSeenAt` it read:
 
 <<< @/../src/modules/identity/domain/session/session.ts#touch{ts}
 
-And it goes straight through the session repository, not through `save`. There's no version check, no outbox row and no event, so nothing reaches audit, and a sign-out racing with a touch can't fail either one:
+Everything else `authenticate` does is an ordinary query: it reads who the token signs in through identity's `IUserReader` read port, which returns DTOs and loads no aggregate. The write goes straight through the session repository, not through `save`. There's no version check, no outbox row and no event, so nothing reaches audit, and a sign-out racing with a touch can't fail either one:
 
 <<< @/../src/modules/identity/domain/session/session-repository.port.ts#touch{ts}
 

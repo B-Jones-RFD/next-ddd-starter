@@ -2,11 +2,7 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { ActorDto } from '@/modules/identity/application/dto/session.dto'
-import {
-  isSessionActive,
-  isTouchDue,
-  touchSession,
-} from '@/modules/identity/domain/session/session'
+import { SESSION_TOUCH_INTERVAL_MS } from '@/modules/identity/domain/session/session'
 import { UnauthenticatedError } from '@/shared/kernel/errors/app-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 
@@ -29,20 +25,15 @@ export async function authenticate(
 
   const now = new Date()
   const tokens = await getInjection('ITokenGenerator')
-  const sessions = await getInjection('ISessionRepository')
-  const found = await sessions.findByTokenHash(tokens.hash(shape.data))
-  if (!found.ok || !isSessionActive(found.value, now)) {
-    return err(new UnauthenticatedError())
-  }
-  const session = found.value
+  const users = await getInjection('IUserReader')
+  const signedIn = await users.findSignedIn(tokens.hash(shape.data), now)
+  if (!signedIn) return err(new UnauthenticatedError())
 
-  const users = await getInjection('IUserRepository')
-  const user = await users.findById(session.userId)
-  if (!user.ok) return err(new UnauthenticatedError())
-
-  if (isTouchDue(session, now)) {
-    await sessions.touch(session.id, touchSession(session, now).lastSeenAt)
+  const sinceSeen = now.getTime() - Date.parse(signedIn.lastSeenAt)
+  if (sinceSeen >= SESSION_TOUCH_INTERVAL_MS) {
+    const sessions = await getInjection('ISessionRepository')
+    await sessions.touch(signedIn.sessionId, now)
   }
-  return ok({ userId: user.value.id, displayName: user.value.displayName })
+  return ok(signedIn.actor)
 }
 // #endregion authenticate

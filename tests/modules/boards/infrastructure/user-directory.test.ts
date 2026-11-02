@@ -28,9 +28,9 @@ describe('UserDirectory (over identity’s api.ts)', () => {
   describeUserDirectoryContract({ make: () => new UserDirectory(), register })
 
   it('translates an outage thrown by identity into its own PersistenceError', async () => {
-    const outage = new PersistenceError('IUserRepository', { retryable: true })
+    const outage = new PersistenceError('IUserReader', { retryable: true })
     vi.spyOn(
-      await getInjection('IUserRepository'),
+      await getInjection('IUserReader'),
       'findByEmail'
     ).mockRejectedValueOnce(outage)
 

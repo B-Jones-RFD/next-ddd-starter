@@ -15,6 +15,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
       { MockPasswordHasher },
       { MockTokenGenerator },
       { MockSignInThrottle },
+      { MockUserReader },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/identity/infrastructure/user-repository.mock'),
@@ -22,6 +23,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
       import('@/modules/identity/infrastructure/password-hasher.mock'),
       import('@/modules/identity/infrastructure/token-generator.mock'),
       import('@/modules/identity/infrastructure/sign-in-throttle.mock'),
+      import('@/modules/identity/infrastructure/user-reader.mock'),
     ])
     const outbox = new MockOutbox('identity')
     identity
@@ -39,6 +41,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
     identity
       .bind('ISignInThrottle')
       .toClass(MockSignInThrottle, undefined, 'singleton')
+    identity.bind('IUserReader').toClass(MockUserReader, undefined, 'singleton')
     return identity
   }
   // #endregion mock-mode
@@ -51,6 +54,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
     { PasswordHasher },
     { TokenGenerator },
     { SignInThrottle },
+    { UserReader },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
     import('@/shared/infrastructure/outbox/outbox'),
@@ -59,6 +63,7 @@ export async function loadIdentityModule(mode: AdapterMode) {
     import('@/modules/identity/infrastructure/password-hasher'),
     import('@/modules/identity/infrastructure/token-generator'),
     import('@/modules/identity/infrastructure/sign-in-throttle'),
+    import('@/modules/identity/infrastructure/user-reader'),
   ])
   identity
     .bind('IUserRepository')
@@ -89,5 +94,8 @@ export async function loadIdentityModule(mode: AdapterMode) {
   identity
     .bind('ISignInThrottle')
     .toClass(SignInThrottle, undefined, 'singleton')
+  identity
+    .bind('IUserReader')
+    .toFactory(() => new UserReader(getDatabase()), 'singleton')
   return identity
 }
