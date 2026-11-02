@@ -307,7 +307,7 @@ These are deliberate. Don't "fix" them, and don't copy them anywhere else.
 
 - **`getInjection` is a service locator.** `application/` importing `@/di/container` is a runtime edge pointing outward, while every type still points inward. It isn't a layering bug.
 - **`authenticate` writes during render.** It updates `last_seen_at` at most once a minute, straight through the session repository, with no events. This is the one exception to read-only queries.
-- **When a Board member leaves or is removed**, their assignments pass to the Owner, including on archived tasks. This is a handler-made change, exempt from the read-only rule.
+- **When a Board member leaves or is removed**, their assignments pass to the Owner, including on archived tasks. This is a handler-made change, exempt from the read-only rule. It saves each task in its own transaction and writes no inbox row, because a redelivery finds nothing still assigned to them.
 - **Cross-aggregate read-checks can race.** For example, a task restored just as its list is archived. The resulting states are odd but valid.
 - **All contexts share one SQLite file and connection.** Their tables stay separate by prefix.
 - **Mocks ship in the production bundle.** They load only in mock mode.
