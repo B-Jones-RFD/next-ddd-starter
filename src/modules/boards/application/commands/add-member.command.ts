@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { addMember as addMemberOperation } from '@/modules/boards/domain/board/board'
 import type { AlreadyAMemberError } from '@/modules/boards/domain/board/board.errors'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
@@ -37,6 +38,7 @@ export async function addMember(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | AlreadyAMemberError
     | ConflictError
   >

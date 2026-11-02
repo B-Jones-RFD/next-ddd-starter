@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest'
 
 import {
   addMember,
+  archiveBoard,
   createBoard,
   leaveBoard,
   removeMember,
   renameBoard,
+  restoreBoard,
   transferOwnership,
 } from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
 import {
   AlreadyAMemberError,
+  BoardArchivedError,
+  BoardNameMismatchError,
   NotAMemberError,
   OwnerMustTransferFirstError,
 } from '@/modules/boards/domain/board/board.errors'
@@ -313,5 +317,115 @@ describe('Board membership', () => {
         error: new ForbiddenError(),
       })
     })
+  })
+})
+
+describe('archiveBoard', () => {
+  const ben = toUserId('user-ben')
+  const board = aBoard({
+    name: 'Launch plan' as BoardName,
+    members: [
+      { userId: ada, role: 'owner' },
+      { userId: ben, role: 'member' },
+    ],
+  })
+
+  it('archives the board when the Owner types its name, and raises BoardArchived', () => {
+    expect(archiveBoard(board, ada, ' Launch plan ')).toEqual({
+      ok: true,
+      value: {
+        state: { ...board, archived: true },
+        events: [{ type: 'BoardArchived', payload: { boardId: board.id } }],
+      },
+    })
+  })
+
+  it('refuses a typed name that does not match', () => {
+    const result = archiveBoard(board, ada, 'launch plan')
+
+    expect(result.ok ? null : result.error).toBeInstanceOf(
+      BoardNameMismatchError
+    )
+  })
+
+  it('refuses a Member', () => {
+    const result = archiveBoard(board, ben, 'Launch plan')
+
+    expect(result.ok ? null : result.error).toBeInstanceOf(ForbiddenError)
+  })
+
+  it('raises nothing for a board already archived', () => {
+    const archived = { ...board, archived: true }
+
+    expect(archiveBoard(archived, ada, 'Launch plan')).toEqual({
+      ok: true,
+      value: { state: archived, events: [] },
+    })
+  })
+})
+
+describe('restoreBoard', () => {
+  const ben = toUserId('user-ben')
+  const board = aBoard({
+    archived: true,
+    members: [
+      { userId: ada, role: 'owner' },
+      { userId: ben, role: 'member' },
+    ],
+  })
+
+  it('restores the board for the Owner, and raises BoardRestored', () => {
+    expect(restoreBoard(board, ada)).toEqual({
+      ok: true,
+      value: {
+        state: { ...board, archived: false },
+        events: [{ type: 'BoardRestored', payload: { boardId: board.id } }],
+      },
+    })
+  })
+
+  it('refuses a Member', () => {
+    const result = restoreBoard(board, ben)
+
+    expect(result.ok ? null : result.error).toBeInstanceOf(ForbiddenError)
+  })
+
+  it('raises nothing for an active board', () => {
+    const active = { ...board, archived: false }
+
+    expect(restoreBoard(active, ada)).toEqual({
+      ok: true,
+      value: { state: active, events: [] },
+    })
+  })
+})
+
+describe('an archived board', () => {
+  const ben = toUserId('user-ben')
+  const cy = toUserId('user-cy')
+  const board = aBoard({
+    archived: true,
+    members: [
+      { userId: ada, role: 'owner' },
+      { userId: ben, role: 'member' },
+    ],
+  })
+
+  it.each([
+    ['renameBoard', () => renameBoard(board, ada, 'New name')],
+    ['addMember', () => addMember(board, ada, cy)],
+    ['removeMember', () => removeMember(board, ada, ben)],
+    ['leaveBoard', () => leaveBoard(board, ben)],
+    ['transferOwnership', () => transferOwnership(board, ada, ben)],
+  ])('refuses %s', (_name, change) => {
+    const result = change()
+
+    expect(result.ok ? null : result.error).toBeInstanceOf(BoardArchivedError)
+  })
+
+  it('still refuses a non-member as forbidden first', () => {
+    const result = renameBoard(board, cy, 'New name')
+
+    expect(result.ok ? null : result.error).toBeInstanceOf(ForbiddenError)
   })
 })

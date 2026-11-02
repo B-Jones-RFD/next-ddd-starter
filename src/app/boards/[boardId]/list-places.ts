@@ -6,6 +6,13 @@ export type ListPlace = { after?: string; before?: string }
 
 export type ListMove = 'left' | 'right' | 'first' | 'last'
 
+/**
+ * How the board shows its lists: the Active view, editable; the Archived
+ * view, where archived items can only be restored; or read-only, for an
+ * archived board.
+ */
+export type BoardMode = 'active' | 'archived' | 'read-only'
+
 /** The moves open to the list at `index`, by its current neighbours. */
 export function movesFor(
   ids: readonly string[],

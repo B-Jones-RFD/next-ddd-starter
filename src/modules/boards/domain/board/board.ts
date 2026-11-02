@@ -5,6 +5,8 @@ import {
 } from '@/modules/boards/domain/board/board-name'
 import {
   AlreadyAMemberError,
+  BoardArchivedError,
+  BoardNameMismatchError,
   NotAMemberError,
   OwnerMustTransferFirstError,
 } from '@/modules/boards/domain/board/board.errors'
@@ -76,8 +78,9 @@ export function addMember(
   board: Board,
   actorId: UserId,
   userId: UserId
-): Result<Change, ForbiddenError | AlreadyAMemberError> {
+): Result<Change, ForbiddenError | BoardArchivedError | AlreadyAMemberError> {
   if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (board.archived) return err(new BoardArchivedError())
   if (roleOf(board, userId)) return err(new AlreadyAMemberError())
   return ok({
     state: {
@@ -96,9 +99,13 @@ export function removeMember(
   userId: UserId
 ): Result<
   Change,
-  ForbiddenError | NotAMemberError | OwnerMustTransferFirstError
+  | ForbiddenError
+  | BoardArchivedError
+  | NotAMemberError
+  | OwnerMustTransferFirstError
 > {
   if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (board.archived) return err(new BoardArchivedError())
   const role = roleOf(board, userId)
   if (!role) return err(new NotAMemberError())
   if (role === 'owner') return err(new OwnerMustTransferFirstError())
@@ -112,9 +119,13 @@ export function removeMember(
 export function leaveBoard(
   board: Board,
   actorId: UserId
-): Result<Change, ForbiddenError | OwnerMustTransferFirstError> {
+): Result<
+  Change,
+  ForbiddenError | BoardArchivedError | OwnerMustTransferFirstError
+> {
   const role = roleOf(board, actorId)
   if (!role) return err(new ForbiddenError())
+  if (board.archived) return err(new BoardArchivedError())
   if (role === 'owner') return err(new OwnerMustTransferFirstError())
   return ok({
     state: without(board, actorId),
@@ -133,8 +144,9 @@ export function transferOwnership(
   board: Board,
   actorId: UserId,
   toUserId: UserId
-): Result<Change, ForbiddenError | NotAMemberError> {
+): Result<Change, ForbiddenError | BoardArchivedError | NotAMemberError> {
   if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (board.archived) return err(new BoardArchivedError())
   if (!roleOf(board, toUserId)) return err(new NotAMemberError())
   if (toUserId === actorId) return ok({ state: board, events: [] })
   return ok({
@@ -166,8 +178,9 @@ export function renameBoard(
   board: Board,
   actorId: UserId,
   rawName: string
-): Result<Change, ValidationError | ForbiddenError> {
+): Result<Change, ValidationError | ForbiddenError | BoardArchivedError> {
   if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (board.archived) return err(new BoardArchivedError())
   const name = parseBoardName(rawName)
   if (!name.ok) return name
   if (name.value === board.name) return ok({ state: board, events: [] })
@@ -179,5 +192,39 @@ export function renameBoard(
         payload: { boardId: board.id, from: board.name, to: name.value },
       },
     ],
+  })
+}
+
+// #region archive-board
+/**
+ * The Owner archives the board, confirming by typing its name. Its lists and
+ * tasks are left as they are, so a restore brings everything back. Archiving
+ * an archived board raises nothing.
+ */
+export function archiveBoard(
+  board: Board,
+  actorId: UserId,
+  typedName: string
+): Result<Change, ForbiddenError | BoardNameMismatchError> {
+  if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (typedName.trim() !== board.name) return err(new BoardNameMismatchError())
+  if (board.archived) return ok({ state: board, events: [] })
+  return ok({
+    state: { ...board, archived: true },
+    events: [{ type: 'BoardArchived', payload: { boardId: board.id } }],
+  })
+}
+// #endregion archive-board
+
+/** The Owner restores an archived board. Restoring an active one raises nothing. */
+export function restoreBoard(
+  board: Board,
+  actorId: UserId
+): Result<Change, ForbiddenError> {
+  if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (!board.archived) return ok({ state: board, events: [] })
+  return ok({
+    state: { ...board, archived: false },
+    events: [{ type: 'BoardRestored', payload: { boardId: board.id } }],
   })
 }

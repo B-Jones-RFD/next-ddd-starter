@@ -24,4 +24,17 @@ export type ListReordered = DomainEvent<
   { listId: ListId; boardId: BoardId }
 >
 
-export type ListEvent = ListCreated | ListRenamed | ListReordered
+/** A Board member archived a list. Translated to `boards.ListArchived.v1`. */
+export type ListArchived = DomainEvent<
+  'ListArchived',
+  { listId: ListId; boardId: BoardId }
+>
+
+/** A Board member restored an archived list. Translated to `boards.ListRestored.v1`. */
+export type ListRestored = DomainEvent<
+  'ListRestored',
+  { listId: ListId; boardId: BoardId }
+>
+
+export type ListEvent =
+  ListCreated | ListRenamed | ListReordered | ListArchived | ListRestored

@@ -79,6 +79,20 @@ export class TaskRepository implements ITaskRepository {
     return row ? toTask(row) : null
   }
 
+  async findInList(listId: ListId): Promise<Task[]> {
+    const rows = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT * FROM boards_tasks WHERE list_id = ?
+             ORDER BY position, id`
+          )
+          .all(listId) as TaskRow[]
+    )
+    return rows.map(toTask)
+  }
+
   async save(
     task: Task,
     events: readonly TaskEvent[],

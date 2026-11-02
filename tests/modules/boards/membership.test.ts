@@ -28,6 +28,21 @@ beforeEach(async () => {
   })
   if (!task.ok) throw new Error('setup failed')
   taskId = task.value.taskId
+  // Archived work exists too, so the Archived views filter by membership.
+  const old = await api.createBoard({ actorId: ada, name: 'Old plan' })
+  if (!old.ok) throw new Error('setup failed')
+  await api.archiveBoard({
+    actorId: ada,
+    boardId: old.value.boardId,
+    confirmName: 'Old plan',
+  })
+  const archived = await api.createTask({
+    actorId: ada,
+    listId: list.value.listId,
+    title: 'Old idea',
+  })
+  if (!archived.ok) throw new Error('setup failed')
+  await api.archiveTask({ actorId: ada, taskId: archived.value.taskId })
 })
 
 describeMembershipProof('boards', api, {
@@ -46,10 +61,17 @@ describeMembershipProof('boards', api, {
     'removeMember',
     'leaveBoard',
     'transferOwnership',
+    'archiveBoard',
+    'restoreBoard',
+    'archiveList',
+    'restoreList',
+    'archiveTask',
+    'restoreTask',
   ],
   queries: {
-    listBoards: () => api.listBoards({ actorId: outsider }),
-    getBoard: () => api.getBoard({ actorId: outsider, boardId }),
+    listBoards: () => api.listBoards({ actorId: outsider, view: 'archived' }),
+    getBoard: () =>
+      api.getBoard({ actorId: outsider, boardId, view: 'archived' }),
     getTask: () => api.getTask({ actorId: outsider, taskId }),
     searchUsers: () =>
       api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { roleOf } from '@/modules/boards/domain/board/board'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
@@ -58,6 +59,7 @@ export async function moveTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | TaskArchivedError
     | ConflictError
     | ListArchivedError
   >

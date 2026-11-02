@@ -79,7 +79,7 @@ export function describeBoardReaderContract(make: Make) {
       )
       await given(boards, aBoard({ members: [{ userId: cy, role: 'owner' }] }))
 
-      expect(await reader.listForMember(ben)).toEqual([
+      expect(await reader.listForMember(ben, 'active')).toEqual([
         {
           id: alpha.id,
           name: 'Alpha',
@@ -100,7 +100,7 @@ export function describeBoardReaderContract(make: Make) {
       const { reader, boards } = make()
       await given(boards, aBoard({ members: [{ userId: ada, role: 'owner' }] }))
 
-      expect(await reader.listForMember(cy)).toEqual([])
+      expect(await reader.listForMember(cy, 'active')).toEqual([])
     })
 
     it('gives a null display name for a member boards hasn’t heard of yet', async () => {
@@ -110,7 +110,7 @@ export function describeBoardReaderContract(make: Make) {
         aBoard({ members: [{ userId: ada, role: 'owner' }] })
       )
 
-      const listed = await reader.listForMember(ada)
+      const listed = await reader.listForMember(ada, 'active')
 
       expect(listed).toEqual([
         {
@@ -136,7 +136,7 @@ export function describeBoardReaderContract(make: Make) {
         })
       )
 
-      expect(await reader.getForMember(board.id, ben)).toEqual({
+      expect(await reader.getForMember(board.id, ben, 'active')).toEqual({
         ok: true,
         value: {
           id: board.id,
@@ -177,12 +177,95 @@ export function describeBoardReaderContract(make: Make) {
       })
       await on({ boardId: toBoardId('board-elsewhere'), position: 'A' })
 
-      const found = await reader.getForMember(board.id, ada)
+      const found = await reader.getForMember(board.id, ada, 'active')
 
       expect(found.ok && found.value.lists).toEqual([
-        { id: 'list-a', name: 'Backlog', tasks: [] },
-        { id: 'list-b', name: 'Doing', tasks: [] },
-        { id: expect.any(String), name: 'Done', tasks: [] },
+        { id: 'list-a', name: 'Backlog', archived: false, tasks: [] },
+        { id: 'list-b', name: 'Doing', archived: false, tasks: [] },
+        { id: expect.any(String), name: 'Done', archived: false, tasks: [] },
+      ])
+    })
+
+    it('lists only the archived boards in the Archived view, and only active ones in the Active view', async () => {
+      const { reader, boards } = make()
+      const members = [{ userId: ada, role: 'owner' as const }]
+      await given(boards, aBoard({ name: 'Live' as BoardName, members }))
+      await given(
+        boards,
+        aBoard({ name: 'Old' as BoardName, members, archived: true })
+      )
+
+      const names = async (view: 'active' | 'archived') =>
+        (await reader.listForMember(ada, view)).map((board) => board.name)
+
+      expect(await names('active')).toEqual(['Live'])
+      expect(await names('archived')).toEqual(['Old'])
+    })
+
+    it('gets an archived board, marked archived', async () => {
+      const { reader, boards } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }], archived: true })
+      )
+
+      const found = await reader.getForMember(board.id, ada, 'active')
+
+      expect(found.ok && found.value.archived).toBe(true)
+    })
+
+    it('gives the Archived view the archived lists and the lists holding archived tasks, with only archived tasks', async () => {
+      const { reader, boards, lists, tasks } = make()
+      const board = await given(
+        boards,
+        aBoard({ members: [{ userId: ada, role: 'owner' }] })
+      )
+      const origin = { actorId: ada, causationId: null }
+      const backlog = aList({ boardId: board.id, position: 'F', version: 0 })
+      const doing = aList({ boardId: board.id, position: 'V', version: 0 })
+      const done = aList({
+        boardId: board.id,
+        position: 'k',
+        archived: true,
+        version: 0,
+      })
+      for (const list of [backlog, doing, done]) {
+        await lists.save(list, [], origin)
+      }
+      const on = (task: Parameters<typeof aTask>[0]) =>
+        tasks.save(
+          aTask({ boardId: board.id, version: 0, ...task }),
+          [],
+          origin
+        )
+      await on({ listId: backlog.id, title: 'Live' as TaskTitle })
+      await on({
+        listId: backlog.id,
+        title: 'Dropped' as TaskTitle,
+        archived: true,
+      })
+      await on({ listId: doing.id, title: 'Busy' as TaskTitle })
+      await on({
+        listId: done.id,
+        title: 'Shipped' as TaskTitle,
+        archived: true,
+      })
+
+      const found = await reader.getForMember(board.id, ada, 'archived')
+
+      expect(found.ok && found.value.lists).toEqual([
+        {
+          id: backlog.id,
+          name: backlog.name,
+          archived: false,
+          tasks: [{ id: expect.any(String), title: 'Dropped' }],
+        },
+        {
+          id: done.id,
+          name: done.name,
+          archived: true,
+          tasks: [{ id: expect.any(String), title: 'Shipped' }],
+        },
       ])
     })
 
@@ -217,12 +300,13 @@ export function describeBoardReaderContract(make: Make) {
       })
       await on({ listId: done.id, title: 'Shipped' as TaskTitle })
 
-      const found = await reader.getForMember(board.id, ada)
+      const found = await reader.getForMember(board.id, ada, 'active')
 
       expect(found.ok && found.value.lists).toEqual([
         {
           id: backlog.id,
           name: backlog.name,
+          archived: false,
           tasks: [
             { id: 'task-a', title: 'First' },
             { id: 'task-b', title: 'Second' },
@@ -232,6 +316,7 @@ export function describeBoardReaderContract(make: Make) {
         {
           id: done.id,
           name: done.name,
+          archived: false,
           tasks: [{ id: expect.any(String), title: 'Shipped' }],
         },
       ])
@@ -311,7 +396,7 @@ export function describeBoardReaderContract(make: Make) {
         aBoard({ members: [{ userId: ada, role: 'owner' }] })
       )
 
-      expect(await reader.getForMember(board.id, cy)).toEqual({
+      expect(await reader.getForMember(board.id, cy, 'active')).toEqual({
         ok: false,
         error: new ForbiddenError(),
       })
@@ -320,7 +405,7 @@ export function describeBoardReaderContract(make: Make) {
     it('returns NotFoundError for a board that doesn’t exist', async () => {
       const { reader } = make()
 
-      expect(await reader.getForMember('nowhere', ada)).toEqual({
+      expect(await reader.getForMember('nowhere', ada, 'active')).toEqual({
         ok: false,
         error: new NotFoundError('Board', 'nowhere'),
       })

@@ -9,7 +9,10 @@ import type {
   TaskDto,
   TaskSummaryDto,
 } from '@/modules/boards/application/dto/task.dto'
-import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
+import type {
+  IBoardReader,
+  View,
+} from '@/modules/boards/application/ports/board-reader.port'
 import { query } from '@/shared/infrastructure/sqlite/translate-error'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
@@ -33,6 +36,10 @@ const MEMBERS_OF = `
   WHERE m.board_id IN (SELECT value FROM json_each(?))
   ORDER BY m.board_id, m.role = 'owner' DESC, m.position`
 
+function archivedFlag(view: View): 0 | 1 {
+  return view === 'archived' ? 1 : 0
+}
+
 /**
  * Boards' read side over `boards_boards`, `boards_members`, `boards_people`,
  * `boards_lists` and `boards_tasks`.
@@ -40,16 +47,17 @@ const MEMBERS_OF = `
 export class BoardReader implements IBoardReader {
   constructor(private readonly db: DatabaseSync) {}
 
-  async listForMember(userId: UserId): Promise<BoardSummaryDto[]> {
+  async listForMember(userId: UserId, view: View): Promise<BoardSummaryDto[]> {
     return query(PORT, () => {
       const boards = this.db
         .prepare(
           `SELECT b.id, b.name
            FROM boards_boards b
            JOIN boards_members me ON me.board_id = b.id AND me.user_id = ?
+           WHERE b.archived = ?
            ORDER BY b.name, b.id`
         )
-        .all(userId) as { id: string; name: string }[]
+        .all(userId, archivedFlag(view)) as { id: string; name: string }[]
       const members = this.membersOf(boards.map((board) => board.id))
       return boards.map((board) => ({
         id: board.id,
@@ -61,7 +69,8 @@ export class BoardReader implements IBoardReader {
 
   async getForMember(
     boardId: string,
-    userId: UserId
+    userId: UserId,
+    view: View
   ): Promise<Result<BoardDto, NotFoundError | ForbiddenError>> {
     const row = query(
       PORT,
@@ -85,27 +94,35 @@ export class BoardReader implements IBoardReader {
     if (!row) return err(new NotFoundError('Board', boardId))
     if (!row.role) return err(new ForbiddenError())
     const members = query(PORT, () => this.membersOf([row.id]))
-    const lists = query(
-      PORT,
-      () =>
-        this.db
-          .prepare(
-            `SELECT id, name FROM boards_lists
-             WHERE board_id = ? AND archived = 0
-             ORDER BY position, id`
-          )
-          .all(row.id) as { id: string; name: string }[]
-    )
+    const flag = archivedFlag(view)
     const tasks = query(
       PORT,
       () =>
         this.db
           .prepare(
             `SELECT id, title, list_id FROM boards_tasks
-             WHERE board_id = ? AND archived = 0
+             WHERE board_id = ? AND archived = ?
              ORDER BY position, id`
           )
-          .all(row.id) as { id: string; title: string; list_id: string }[]
+          .all(row.id, flag) as { id: string; title: string; list_id: string }[]
+    )
+    // The Archived view also shows an active list holding archived tasks.
+    const lists = query(
+      PORT,
+      () =>
+        this.db
+          .prepare(
+            `SELECT id, name, archived FROM boards_lists
+             WHERE board_id = ? AND (archived = ?
+               OR (? = 1 AND id IN (SELECT value FROM json_each(?))))
+             ORDER BY position, id`
+          )
+          .all(
+            row.id,
+            flag,
+            flag,
+            JSON.stringify(tasks.map((task) => task.list_id))
+          ) as { id: string; name: string; archived: number }[]
     )
     const byList = new Map<string, TaskSummaryDto[]>()
     for (const task of tasks) {
@@ -122,6 +139,7 @@ export class BoardReader implements IBoardReader {
       lists: lists.map((list) => ({
         id: list.id,
         name: list.name,
+        archived: list.archived === 1,
         tasks: byList.get(list.id) ?? [],
       })),
     })

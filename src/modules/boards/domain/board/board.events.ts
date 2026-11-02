@@ -41,9 +41,17 @@ export type OwnershipTransferred = DomainEvent<
   { boardId: BoardId; fromUserId: UserId; toUserId: UserId }
 >
 
+/** The Owner archived a board. Translated to `boards.BoardArchived.v1`. */
+export type BoardArchived = DomainEvent<'BoardArchived', { boardId: BoardId }>
+
+/** The Owner restored an archived board. Translated to `boards.BoardRestored.v1`. */
+export type BoardRestored = DomainEvent<'BoardRestored', { boardId: BoardId }>
+
 export type BoardEvent =
   | BoardCreated
   | BoardRenamed
+  | BoardArchived
+  | BoardRestored
   | MemberAdded
   | MemberRemoved
   | MemberLeft

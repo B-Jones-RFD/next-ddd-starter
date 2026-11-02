@@ -4,8 +4,12 @@ import type {
 } from '@/modules/boards/application/dto/board-summary.dto'
 import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 import type { TaskDto } from '@/modules/boards/application/dto/task.dto'
-import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
+import type {
+  IBoardReader,
+  View,
+} from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
+import type { List } from '@/modules/boards/domain/list/list'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
 import {
   byPositionThenId,
@@ -36,9 +40,10 @@ const byNameThenId = (a: Board, b: Board) =>
 
 /** In-memory twin of `BoardReader`, over the mock boards and people stores. */
 export class MockBoardReader implements IBoardReader {
-  async listForMember(userId: UserId): Promise<BoardSummaryDto[]> {
+  async listForMember(userId: UserId, view: View): Promise<BoardSummaryDto[]> {
     return [...mockBoards().values()]
       .filter((board) => board.members.some((m) => m.userId === userId))
+      .filter((board) => board.archived === (view === 'archived'))
       .sort(byNameThenId)
       .map((board) => ({
         id: board.id,
@@ -49,12 +54,21 @@ export class MockBoardReader implements IBoardReader {
 
   async getForMember(
     boardId: string,
-    userId: UserId
+    userId: UserId,
+    view: View
   ): Promise<Result<BoardDto, NotFoundError | ForbiddenError>> {
     const board = mockBoards().get(boardId)
     if (!board) return err(new NotFoundError('Board', boardId))
     const me = board.members.find((m) => m.userId === userId)
     if (!me) return err(new ForbiddenError())
+    const archived = view === 'archived'
+    const tasks = [...mockTasks().values()]
+      .filter((task) => task.boardId === board.id && task.archived === archived)
+      .sort(byPositionThenId)
+    // The Archived view also shows an active list holding archived tasks.
+    const shown = (list: List) =>
+      list.archived === archived ||
+      (archived && tasks.some((task) => task.listId === list.id))
     return ok({
       id: board.id,
       name: board.name,
@@ -62,14 +76,14 @@ export class MockBoardReader implements IBoardReader {
       role: me.role,
       members: membersOf(board),
       lists: [...mockLists().values()]
-        .filter((list) => list.boardId === board.id && !list.archived)
+        .filter((list) => list.boardId === board.id && shown(list))
         .sort(byPositionThenId)
         .map((list) => ({
           id: list.id,
           name: list.name,
-          tasks: [...mockTasks().values()]
-            .filter((task) => task.listId === list.id && !task.archived)
-            .sort(byPositionThenId)
+          archived: list.archived,
+          tasks: tasks
+            .filter((task) => task.listId === list.id)
             .map((task) => ({ id: task.id, title: task.title })),
         })),
     })

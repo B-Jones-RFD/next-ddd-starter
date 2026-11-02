@@ -15,6 +15,7 @@ import {
   parseTaskTitle,
   type TaskTitle,
 } from '@/modules/boards/domain/task/task-title'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
 import {
@@ -98,8 +99,9 @@ export function renameTask(
   task: Task,
   membership: Membership,
   rawTitle: string
-): Result<Change, ValidationError | ForbiddenError> {
+): Result<Change, ValidationError | ForbiddenError | TaskArchivedError> {
   if (!membership) return err(new ForbiddenError())
+  if (task.archived) return err(new TaskArchivedError())
   const title = parseTaskTitle(rawTitle)
   if (!title.ok) return title
   if (title.value === task.title) return ok({ state: task, events: [] })
@@ -128,8 +130,9 @@ export function changeTaskDescription(
   task: Task,
   membership: Membership,
   rawDescription: string
-): Result<Change, ValidationError | ForbiddenError> {
+): Result<Change, ValidationError | ForbiddenError | TaskArchivedError> {
   if (!membership) return err(new ForbiddenError())
+  if (task.archived) return err(new TaskArchivedError())
   const description = parseTaskDescription(rawDescription)
   if (!description.ok) return description
   if (description.value === task.description) {
@@ -159,8 +162,12 @@ export function reorderTask(
   task: Task,
   membership: Membership,
   place: TaskPlace
-): Result<Change, ForbiddenError | NotFoundError | ConflictError> {
+): Result<
+  Change,
+  ForbiddenError | TaskArchivedError | NotFoundError | ConflictError
+> {
   if (!membership) return err(new ForbiddenError())
+  if (task.archived) return err(new TaskArchivedError())
   if (!place.after && !place.before) return ok({ state: task, events: [] })
   return placeTask(task, task.listId, place)
 }
@@ -207,4 +214,29 @@ export function placeTask(
           },
         }
   return ok({ state, events: [event] })
+}
+
+/**
+ * A Board member archives a task. It keeps its list and place, so a restore
+ * puts it back where it was. Archiving an archived task raises nothing.
+ */
+export function archiveTask(
+  task: Task,
+  membership: Membership
+): Result<Change, ForbiddenError> {
+  if (!membership) return err(new ForbiddenError())
+  if (task.archived) return ok({ state: task, events: [] })
+  return ok({
+    state: { ...task, archived: true },
+    events: [
+      {
+        type: 'TaskArchived',
+        payload: {
+          taskId: task.id,
+          boardId: task.boardId,
+          listId: task.listId,
+        },
+      },
+    ],
+  })
 }

@@ -34,6 +34,13 @@ export class MockTaskRepository implements ITaskRepository {
     return last ? structuredClone(last) : null
   }
 
+  async findInList(listId: ListId): Promise<Task[]> {
+    return [...mockTasks().values()]
+      .filter((task) => task.listId === listId)
+      .sort(byPositionThenId)
+      .map((task) => structuredClone(task))
+  }
+
   async save(
     task: Task,
     events: readonly TaskEvent[],

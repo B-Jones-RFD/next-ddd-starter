@@ -1,20 +1,26 @@
 import type { AuditEntry } from '@/modules/audit/domain/audit-entry/audit-entry'
 import type { Name } from '@/modules/audit/domain/name/name'
 import type {
+  BoardArchivedV1,
   BoardCreatedV1,
   BoardRenamedV1,
+  BoardRestoredV1,
+  ListArchivedV1,
   ListCreatedV1,
   ListRenamedV1,
   ListReorderedV1,
+  ListRestoredV1,
   MemberAddedV1,
   MemberLeftV1,
   MemberRemovedV1,
   OwnershipTransferredV1,
+  TaskArchivedV1,
   TaskCreatedV1,
   TaskDescriptionChangedV1,
   TaskMovedV1,
   TaskRenamedV1,
   TaskReorderedV1,
+  TaskRestoredV1,
 } from '@/modules/boards/contracts'
 import type {
   UserPasswordChangedV1,
@@ -34,6 +40,8 @@ export type AuditedEvent =
   | UserSignedOutV1
   | BoardCreatedV1
   | BoardRenamedV1
+  | BoardArchivedV1
+  | BoardRestoredV1
   | MemberAddedV1
   | MemberRemovedV1
   | MemberLeftV1
@@ -41,11 +49,15 @@ export type AuditedEvent =
   | ListCreatedV1
   | ListRenamedV1
   | ListReorderedV1
+  | ListArchivedV1
+  | ListRestoredV1
   | TaskCreatedV1
   | TaskRenamedV1
   | TaskDescriptionChangedV1
   | TaskMovedV1
   | TaskReorderedV1
+  | TaskArchivedV1
+  | TaskRestoredV1
 
 /** One event in audit's language: its entry, and any current names it tells. */
 export type Translation = {
@@ -196,6 +208,14 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
       },
       names: [name('board', e.payload.boardId, e.payload.to, e)],
     }),
+    'boards.BoardArchived': (e) => ({
+      entry: { ...onBoard(e), action: 'board.archived', details: {} },
+      names: [],
+    }),
+    'boards.BoardRestored': (e) => ({
+      entry: { ...onBoard(e), action: 'board.restored', details: {} },
+      names: [],
+    }),
     'boards.MemberAdded': (e) => ({
       entry: {
         ...onBoard(e),
@@ -251,6 +271,14 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
       entry: { ...onList(e), action: 'list.reordered', details: {} },
       names: [],
     }),
+    'boards.ListArchived': (e) => ({
+      entry: { ...onList(e), action: 'list.archived', details: {} },
+      names: [],
+    }),
+    'boards.ListRestored': (e) => ({
+      entry: { ...onList(e), action: 'list.restored', details: {} },
+      names: [],
+    }),
     'boards.TaskCreated': (e) => ({
       entry: {
         ...onTask(e),
@@ -290,6 +318,22 @@ export const TRANSLATIONS: { [E in AuditedEvent as E['type']]: Translator<E> } =
       entry: {
         ...onTask(e),
         action: 'task.reordered',
+        details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+    'boards.TaskArchived': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.archived',
+        details: { listId: e.payload.listId },
+      },
+      names: [],
+    }),
+    'boards.TaskRestored': (e) => ({
+      entry: {
+        ...onTask(e),
+        action: 'task.restored',
         details: { listId: e.payload.listId },
       },
       names: [],

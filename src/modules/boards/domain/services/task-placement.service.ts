@@ -6,6 +6,7 @@ import {
   type Task,
   type TaskPlace,
 } from '@/modules/boards/domain/task/task'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
 import {
   type ConflictError,
@@ -27,9 +28,14 @@ export function moveTask(
   place: TaskPlace & { toList: List }
 ): Result<
   { state: Task; events: TaskEvent[] },
-  ForbiddenError | NotFoundError | ConflictError | ListArchivedError
+  | ForbiddenError
+  | TaskArchivedError
+  | NotFoundError
+  | ConflictError
+  | ListArchivedError
 > {
   if (!membership) return err(new ForbiddenError())
+  if (task.archived) return err(new TaskArchivedError())
   const { toList, after, before } = place
   if (toList.boardId !== task.boardId) {
     return err(new NotFoundError('List', toList.id))

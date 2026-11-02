@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { renameBoard as renameBoardOperation } from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import type {
@@ -28,7 +29,14 @@ export type RenameBoardInput = {
 export async function renameBoard(
   input: RenameBoardInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | BoardArchivedError
+    | ConflictError
+  >
 > {
   const shape = RenameBoardInput.safeParse(input)
   if (!shape.success) {

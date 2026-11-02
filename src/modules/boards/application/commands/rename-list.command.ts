@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { roleOf } from '@/modules/boards/domain/board/board'
 import { renameList as renameListOperation } from '@/modules/boards/domain/list/list'
 import { toListId } from '@/modules/boards/domain/list/list-id'
@@ -31,7 +32,14 @@ export type RenameListInput = {
 export async function renameList(
   input: RenameListInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | ListArchivedError
+    | ConflictError
+  >
 > {
   const shape = RenameListInput.safeParse(input)
   if (!shape.success) {

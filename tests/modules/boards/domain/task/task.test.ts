@@ -4,11 +4,13 @@ import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import {
+  archiveTask,
   changeTaskDescription,
   createTask,
   renameTask,
   reorderTask,
 } from '@/modules/boards/domain/task/task'
+import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import type { TaskDescription } from '@/modules/boards/domain/task/task-description'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import type { TaskTitle } from '@/modules/boards/domain/task/task-title'
@@ -255,6 +257,64 @@ describe('reorderTask', () => {
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
     expect(reorderTask(first, undefined, { after: second })).toEqual({
+      ok: false,
+      error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('archiveTask', () => {
+  const task = aTask({ position: 'k' })
+
+  it('archives the task in its place and raises TaskArchived', () => {
+    expect(archiveTask(task, 'member')).toEqual({
+      ok: true,
+      value: {
+        state: { ...task, archived: true },
+        events: [
+          {
+            type: 'TaskArchived',
+            payload: { taskId: task.id, boardId, listId },
+          },
+        ],
+      },
+    })
+  })
+
+  it('raises nothing for a task already archived', () => {
+    const archived = aTask({ archived: true })
+
+    expect(archiveTask(archived, 'owner')).toEqual({
+      ok: true,
+      value: { state: archived, events: [] },
+    })
+  })
+
+  it('returns ForbiddenError for a user who isn’t a Board member', () => {
+    expect(archiveTask(task, undefined)).toEqual({
+      ok: false,
+      error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('an archived task', () => {
+  const task = aTask({ archived: true })
+  const other = aTask({ position: 'l' })
+
+  it.each([
+    ['renameTask', () => renameTask(task, 'member', 'New title')],
+    [
+      'changeTaskDescription',
+      () => changeTaskDescription(task, 'member', 'New description'),
+    ],
+    ['reorderTask', () => reorderTask(task, 'member', { after: other })],
+  ])('refuses %s', (_name, change) => {
+    expect(change()).toEqual({ ok: false, error: new TaskArchivedError() })
+  })
+
+  it('still refuses a non-member as forbidden first', () => {
+    expect(renameTask(task, undefined, 'New title')).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })

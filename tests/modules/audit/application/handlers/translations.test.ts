@@ -209,6 +209,24 @@ describe('translating board events', () => {
       names: [],
     })
   })
+
+  it.each([
+    ['boards.BoardArchived', 'board.archived'],
+    ['boards.BoardRestored', 'board.restored'],
+  ])('records %s as %s', (type, action) => {
+    expect(translate(event(type, 'board-1', { boardId: 'board-1' }))).toEqual({
+      entry: {
+        ...meta(type),
+        subject: 'board',
+        subjectId: 'board-1',
+        boardId: 'board-1',
+        taskId: null,
+        action,
+        details: {},
+      },
+      names: [],
+    })
+  })
 })
 
 describe('translating list events', () => {
@@ -275,6 +293,26 @@ describe('translating list events', () => {
         boardId: 'board-1',
         taskId: null,
         action: 'list.reordered',
+        details: {},
+      },
+      names: [],
+    })
+  })
+
+  it.each([
+    ['boards.ListArchived', 'list.archived'],
+    ['boards.ListRestored', 'list.restored'],
+  ])('records %s as %s', (type, action) => {
+    expect(
+      translate(event(type, 'list-1', { listId: 'list-1', boardId: 'board-1' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        subject: 'list',
+        subjectId: 'list-1',
+        boardId: 'board-1',
+        taskId: null,
+        action,
         details: {},
       },
       names: [],
@@ -363,6 +401,23 @@ describe('translating task events', () => {
         ...meta(type),
         ...onTask,
         action: 'task.reordered',
+        details: { listId: 'list-1' },
+      },
+      names: [],
+    })
+  })
+
+  it.each([
+    ['boards.TaskArchived', 'task.archived'],
+    ['boards.TaskRestored', 'task.restored'],
+  ])('records %s as %s, in its list', (type, action) => {
+    expect(
+      translate(event(type, 'task-1', { ...task, listId: 'list-1' }))
+    ).toEqual({
+      entry: {
+        ...meta(type),
+        ...onTask,
+        action,
         details: { listId: 'list-1' },
       },
       names: [],

@@ -10,6 +10,10 @@ export type BoardDto = {
   role: 'owner' | 'member'
   /** Owner first. */
   members: BoardMemberDto[]
-  /** Its active lists, in board order. */
+  /**
+   * Its lists in the view, in board order: the Active view has the active
+   * lists with their active tasks, and the Archived view has the archived
+   * lists and any list holding an archived task, with their archived tasks.
+   */
   lists: ListDto[]
 }

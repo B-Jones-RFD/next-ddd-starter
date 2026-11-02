@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { roleOf } from '@/modules/boards/domain/board/board'
 import {
   reorderTask as reorderTaskOperation,
@@ -49,7 +50,14 @@ async function neighbour(
 export async function reorderTask(
   input: ReorderTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = ReorderTaskInput.safeParse(input)
   if (!shape.success) {

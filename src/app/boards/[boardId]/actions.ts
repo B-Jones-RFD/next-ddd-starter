@@ -8,13 +8,18 @@ import { getActor } from '@/app/_lib/auth/get-actor'
 import { signInPath } from '@/app/_lib/auth/next-path'
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import {
+  archiveList,
+  archiveTask,
   createList,
   createTask,
   moveList,
   moveTask,
   renameList,
   reorderTask,
+  restoreList,
+  restoreTask,
 } from '@/modules/boards/api'
+import type { ActorDto } from '@/modules/identity/api'
 
 // The board's actions. Bound ids are untrusted: the domain checks the actor
 // is a Board member of the list's or task's board.
@@ -195,4 +200,60 @@ export async function moveTaskAction(
   }
   refresh()
   return { status: 'success' }
+}
+
+type Outcome = { ok: true } | { ok: false; error: unknown }
+
+/**
+ * Runs an archive or restore for the signed-in actor, from a ⋯ menu's
+ * bound-id form, then re-renders the board in whichever view it is in.
+ */
+async function archiving(
+  boardId: string,
+  command: (actorId: ActorDto['userId']) => Promise<Outcome>
+): Promise<ActionState> {
+  const actor = await getActor()
+  if (!actor.ok) redirect(signInPath(`/boards/${boardId}`))
+  try {
+    const result = await command(actor.value.userId)
+    if (!result.ok) {
+      return { status: 'error', error: toActionError(result.error), values: {} }
+    }
+  } catch (error) {
+    return { status: 'error', error: toActionError(error), values: {} }
+  }
+  refresh()
+  return { status: 'success' }
+}
+
+/** Archives a list with no active tasks. */
+export async function archiveListAction(
+  boardId: string,
+  listId: string
+): Promise<ActionState> {
+  return archiving(boardId, (actorId) => archiveList({ actorId, listId }))
+}
+
+/** Restores an archived list to its old place. */
+export async function restoreListAction(
+  boardId: string,
+  listId: string
+): Promise<ActionState> {
+  return archiving(boardId, (actorId) => restoreList({ actorId, listId }))
+}
+
+/** Archives a task, which keeps its place. */
+export async function archiveTaskAction(
+  boardId: string,
+  taskId: string
+): Promise<ActionState> {
+  return archiving(boardId, (actorId) => archiveTask({ actorId, taskId }))
+}
+
+/** Restores an archived task to its old place, if its list is active. */
+export async function restoreTaskAction(
+  boardId: string,
+  taskId: string
+): Promise<ActionState> {
+  return archiving(boardId, (actorId) => restoreTask({ actorId, taskId }))
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
+import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
 import { roleOf } from '@/modules/boards/domain/board/board'
 import { renameTask as renameTaskOperation } from '@/modules/boards/domain/task/task'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
@@ -31,7 +32,14 @@ export type RenameTaskInput = {
 export async function renameTask(
   input: RenameTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | TaskArchivedError
+    | ConflictError
+  >
 > {
   const shape = RenameTaskInput.safeParse(input)
   if (!shape.success) {

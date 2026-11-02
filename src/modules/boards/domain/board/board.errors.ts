@@ -29,3 +29,21 @@ export class OwnerMustTransferFirstError extends DomainError {
     super('The Owner must transfer ownership before leaving')
   }
 }
+
+/** The board is archived, so it is read-only until the Owner restores it. */
+export class BoardArchivedError extends DomainError {
+  readonly code = 'boards.board.archived'
+
+  constructor() {
+    super('The board is archived')
+  }
+}
+
+/** The name typed to confirm archiving the board isn't the board's name. */
+export class BoardNameMismatchError extends DomainError {
+  readonly code = 'boards.board.name-mismatch'
+
+  constructor() {
+    super('The typed name does not match the board name')
+  }
+}

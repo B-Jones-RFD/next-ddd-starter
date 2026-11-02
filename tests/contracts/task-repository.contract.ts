@@ -156,6 +156,38 @@ export function describeTaskRepositoryContract(make: Make) {
       })
     })
 
+    it('finds a list’s tasks, archived ones included, by position then id', async () => {
+      const { repository } = make()
+      const listId = toListId('list-all')
+      for (const task of [
+        aTask({ id: toTaskId('task-b'), listId, position: 'k' }),
+        aTask({ id: toTaskId('task-a'), listId, position: 'k' }),
+        aTask({
+          id: toTaskId('task-c'),
+          listId,
+          position: 'F',
+          archived: true,
+        }),
+        aTask({ listId: toListId('list-other') }),
+      ]) {
+        await repository.save({ ...task, version: 0 }, [], origin)
+      }
+
+      const found = await repository.findInList(listId)
+
+      expect(found.map((task) => [task.id, task.archived])).toEqual([
+        ['task-c', true],
+        ['task-a', false],
+        ['task-b', false],
+      ])
+    })
+
+    it('finds no tasks in a list with none', async () => {
+      const { repository } = make()
+
+      expect(await repository.findInList(toListId('empty'))).toEqual([])
+    })
+
     it('finds no last task in a list with none', async () => {
       const { repository } = make()
 
@@ -224,6 +256,38 @@ export function describeTaskRepositoryContract(make: Make) {
         },
         { payload: { ...ids, listId: task.listId } },
       ])
+    })
+
+    it('publishes archiving and restoring the task', async () => {
+      const { repository, outbox } = make()
+      const saved = await repository.save(aTask({ version: 0 }), [], origin)
+      if (!saved.ok) throw new Error('setup failed')
+      const ids = {
+        taskId: saved.value.id,
+        boardId: saved.value.boardId,
+        listId: saved.value.listId,
+      }
+      const archived = await repository.save(
+        { ...saved.value, archived: true },
+        [{ type: 'TaskArchived', payload: ids }],
+        origin
+      )
+      if (!archived.ok) throw new Error('setup failed')
+      await repository.save(
+        { ...archived.value, archived: false },
+        [{ type: 'TaskRestored', payload: ids }],
+        origin
+      )
+
+      const rows = await outbox.pending(10)
+      expect(rows.map((row) => [row.scope, row.envelope.type])).toEqual([
+        ['domain', 'TaskArchived'],
+        ['integration', 'boards.TaskArchived'],
+        ['domain', 'TaskRestored'],
+        ['integration', 'boards.TaskRestored'],
+      ])
+      expect(rows[1]?.envelope).toMatchObject({ version: 1, payload: ids })
+      expect(rows[3]?.envelope).toMatchObject({ version: 1, payload: ids })
     })
   })
 }

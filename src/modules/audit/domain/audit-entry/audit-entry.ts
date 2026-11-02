@@ -40,6 +40,8 @@ export type AuditEntry =
   | Entry<'user', 'user.signed-out', { everywhere: boolean }>
   | Entry<'board', 'board.created', { name: string }>
   | Entry<'board', 'board.renamed', Change>
+  | Entry<'board', 'board.archived', NoDetails>
+  | Entry<'board', 'board.restored', NoDetails>
   | Entry<'board', 'member.added', { userId: string }>
   | Entry<'board', 'member.removed', { userId: string }>
   | Entry<'board', 'member.left', { userId: string }>
@@ -51,11 +53,15 @@ export type AuditEntry =
   | Entry<'list', 'list.created', { name: string }>
   | Entry<'list', 'list.renamed', Change>
   | Entry<'list', 'list.reordered', NoDetails>
+  | Entry<'list', 'list.archived', NoDetails>
+  | Entry<'list', 'list.restored', NoDetails>
   | Entry<'task', 'task.created', { listId: string; title: string }>
   | Entry<'task', 'task.renamed', Change>
   | Entry<'task', 'task.description-changed', Change>
   | Entry<'task', 'task.moved', { fromListId: string; toListId: string }>
   | Entry<'task', 'task.reordered', { listId: string }>
+  | Entry<'task', 'task.archived', { listId: string }>
+  | Entry<'task', 'task.restored', { listId: string }>
 // #endregion audit-entry
 
 export type AuditAction = AuditEntry['action']
