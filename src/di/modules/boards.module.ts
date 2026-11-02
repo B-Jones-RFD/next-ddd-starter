@@ -12,11 +12,13 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockPeopleProjection },
       { MockBoardRepository },
       { MockBoardReader },
+      { MockListRepository },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/boards/infrastructure/people-projection.mock'),
       import('@/modules/boards/infrastructure/board-repository.mock'),
       import('@/modules/boards/infrastructure/board-reader.mock'),
+      import('@/modules/boards/infrastructure/list-repository.mock'),
     ])
     const outbox = new MockOutbox('boards')
     boards
@@ -26,6 +28,9 @@ export async function loadBoardsModule(mode: AdapterMode) {
       .bind('IBoardRepository')
       .toFactory(() => new MockBoardRepository(outbox), 'singleton')
     boards.bind('IBoardReader').toClass(MockBoardReader, undefined, 'singleton')
+    boards
+      .bind('IListRepository')
+      .toFactory(() => new MockListRepository(outbox), 'singleton')
     return boards
   }
 
@@ -35,12 +40,14 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { PeopleProjection },
     { BoardRepository },
     { BoardReader },
+    { ListRepository },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
     import('@/shared/infrastructure/outbox/outbox'),
     import('@/modules/boards/infrastructure/people-projection'),
     import('@/modules/boards/infrastructure/board-repository'),
     import('@/modules/boards/infrastructure/board-reader'),
+    import('@/modules/boards/infrastructure/list-repository'),
   ])
   boards
     .bind('IPeopleProjection')
@@ -55,5 +62,12 @@ export async function loadBoardsModule(mode: AdapterMode) {
   boards
     .bind('IBoardReader')
     .toFactory(() => new BoardReader(getDatabase()), 'singleton')
+  boards
+    .bind('IListRepository')
+    .toFactory(
+      () =>
+        new ListRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
+      'singleton'
+    )
   return boards
 }

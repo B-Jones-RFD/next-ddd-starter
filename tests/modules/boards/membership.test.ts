@@ -21,7 +21,13 @@ beforeEach(async () => {
 })
 
 describeMembershipProof('boards', api, {
-  commands: ['createBoard', 'renameBoard'],
+  commands: [
+    'createBoard',
+    'renameBoard',
+    'createList',
+    'renameList',
+    'moveList',
+  ],
   queries: {
     listBoards: () => api.listBoards({ actorId: outsider }),
     getBoard: () => api.getBoard({ actorId: outsider, boardId }),

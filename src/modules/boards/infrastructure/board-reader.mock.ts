@@ -6,6 +6,10 @@ import type { BoardDto } from '@/modules/boards/application/dto/board.dto'
 import type { IBoardReader } from '@/modules/boards/application/ports/board-reader.port'
 import type { Board } from '@/modules/boards/domain/board/board'
 import { mockBoards } from '@/modules/boards/infrastructure/board-repository.mock'
+import {
+  byPositionThenId,
+  mockLists,
+} from '@/modules/boards/infrastructure/list-repository.mock'
 import { mockPeople } from '@/modules/boards/infrastructure/people-projection.mock'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
@@ -55,6 +59,10 @@ export class MockBoardReader implements IBoardReader {
       archived: board.archived,
       role: me.role,
       members: membersOf(board),
+      lists: [...mockLists().values()]
+        .filter((list) => list.boardId === board.id && !list.archived)
+        .sort(byPositionThenId)
+        .map((list) => ({ id: list.id, name: list.name })),
     })
   }
 }

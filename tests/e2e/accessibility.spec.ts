@@ -3,7 +3,11 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
-import { createBoardNamed, signUp } from '@tests/fixtures/visitors'
+import {
+  addListNamed,
+  createBoardNamed,
+  signUp,
+} from '@tests/fixtures/visitors'
 
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
 // the sweep checks it in both themes. `path` is visited after `arrange` (which
@@ -14,6 +18,8 @@ type Screen = {
   path: string | ((page: Page) => string)
   status?: number
   arrange?: (page: Page) => Promise<unknown>
+  /** Visited at this size; the desktop default otherwise. */
+  viewport?: { width: number; height: number }
 }
 
 /** Signs up and creates a board, leaving the page on it. */
@@ -21,6 +27,16 @@ async function withBoard(page: Page) {
   await signUp(page)
   await createBoardNamed(page, 'Launch plan')
 }
+
+/** A board with three lists, leaving the page on it. */
+async function withLists(page: Page) {
+  await withBoard(page)
+  for (const name of ['Backlog', 'In progress', 'Done']) {
+    await addListNamed(page, name)
+  }
+}
+
+const PHONE = { width: 390, height: 844 }
 
 const here = (page: Page) => new URL(page.url()).pathname
 
@@ -33,6 +49,13 @@ const SCREENS: Screen[] = [
   { name: 'account', path: '/account', arrange: signUp },
   { name: 'boards (grid)', path: '/boards', arrange: withBoard },
   { name: 'board', path: here, arrange: withBoard },
+  { name: 'board with lists', path: here, arrange: withLists },
+  {
+    name: 'board with lists (mobile)',
+    path: here,
+    arrange: withLists,
+    viewport: PHONE,
+  },
   {
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
@@ -60,6 +83,7 @@ for (const theme of THEMES) {
     for (const screen of SCREENS) {
       test(`${screen.name} has no WCAG 2.2 AA violations`, async ({ page }) => {
         await screen.arrange?.(page)
+        if (screen.viewport) await page.setViewportSize(screen.viewport)
         const path =
           typeof screen.path === 'string' ? screen.path : screen.path(page)
         const response = await page.goto(path)

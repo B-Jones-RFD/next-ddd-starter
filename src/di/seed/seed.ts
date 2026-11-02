@@ -1,5 +1,10 @@
 import { getInjection } from '@/di/container'
-import { createBoard, listBoards } from '@/modules/boards/api'
+import {
+  createBoard,
+  createList,
+  getBoard,
+  listBoards,
+} from '@/modules/boards/api'
 import { authenticate, signIn, signUp } from '@/modules/identity/api'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -27,13 +32,33 @@ async function person(entry: Person): Promise<UserId> {
   return actor.value.userId
 }
 
-/** Creates the board for `actorId`, unless they already have one by that name. */
-async function board(actorId: UserId, name: string): Promise<void> {
+/**
+ * Creates the board for `actorId`, unless they already have one by that
+ * name, and returns its id.
+ */
+async function board(actorId: UserId, name: string): Promise<string> {
   const existing = await listBoards({ actorId })
   if (!existing.ok) throw existing.error
-  if (existing.value.some((b) => b.name === name)) return
+  const found = existing.value.find((b) => b.name === name)
+  if (found) return found.id
   const created = await createBoard({ actorId, name })
   if (!created.ok) throw created.error
+  return created.value.boardId
+}
+
+/** Adds each named list to the end of the board, unless it already has it. */
+async function lists(
+  actorId: UserId,
+  boardId: string,
+  names: readonly string[]
+): Promise<void> {
+  const existing = await getBoard({ actorId, boardId })
+  if (!existing.ok) throw existing.error
+  for (const name of names) {
+    if (existing.value.lists.some((list) => list.name === name)) continue
+    const created = await createList({ actorId, boardId, name })
+    if (!created.ok) throw created.error
+  }
 }
 
 /**
@@ -45,6 +70,7 @@ export async function seed(): Promise<void> {
   const ada = await person(ADA)
   await person(BEN)
   await person(CY)
-  await board(ada, 'Launch plan')
+  const launchPlan = await board(ada, 'Launch plan')
+  await lists(ada, launchPlan, ['Backlog', 'In progress', 'Done'])
   await (await getInjection('IEventRelay')).drain()
 }

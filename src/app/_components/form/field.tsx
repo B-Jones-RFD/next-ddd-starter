@@ -7,13 +7,20 @@ import { Label } from '@/app/_components/ui/label'
 type FieldProps = Omit<ComponentProps<'input'>, 'id' | 'name'> & {
   name: string
   label: string
+  /** Defaults to `field-<name>`. Set it where two forms share a field name. */
+  id?: string
   /** The field's error, shown under it and linked by `aria-describedby`. */
   error?: string
 }
 
 /** A labelled input with its error under it (§10). */
-export function Field({ name, label, error, ...input }: FieldProps) {
-  const id = `field-${name}`
+export function Field({
+  name,
+  label,
+  error,
+  id = `field-${name}`,
+  ...input
+}: FieldProps) {
   const errorId = `${id}-error`
   return (
     <div className='flex flex-col gap-1.5'>

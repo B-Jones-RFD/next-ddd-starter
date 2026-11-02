@@ -14,7 +14,7 @@ export interface IBoardReader {
   /** The boards `userId` is a Board member of, by name. */
   listForMember(userId: UserId): Promise<BoardSummaryDto[]>
   /**
-   * The board, if `userId` is a Board member of it. `NotFoundError` if there
+   * The board with its active lists by `(position, id)`, if `userId` is a Board member of it. `NotFoundError` if there
    * is no such board, and `ForbiddenError` if they aren't a Board member.
    */
   getForMember(
