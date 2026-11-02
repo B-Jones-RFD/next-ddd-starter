@@ -1,15 +1,25 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
+import { signUp } from '@tests/fixtures/visitors'
+
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
-// the sweep checks it in both themes. `path` is visited as-is.
-type Screen = { name: string; path: string; status?: number }
+// the sweep checks it in both themes. `path` is visited as-is, after `arrange`
+// (which signs a visitor up, for screens behind a session).
+type Screen = {
+  name: string
+  path: string
+  status?: number
+  arrange?: (page: Page) => Promise<unknown>
+}
 
 const SCREENS: Screen[] = [
   { name: 'home', path: '/' },
   { name: 'not found', path: '/this-page-does-not-exist', status: 404 },
+  { name: 'sign up', path: '/sign-up' },
+  { name: 'boards (empty)', path: '/boards', arrange: signUp },
 ]
 
 const THEMES = ['light', 'dark'] as const
@@ -31,6 +41,7 @@ for (const theme of THEMES) {
 
     for (const screen of SCREENS) {
       test(`${screen.name} has no WCAG 2.2 AA violations`, async ({ page }) => {
+        await screen.arrange?.(page)
         const response = await page.goto(screen.path)
         expect(response?.status()).toBe(screen.status ?? 200)
         const html = page.locator('html')

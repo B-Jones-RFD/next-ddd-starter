@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
@@ -9,11 +11,20 @@ export default defineConfig({
     projects: [
       {
         extends: true,
+        // Server code runs here, so `server-only` is an empty module (ADR 0012).
+        resolve: {
+          alias: {
+            'server-only': fileURLToPath(
+              new URL('./tests/fixtures/server-only.ts', import.meta.url)
+            ),
+          },
+        },
         test: {
           name: 'unit',
           environment: 'node',
           include: ['tests/**/*.test.ts'],
           exclude: ['tests/e2e/**'],
+          setupFiles: ['tests/fixtures/unit-setup.ts'],
         },
       },
       {
