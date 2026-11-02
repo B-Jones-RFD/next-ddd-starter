@@ -5,7 +5,10 @@ import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
 import {
   addListNamed,
+  aNewVisitor,
+  addMemberByEmail,
   createBoardNamed,
+  signOut,
   signUp,
 } from '@tests/fixtures/visitors'
 
@@ -38,6 +41,18 @@ async function withLists(page: Page) {
 
 const PHONE = { width: 390, height: 844 }
 
+/**
+ * Signs Ben up, then Ada, who creates a board and adds Ben. Leaves the page
+ * on the board's Members tab, as its Owner.
+ */
+async function withMember(page: Page) {
+  const ben = await signUp(page, aNewVisitor('Ben'))
+  await signOut(page, ben.displayName)
+  await signUp(page, aNewVisitor('Ada'))
+  const boardPath = await createBoardNamed(page, 'Launch plan')
+  await addMemberByEmail(page, boardPath, ben.email)
+}
+
 const here = (page: Page) => new URL(page.url()).pathname
 
 const SCREENS: Screen[] = [
@@ -60,6 +75,12 @@ const SCREENS: Screen[] = [
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
     arrange: withBoard,
+  },
+  {
+    name: 'board members (Owner, with a Member and a search)',
+    // `withMember` leaves the page on the Members tab, after a search.
+    path: (page) => `${here(page)}${new URL(page.url()).search}`,
+    arrange: withMember,
   },
 ]
 

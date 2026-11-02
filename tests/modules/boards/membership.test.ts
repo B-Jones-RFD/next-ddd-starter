@@ -14,7 +14,7 @@ let boardId = ''
 // read filtered by membership, not that there was nothing to find.
 beforeEach(async () => {
   resetMockStores()
-  const ada = await givenUser('Ada')
+  const ada = await givenUser('Ada', 'ada@example.com')
   const created = await api.createBoard({ actorId: ada, name: 'Launch plan' })
   if (!created.ok) throw new Error('setup failed')
   boardId = created.value.boardId
@@ -27,9 +27,16 @@ describeMembershipProof('boards', api, {
     'createList',
     'renameList',
     'moveList',
+    'addMember',
+    'removeMember',
+    'leaveBoard',
+    'transferOwnership',
   ],
   queries: {
     listBoards: () => api.listBoards({ actorId: outsider }),
     getBoard: () => api.getBoard({ actorId: outsider, boardId }),
+    searchUsers: () =>
+      api.searchUsers({ actorId: outsider, boardId, email: 'ada@example.com' }),
+    roleOf: () => api.roleOf({ boardId, userId: outsider }),
   },
 })

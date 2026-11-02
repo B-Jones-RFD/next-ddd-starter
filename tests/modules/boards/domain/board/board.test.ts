@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
 
-import { createBoard, renameBoard } from '@/modules/boards/domain/board/board'
+import {
+  addMember,
+  createBoard,
+  leaveBoard,
+  removeMember,
+  renameBoard,
+  transferOwnership,
+} from '@/modules/boards/domain/board/board'
 import { toBoardId } from '@/modules/boards/domain/board/board-id'
 import type { BoardName } from '@/modules/boards/domain/board/board-name'
+import {
+  AlreadyAMemberError,
+  NotAMemberError,
+  OwnerMustTransferFirstError,
+} from '@/modules/boards/domain/board/board.errors'
 import {
   ForbiddenError,
   type ValidationError,
@@ -124,6 +136,180 @@ describe('renameBoard', () => {
     expect(renameBoard(board, actorId, 'Mine now')).toEqual({
       ok: false,
       error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('Board membership', () => {
+  const owner = toUserId('user-owner')
+  const member = toUserId('user-member')
+  const cy = toUserId('user-cy')
+  const outsider = toUserId('user-outsider')
+  const board = aBoard({
+    members: [
+      { userId: owner, role: 'owner' },
+      { userId: member, role: 'member' },
+    ],
+  })
+  const ownerOnly = { ...board, members: [{ userId: owner, role: 'owner' }] }
+
+  describe('addMember', () => {
+    it('adds the user as a Member and raises MemberAdded', () => {
+      expect(addMember(board, owner, cy)).toEqual({
+        ok: true,
+        value: {
+          state: {
+            ...board,
+            members: [...board.members, { userId: cy, role: 'member' }],
+          },
+          events: [
+            { type: 'MemberAdded', payload: { boardId: board.id, userId: cy } },
+          ],
+        },
+      })
+    })
+
+    it.each([
+      ['a Member', member],
+      ['the Owner', owner],
+    ])('returns AlreadyAMemberError for %s', (_who, userId) => {
+      expect(addMember(board, owner, userId)).toEqual({
+        ok: false,
+        error: new AlreadyAMemberError(),
+      })
+    })
+
+    it.each([
+      ['a Member', member],
+      ['a user who isn’t a Board member', outsider],
+    ])('returns ForbiddenError for %s', (_who, actorId) => {
+      expect(addMember(board, actorId, cy)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+
+  describe('removeMember', () => {
+    it('removes a Member and raises MemberRemoved', () => {
+      expect(removeMember(board, owner, member)).toEqual({
+        ok: true,
+        value: {
+          state: ownerOnly,
+          events: [
+            {
+              type: 'MemberRemoved',
+              payload: { boardId: board.id, userId: member },
+            },
+          ],
+        },
+      })
+    })
+
+    it('returns NotAMemberError for a user who isn’t a Board member', () => {
+      expect(removeMember(board, owner, cy)).toEqual({
+        ok: false,
+        error: new NotAMemberError(),
+      })
+    })
+
+    it('returns OwnerMustTransferFirstError when the Owner removes themself', () => {
+      expect(removeMember(board, owner, owner)).toEqual({
+        ok: false,
+        error: new OwnerMustTransferFirstError(),
+      })
+    })
+
+    it.each([
+      ['a Member', member],
+      ['a user who isn’t a Board member', outsider],
+    ])('returns ForbiddenError for %s', (_who, actorId) => {
+      expect(removeMember(board, actorId, member)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+
+  describe('leaveBoard', () => {
+    it('lets a Member leave and raises MemberLeft', () => {
+      expect(leaveBoard(board, member)).toEqual({
+        ok: true,
+        value: {
+          state: ownerOnly,
+          events: [
+            {
+              type: 'MemberLeft',
+              payload: { boardId: board.id, userId: member },
+            },
+          ],
+        },
+      })
+    })
+
+    it('returns OwnerMustTransferFirstError for the Owner', () => {
+      expect(leaveBoard(board, owner)).toEqual({
+        ok: false,
+        error: new OwnerMustTransferFirstError(),
+      })
+    })
+
+    it('returns ForbiddenError for a user who isn’t a Board member', () => {
+      expect(leaveBoard(board, outsider)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
+    })
+  })
+
+  describe('transferOwnership', () => {
+    it('makes the Member the Owner and the Owner a Member, raising OwnershipTransferred', () => {
+      expect(transferOwnership(board, owner, member)).toEqual({
+        ok: true,
+        value: {
+          state: {
+            ...board,
+            members: [
+              { userId: owner, role: 'member' },
+              { userId: member, role: 'owner' },
+            ],
+          },
+          events: [
+            {
+              type: 'OwnershipTransferred',
+              payload: {
+                boardId: board.id,
+                fromUserId: owner,
+                toUserId: member,
+              },
+            },
+          ],
+        },
+      })
+    })
+
+    it('returns NotAMemberError for a user who isn’t a Board member', () => {
+      expect(transferOwnership(board, owner, cy)).toEqual({
+        ok: false,
+        error: new NotAMemberError(),
+      })
+    })
+
+    it('raises nothing when the Owner transfers to themself', () => {
+      expect(transferOwnership(board, owner, owner)).toEqual({
+        ok: true,
+        value: { state: board, events: [] },
+      })
+    })
+
+    it.each([
+      ['a Member', member],
+      ['a user who isn’t a Board member', outsider],
+    ])('returns ForbiddenError for %s', (_who, actorId) => {
+      expect(transferOwnership(board, actorId, member)).toEqual({
+        ok: false,
+        error: new ForbiddenError(),
+      })
     })
   })
 })

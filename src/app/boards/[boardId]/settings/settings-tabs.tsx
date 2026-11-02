@@ -1,7 +1,10 @@
 import Link from 'next/link'
 
 /** Each settings tab is its own page under `/boards/[boardId]/settings`. */
-const TABS = [{ id: 'general', label: 'General', path: '' }] as const
+const TABS = [
+  { id: 'general', label: 'General', path: '' },
+  { id: 'members', label: 'Members', path: '/members' },
+] as const
 
 type Tab = (typeof TABS)[number]['id']
 

@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import { toActionError } from '@/app/_lib/errors/to-action-error'
 import {
+  AlreadyAMemberError,
+  NotAMemberError,
+  OwnerMustTransferFirstError,
+} from '@/modules/boards/api'
+import {
   EmailTakenError,
   IncorrectPasswordError,
   InvalidCredentialsError,
@@ -84,6 +89,29 @@ describe('toActionError', () => {
     expect(
       toActionError(new ValidationError({ name: 'too-long' })).fields
     ).toEqual({ name: 'Use 60 characters or fewer.' })
+  })
+
+  it('words boards.board.already-a-member', () => {
+    expect(toActionError(new AlreadyAMemberError())).toEqual({
+      code: 'boards.board.already-a-member',
+      message: 'They’re already a member of this board.',
+    })
+  })
+
+  it('words boards.board.not-a-member', () => {
+    expect(toActionError(new NotAMemberError())).toEqual({
+      code: 'boards.board.not-a-member',
+      message:
+        'They’re no longer a member of this board. Reload the page to see who is.',
+    })
+  })
+
+  it('words boards.board.owner-must-transfer-first', () => {
+    expect(toActionError(new OwnerMustTransferFirstError())).toEqual({
+      code: 'boards.board.owner-must-transfer-first',
+      message:
+        'You’re the Owner. Make another member the Owner before you leave.',
+    })
   })
 
   it('turns anything thrown into unexpected, with the trace id as its reference', async () => {

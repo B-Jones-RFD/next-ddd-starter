@@ -13,12 +13,15 @@ export async function loadBoardsModule(mode: AdapterMode) {
       { MockBoardRepository },
       { MockBoardReader },
       { MockListRepository },
+      { UserDirectory },
     ] = await Promise.all([
       import('@/shared/infrastructure/outbox/outbox.mock'),
       import('@/modules/boards/infrastructure/people-projection.mock'),
       import('@/modules/boards/infrastructure/board-repository.mock'),
       import('@/modules/boards/infrastructure/board-reader.mock'),
       import('@/modules/boards/infrastructure/list-repository.mock'),
+      // No IO of its own: it asks identity's api.ts, which is on mocks too.
+      import('@/modules/boards/infrastructure/user-directory'),
     ])
     const outbox = new MockOutbox('boards')
     boards
@@ -31,6 +34,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     boards
       .bind('IListRepository')
       .toFactory(() => new MockListRepository(outbox), 'singleton')
+    boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
     return boards
   }
 
@@ -41,6 +45,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     { BoardRepository },
     { BoardReader },
     { ListRepository },
+    { UserDirectory },
   ] = await Promise.all([
     import('@/shared/infrastructure/sqlite/database'),
     import('@/shared/infrastructure/outbox/outbox'),
@@ -48,6 +53,7 @@ export async function loadBoardsModule(mode: AdapterMode) {
     import('@/modules/boards/infrastructure/board-repository'),
     import('@/modules/boards/infrastructure/board-reader'),
     import('@/modules/boards/infrastructure/list-repository'),
+    import('@/modules/boards/infrastructure/user-directory'),
   ])
   boards
     .bind('IPeopleProjection')
@@ -69,5 +75,6 @@ export async function loadBoardsModule(mode: AdapterMode) {
         new ListRepository(getDatabase(), new Outbox(getDatabase(), 'boards')),
       'singleton'
     )
+  boards.bind('IUserDirectory').toClass(UserDirectory, undefined, 'singleton')
   return boards
 }

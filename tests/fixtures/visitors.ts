@@ -68,3 +68,19 @@ export async function addListNamed(page: Page, name: string) {
     page.getByRole('heading', { level: 2, name, exact: true })
   ).toBeVisible()
 }
+
+/**
+ * As the board's Owner, searches the Members tab for `email`, adds the user
+ * it finds, and waits until they are listed. Leaves the page on the tab.
+ */
+export async function addMemberByEmail(
+  page: Page,
+  boardPath: string,
+  email: string
+) {
+  await page.goto(`${boardPath}/settings/members`)
+  await page.getByLabel('Email address').fill(email)
+  await page.getByRole('button', { name: 'Search' }).click()
+  await page.getByRole('button', { name: /^Add / }).click()
+  await expect(page.getByRole('button', { name: /^Remove / })).toBeVisible()
+}

@@ -3,6 +3,11 @@ import {
   parseBoardName,
   type BoardName,
 } from '@/modules/boards/domain/board/board-name'
+import {
+  AlreadyAMemberError,
+  NotAMemberError,
+  OwnerMustTransferFirstError,
+} from '@/modules/boards/domain/board/board.errors'
 import type { BoardEvent } from '@/modules/boards/domain/board/board.events'
 import {
   ForbiddenError,
@@ -63,6 +68,95 @@ export function createBoard(input: {
 /** The actor's role on the board, if they are a Board member. */
 export function roleOf(board: Board, userId: UserId): Role | undefined {
   return board.members.find((member) => member.userId === userId)?.role
+}
+
+/** The Owner adds a user as a Member. */
+export function addMember(
+  board: Board,
+  actorId: UserId,
+  userId: UserId
+): Result<Change, ForbiddenError | AlreadyAMemberError> {
+  if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (roleOf(board, userId)) return err(new AlreadyAMemberError())
+  return ok({
+    state: {
+      ...board,
+      members: [...board.members, { userId, role: 'member' }],
+    },
+    events: [{ type: 'MemberAdded', payload: { boardId: board.id, userId } }],
+  })
+}
+
+/** The Owner removes a Member. The Owner can't remove themself. */
+export function removeMember(
+  board: Board,
+  actorId: UserId,
+  userId: UserId
+): Result<
+  Change,
+  ForbiddenError | NotAMemberError | OwnerMustTransferFirstError
+> {
+  if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  const role = roleOf(board, userId)
+  if (!role) return err(new NotAMemberError())
+  if (role === 'owner') return err(new OwnerMustTransferFirstError())
+  return ok({
+    state: without(board, userId),
+    events: [{ type: 'MemberRemoved', payload: { boardId: board.id, userId } }],
+  })
+}
+
+/** A Member leaves the board. The Owner must transfer ownership first. */
+export function leaveBoard(
+  board: Board,
+  actorId: UserId
+): Result<Change, ForbiddenError | OwnerMustTransferFirstError> {
+  const role = roleOf(board, actorId)
+  if (!role) return err(new ForbiddenError())
+  if (role === 'owner') return err(new OwnerMustTransferFirstError())
+  return ok({
+    state: without(board, actorId),
+    events: [
+      { type: 'MemberLeft', payload: { boardId: board.id, userId: actorId } },
+    ],
+  })
+}
+
+/**
+ * The Owner makes another Board member the Owner and becomes a Member, so
+ * the board still has exactly one Owner. Transferring to themself raises
+ * nothing.
+ */
+export function transferOwnership(
+  board: Board,
+  actorId: UserId,
+  toUserId: UserId
+): Result<Change, ForbiddenError | NotAMemberError> {
+  if (roleOf(board, actorId) !== 'owner') return err(new ForbiddenError())
+  if (!roleOf(board, toUserId)) return err(new NotAMemberError())
+  if (toUserId === actorId) return ok({ state: board, events: [] })
+  return ok({
+    state: {
+      ...board,
+      members: board.members.map((member) => ({
+        userId: member.userId,
+        role: member.userId === toUserId ? 'owner' : 'member',
+      })),
+    },
+    events: [
+      {
+        type: 'OwnershipTransferred',
+        payload: { boardId: board.id, fromUserId: actorId, toUserId },
+      },
+    ],
+  })
+}
+
+function without(board: Board, userId: UserId): Board {
+  return {
+    ...board,
+    members: board.members.filter((member) => member.userId !== userId),
+  }
 }
 
 /** The Owner renames the board. The same name raises nothing. */

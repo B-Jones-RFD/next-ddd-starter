@@ -65,4 +65,12 @@ export class MockBoardReader implements IBoardReader {
         .map((list) => ({ id: list.id, name: list.name })),
     })
   }
+
+  async roleOf(
+    boardId: string,
+    userId: UserId
+  ): Promise<'owner' | 'member' | null> {
+    const board = mockBoards().get(boardId)
+    return board?.members.find((m) => m.userId === userId)?.role ?? null
+  }
 }

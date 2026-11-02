@@ -21,4 +21,6 @@ export interface IBoardReader {
     boardId: string,
     userId: UserId
   ): Promise<Result<BoardDto, NotFoundError | ForbiddenError>>
+  /** `userId`'s role on the board, or null if they aren't a Board member of it. */
+  roleOf(boardId: string, userId: UserId): Promise<'owner' | 'member' | null>
 }

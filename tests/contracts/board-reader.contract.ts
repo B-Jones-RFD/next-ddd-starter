@@ -201,5 +201,23 @@ export function describeBoardReaderContract(make: Make) {
         error: new NotFoundError('Board', 'nowhere'),
       })
     })
+
+    it('gives each user’s role on a board, and null for anyone else', async () => {
+      const { reader, boards } = make()
+      const board = await given(
+        boards,
+        aBoard({
+          members: [
+            { userId: ada, role: 'owner' },
+            { userId: ben, role: 'member' },
+          ],
+        })
+      )
+
+      expect(await reader.roleOf(board.id, ada)).toBe('owner')
+      expect(await reader.roleOf(board.id, ben)).toBe('member')
+      expect(await reader.roleOf(board.id, cy)).toBeNull()
+      expect(await reader.roleOf('nowhere', ada)).toBeNull()
+    })
   })
 }
