@@ -153,6 +153,7 @@ export const boards006: Migration = {
   `,
 }
 
+// #region comments-table
 export const boards007: Migration = {
   context: 'boards',
   name: '007-comments',
@@ -169,3 +170,4 @@ export const boards007: Migration = {
     CREATE INDEX boards_comments_task_id ON boards_comments (task_id);
   `,
 }
+// #endregion comments-table

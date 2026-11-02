@@ -179,6 +179,7 @@ export async function untagTaskAction(
   return { status: 'success' }
 }
 
+// #region add-comment-action
 /**
  * Comments on the task, then re-renders it. Activity picks the comment up
  * one relay drain later, and the form shows it optimistically until then:
@@ -209,3 +210,4 @@ export async function addCommentAction(
   refresh()
   return { status: 'success' }
 }
+// #endregion add-comment-action
