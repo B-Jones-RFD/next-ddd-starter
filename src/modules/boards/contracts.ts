@@ -2,3 +2,7 @@
 // re-exports from application/contracts/.
 export type { BoardCreatedV1 } from '@/modules/boards/application/contracts/board-created.v1'
 export type { BoardRenamedV1 } from '@/modules/boards/application/contracts/board-renamed.v1'
+export type { MemberAddedV1 } from '@/modules/boards/application/contracts/member-added.v1'
+export type { MemberLeftV1 } from '@/modules/boards/application/contracts/member-left.v1'
+export type { MemberRemovedV1 } from '@/modules/boards/application/contracts/member-removed.v1'
+export type { OwnershipTransferredV1 } from '@/modules/boards/application/contracts/ownership-transferred.v1'

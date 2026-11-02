@@ -3,7 +3,13 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { THEME_STORAGE_KEY } from '@/app/_lib/theme/theme'
 
-import { createBoardNamed, signUp } from '@tests/fixtures/visitors'
+import {
+  aNewVisitor,
+  addMemberByEmail,
+  createBoardNamed,
+  signOut,
+  signUp,
+} from '@tests/fixtures/visitors'
 
 // The one axe sweep (§10). A slice that adds a screen registers it here, and
 // the sweep checks it in both themes. `path` is visited after `arrange` (which
@@ -22,6 +28,18 @@ async function withBoard(page: Page) {
   await createBoardNamed(page, 'Launch plan')
 }
 
+/**
+ * Signs Ben up, then Ada, who creates a board and adds Ben. Leaves the page
+ * on the board's Members tab, as its Owner.
+ */
+async function withMember(page: Page) {
+  const ben = await signUp(page, aNewVisitor('Ben'))
+  await signOut(page, ben.displayName)
+  await signUp(page, aNewVisitor('Ada'))
+  const boardPath = await createBoardNamed(page, 'Launch plan')
+  await addMemberByEmail(page, boardPath, ben.email)
+}
+
 const here = (page: Page) => new URL(page.url()).pathname
 
 const SCREENS: Screen[] = [
@@ -37,6 +55,12 @@ const SCREENS: Screen[] = [
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
     arrange: withBoard,
+  },
+  {
+    name: 'board members (Owner, with a Member and a search)',
+    // `withMember` leaves the page on the Members tab, after a search.
+    path: (page) => `${here(page)}${new URL(page.url()).search}`,
+    arrange: withMember,
   },
 ]
 

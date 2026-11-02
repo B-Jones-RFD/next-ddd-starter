@@ -7,6 +7,7 @@ import { signOutEverywhere as signOutEverywhereCommand } from '@/modules/identit
 import { signOut as signOutCommand } from '@/modules/identity/application/commands/sign-out.command'
 import { signUp as signUpCommand } from '@/modules/identity/application/commands/sign-up.command'
 import { authenticate as authenticateQuery } from '@/modules/identity/application/queries/authenticate.query'
+import { findUserByEmail as findUserByEmailQuery } from '@/modules/identity/application/queries/find-user-by-email.query'
 import { traced } from '@/shared/infrastructure/tracing'
 
 // Public API of the identity context (§2): its commands and queries, each
@@ -26,6 +27,10 @@ export const changePassword = traced(
 )
 export const rename = traced('identity.rename', renameCommand)
 export const authenticate = traced('identity.authenticate', authenticateQuery)
+export const findUserByEmail = traced(
+  'identity.findUserByEmail',
+  findUserByEmailQuery
+)
 // #endregion use-cases
 
 export type { ChangePasswordInput } from '@/modules/identity/application/commands/change-password.command'
@@ -36,6 +41,7 @@ export type {
   ActorDto,
   SessionTokenDto,
 } from '@/modules/identity/application/dto/session.dto'
+export type { UserDto } from '@/modules/identity/application/dto/user.dto'
 // #region errors
 export {
   EmailTakenError,
@@ -45,6 +51,7 @@ export {
 } from '@/modules/identity/domain/user/user.errors'
 export {
   ConflictError,
+  NotFoundError,
   UnauthenticatedError,
 } from '@/shared/kernel/errors/app-error'
 export {
