@@ -47,7 +47,7 @@ async function General({
         </Link>
         <h1 className='font-heading text-2xl font-semibold'>Board settings</h1>
       </div>
-      <SettingsTabs boardId={id} current='general' />
+      <SettingsTabs boardId={id} current='general' role={role} />
       <section
         aria-labelledby='board-name-heading'
         className='flex max-w-md flex-col gap-4'

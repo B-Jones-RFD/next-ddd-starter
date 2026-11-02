@@ -83,6 +83,17 @@ export class MockOutbox implements IOutbox {
     row.lastError = failure.error
   }
 
+  async replayFailed(): Promise<number> {
+    const failed = this.rows().filter((row) => row.status === 'failed')
+    for (const row of failed) {
+      row.status = 'pending'
+      row.nextAttemptAt = null
+      row.firstFailedAt = null
+    }
+    if (failed.length > 0) signalOutboxAppended()
+    return failed.length
+  }
+
   async backlog(): Promise<OutboxBacklog> {
     const rows = this.rows()
     const pending = rows.filter((row) => row.status === 'pending')

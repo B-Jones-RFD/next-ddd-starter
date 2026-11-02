@@ -155,6 +155,21 @@ export class Outbox implements IOutbox {
     )
   }
 
+  async replayFailed(): Promise<number> {
+    const { changes } = query(PORT, () =>
+      this.db
+        .prepare(
+          `UPDATE ${this.table}
+           SET status = 'pending', next_attempt_at = NULL,
+               first_failed_at = NULL
+           WHERE status = 'failed'`
+        )
+        .run()
+    )
+    if (changes > 0) signalOutboxAppended()
+    return Number(changes)
+  }
+
   async backlog(): Promise<OutboxBacklog> {
     const row = query(
       PORT,

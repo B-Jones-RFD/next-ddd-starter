@@ -121,6 +121,7 @@ const SCREENS: Screen[] = [
   { name: 'sign up', path: '/sign-up' },
   { name: 'sign in', path: '/sign-in' },
   { name: 'boards (empty)', path: '/boards', arrange: signUp },
+  // With the User log of the sign-up.
   { name: 'account', path: '/account', arrange: signUp },
   { name: 'boards (grid)', path: '/boards', arrange: withBoard },
   { name: 'board', path: here, arrange: withBoard },
@@ -159,6 +160,11 @@ const SCREENS: Screen[] = [
     name: 'board settings',
     path: (page) => `${here(page)}/settings`,
     arrange: withBoard,
+  },
+  {
+    name: 'board log (with reorders shown)',
+    path: (page) => `${here(page)}/settings/log?reorders=1`,
+    arrange: withTasks,
   },
   {
     name: 'board members (Owner, with a Member and a search)',

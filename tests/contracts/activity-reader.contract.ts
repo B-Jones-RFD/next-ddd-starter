@@ -70,6 +70,97 @@ export function describeActivityReaderContract(make: () => AuditAdapters) {
       expect(actions).toEqual(['task.created'])
     })
 
+    it('reads a board’s entries newest first, whatever they are about, with their subject, and no other board’s', async () => {
+      const created = anEntry({
+        subject: 'board',
+        subjectId: 'board-1',
+        taskId: null,
+        action: 'board.created',
+        details: { name: 'Launch plan' },
+      })
+      const list = anEntry({
+        subject: 'list',
+        subjectId: 'list-1',
+        taskId: null,
+        action: 'list.created',
+        details: { name: 'Backlog' },
+      })
+      const other = anEntry({ boardId: 'board-2', taskId: 'task-2' })
+      const task = anEntry()
+      const reader = await given(created, list, other, task)
+
+      const found = await reader.forBoard('board-1', {
+        before: null,
+        limit: 50,
+        excluding: [],
+      })
+
+      expect(
+        found.map(({ id, subject, subjectId }) => ({ id, subject, subjectId }))
+      ).toEqual([
+        { id: task.id, subject: 'task', subjectId: 'task-1' },
+        { id: list.id, subject: 'list', subjectId: 'list-1' },
+        { id: created.id, subject: 'board', subjectId: 'board-1' },
+      ])
+    })
+
+    it('pages a board’s entries by id and leaves out the actions it is told to', async () => {
+      const [a, b, c] = [anEntry(), anEntry(), anEntry()]
+      const reordered = anEntry({
+        action: 'task.reordered',
+        details: { listId: 'list-1' },
+      })
+      const d = anEntry()
+      const reader = await given(a, b, c, reordered, d)
+
+      const ids = (
+        await reader.forBoard('board-1', {
+          before: d.id,
+          limit: 2,
+          excluding: ['task.reordered'],
+        })
+      ).map((entry) => entry.id)
+
+      expect(ids).toEqual([c.id, b.id])
+    })
+
+    it('reads a user’s own entries newest first, and nothing done by or to anyone else', async () => {
+      const userEntry = (userId: string) =>
+        anEntry({
+          actorId: toUserId(userId),
+          subject: 'user',
+          subjectId: userId,
+          boardId: null,
+          taskId: null,
+          action: 'user.signed-in',
+          details: {},
+        })
+      const [first, ben, second] = [
+        userEntry('user-ada'),
+        userEntry('user-ben'),
+        userEntry('user-ada'),
+      ]
+      // Ada's board work is about her board, not about her.
+      const reader = await given(first, ben, anEntry(), second)
+
+      const found = await reader.forUser('user-ada', {
+        before: null,
+        limit: 50,
+        excluding: [],
+      })
+      const older = await reader.forUser('user-ada', {
+        before: second.id,
+        limit: 50,
+        excluding: [],
+      })
+
+      expect(found.map(({ id, subject }) => ({ id, subject }))).toEqual([
+        { id: second.id, subject: 'user' },
+        { id: first.id, subject: 'user' },
+      ])
+      expect(older.map((entry) => entry.id)).toEqual([first.id])
+    })
+
     it('finds the board a task’s entries are about, or null', async () => {
       const reader = await given(anEntry())
 

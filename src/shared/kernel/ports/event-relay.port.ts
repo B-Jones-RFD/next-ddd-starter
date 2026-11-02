@@ -38,5 +38,11 @@ export interface IEventRelay {
   kick(): void
   /** Delivers every row that is due, then resolves. Single-flight. */
   drain(): Promise<void>
+  /**
+   * Makes every outbox's failed rows pending again, so the next drain
+   * delivers them; inboxes drop what a handler already applied. Returns
+   * how many rows it reset. For `npm run outbox:replay`.
+   */
+  replayFailed(): Promise<number>
 }
 // #endregion port
