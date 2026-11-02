@@ -57,7 +57,7 @@ Site: [Layout](https://b-jones-rfd.github.io/next-ddd-starter/layout/)
 - **Bind only adapters in `src/di/`:** `container.ts` picks the mode and exports `getInjection`, `types.ts` maps each token to its port with type-only imports, and `modules/<context>.module.ts` plus `shared.module.ts` hold the bindings. A token is the port's interface name and is unique across the repo. Use cases are never bound. `type`
 - **Resolve with `await getInjection('IPortName')` inside the function body**, never at module top level. Importing `api.ts` never builds the container, and tests can swap bindings between cases. `review`
 - **The container picks the adapter mode once, at startup.** `ADAPTERS=real|mock` wins. Otherwise `NODE_ENV=test` means mock. In dev, a missing required variable means mock, with a warning. Production refuses mock mode and missing variables. The dev server runs without a database, and production never quietly runs on fakes. `test`
-- **Give every adapter a working in-memory `.mock.ts` twin beside it.** The twin keeps real behaviour: version checks, ordering and the same error classes. Mocks load through `import()` only in mock mode, keep their stores on `globalThis` and reset with `resetMockStores()`. `test`
+- **Give every adapter a working in-memory `.mock.ts` twin beside it.** The twin keeps real behaviour: version checks, ordering and the same error classes. Mocks load through `import()` only in mock mode, keep their stores on `globalThis` and reset with `resetMockStores()`. §13 names the ACL adapters that need none. `test`
 
 ## 3. Domain
 
@@ -135,7 +135,7 @@ Site: [Contexts](https://b-jones-rfd.github.io/next-ddd-starter/contexts/)
   ```
 
 - **For a change a handler makes, keep `actorId` as the user who started the chain** and set `causationId` to the triggering event's id. It is null for a change a user made directly. There is no system user. `review`
-- **Put event handlers in the consumer's `application/`**, importing the supplier's contracts. A handler loads outside any transaction, then writes its one aggregate, its own outbox rows and its inbox row (`<context>_inbox(event_id, handler)`) in one synchronous transaction. `review`
+- **Put event handlers in the consumer's `application/`**, importing the supplier's contracts. A handler loads outside any transaction, then writes its one aggregate, its own outbox rows and its inbox row (`<context>_inbox(event_id, handler)`) in one synchronous transaction. §13 names the two handlers that don't. `review`
 - **Make consumers idempotent.** The inbox drops a redelivered event. A projection ignores an event whose `aggregateVersion` is older than one it has already applied. `test`
 - **Deliver through the in-process relay behind `IEventRelay`**, started once from `instrumentation.ts`. It is single-flight, polls and is kicked after each save, delivers each outbox in id order and marks a row delivered only when every handler has succeeded. `test`
 - **Retry what is retryable, and fail everything else at once.** A row failing with a `retryable` `InfrastructureError` retries indefinitely, with backoff capped at 60 s, while its stream waits. Any other error marks the row `failed`, logs it and moves on. `npm run outbox:replay` resets `failed` rows. Delivered rows are kept. `test`
@@ -308,10 +308,13 @@ These are deliberate. Don't "fix" them, and don't copy them anywhere else.
 
 - **`getInjection` is a service locator.** `application/` importing `@/di/container` is a runtime edge pointing outward, while every type still points inward. It isn't a layering bug.
 - **`authenticate` writes during render.** It updates `last_seen_at` at most once a minute, straight through the session repository, with no events. This is the one exception to read-only queries.
-- **When a Board member leaves or is removed**, their assignments pass to the Owner, including on archived tasks. This is a handler-made change, exempt from the read-only rule. It saves each task in its own transaction and writes no inbox row, because a redelivery finds nothing still assigned to them.
+- **Two Consequence handlers write many aggregates and no inbox row**, against §6's one aggregate and one inbox row per handler. Each saves each task in its own transaction and is idempotent by state instead, so a redelivery redoes only what is left, and a task that keeps conflicting is left for a retryable redelivery after the rest:
+  - `boards.reassignToOwner`: when a Board member leaves or is removed, their assignments pass to the Owner, including on archived tasks, a handler-made change exempt from the read-only rule. A redelivery finds nothing still assigned to them.
+  - `boards.untagDeletedTag`: a deleted tag leaves every task that had it, archived ones included. A redelivery finds no task still carrying it.
 - **Cross-aggregate read-checks can race.** For example, a task restored just as its list is archived. The resulting states are odd but valid.
 - **All contexts share one SQLite file and connection.** Their tables stay separate by prefix.
 - **Mocks ship in the production bundle.** They load only in mock mode.
+- **ACL adapters have no `.mock.ts` twin**, against §2. `PeopleDirectory` and `BoardAccess` do no IO of their own: they call the supplier's `api.ts`, which runs on the supplier's mocks in mock mode, so one class serves both modes. Each still has a contract suite (§11).
 - **Ports use the `I` prefix and `interface`**, and **Next's files use default exports**.
 - **Error messages can carry input.** Third-party messages are kept as they are, and Next records thrown errors on its own spans.
 - **Observability deviates from the OTel spec in two ways:** exporters default to `none`, and traces' `none` keeps the provider.

@@ -78,6 +78,18 @@ Three things about it are exceptions, and each has a reason.
 
 It handles the published `boards.MemberRemoved.v1` and `boards.MemberLeft.v1`, not the domain events, so each saved task carries the published event's id as its `causationId`. Audit records each hand-over as an ordinary entry, and Activity names the removal as its cause ([ADR 0010](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0010-one-audit-entry-per-integration-event-and-activity-as-a-filtered-view.md)).
 
+## A deleted tag leaves its tasks the same way
+
+`boards.untagDeletedTag` is the other handler built this way. A tag is deleted from the Board, and its `boards.TagDeleted.v1` strips it from every task that had it, archived ones included, one task per transaction through the same `changeEachTask`:
+
+<<< @/../src/modules/boards/application/handlers/untag-deleted-tag.ts{ts}
+
+It writes no inbox row for the same reason: a redelivery finds no task still carrying the tag, so it does nothing. Both handlers are exceptions to §6's one aggregate and one inbox row per handler, and nothing else may copy them.
+
+## ACL adapters have no mock twin
+
+§2 gives every adapter a `.mock.ts` twin. The two anti-corruption adapters, boards' `PeopleDirectory` and audit's `BoardAccess`, have none. They do no IO of their own: each calls the supplier context's `api.ts`, and in mock mode that runs on the supplier's own mocks, so the same class serves both modes. Each still has a contract suite, run against the class over the supplier's mocks ([§11](/testing/)).
+
 ## Cross-aggregate read-checks can race
 
 Every transaction writes one aggregate ([ADR 0007](https://github.com/B-Jones-RFD/next-ddd-starter/blob/main/docs/adr/0007-one-aggregate-per-transaction-with-a-transactional-outbox.md)). A rule that spans aggregates, such as "restore a task only into an active list" or "archive a list only when none of its tasks are active", is a read-check: the command loads the other aggregates outside the transaction and passes them to the domain.
