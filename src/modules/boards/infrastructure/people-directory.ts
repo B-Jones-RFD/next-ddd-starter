@@ -8,14 +8,11 @@ import {
   NotFoundError,
   ValidationError as IdentityValidationError,
 } from '@/modules/identity/api'
+import { askContext } from '@/shared/infrastructure/ask-context'
 import {
   ForbiddenError,
   ValidationError,
 } from '@/shared/kernel/errors/domain-error'
-import {
-  InfrastructureError,
-  PersistenceError,
-} from '@/shared/kernel/errors/infrastructure-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
 
@@ -33,19 +30,9 @@ export class PeopleDirectory implements IPeopleDirectory {
     actorId: UserId,
     email: string
   ): Promise<Result<DirectoryPerson | null, ValidationError | ForbiddenError>> {
-    let found: Awaited<ReturnType<typeof findUserByEmail>>
-    try {
-      found = await findUserByEmail({ actorId, email })
-    } catch (error) {
-      if (error instanceof InfrastructureError) {
-        throw new PersistenceError(PORT, {
-          retryable: error.retryable,
-          cause: error,
-        })
-      }
-      throw error
-    }
-
+    const found = await askContext(PORT, () =>
+      findUserByEmail({ actorId, email })
+    )
     if (found.ok) {
       const { userId, displayName, email: address } = found.value
       return ok({ userId, displayName, email: address })

@@ -54,7 +54,7 @@ The port says what boards needs, a `DirectoryPerson` with three fields, and noth
 This adapter is an anti-corruption layer. It translates in both directions:
 
 - **Answers.** It copies the three fields boards wants out of identity's DTO, and turns identity's `NotFoundError` into `null`, which is what "nobody has that email" means to boards.
-- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IPeopleDirectory`, keeping `retryable` and the original as `cause`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
+- **Errors, thrown ones included.** An outage in identity surfaces as boards' own `PersistenceError` for `IPeopleDirectory`, keeping `retryable` and the original as `cause`. Every ACL does this through one shared helper, `askContext` in `src/shared/infrastructure/`. A boards use case catches nothing it can't name, and the trail back to identity stays in the diagnostic logs.
 
 The same shape runs the other way. Audit needs to know whether a reader may see a board's Audit entries, so it owns `IBoardAccess`:
 
