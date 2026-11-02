@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { archiveTask as archiveTaskOperation } from '@/modules/boards/domain/task/task'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import type {
@@ -29,7 +30,14 @@ export type ArchiveTaskInput = {
 export async function archiveTask(
   input: ArchiveTaskInput
 ): Promise<
-  Result<void, ValidationError | NotFoundError | ForbiddenError | ConflictError>
+  Result<
+    void,
+    | ValidationError
+    | NotFoundError
+    | ForbiddenError
+    | BoardArchivedError
+    | ConflictError
+  >
 > {
   const shape = ArchiveTaskInput.safeParse(input)
   if (!shape.success) {
@@ -46,7 +54,7 @@ export async function archiveTask(
 
   const changed = archiveTaskOperation(
     task.value,
-    roleOf(board.value, input.actorId)
+    membershipOn(board.value, input.actorId)
   )
   if (!changed.ok) return changed
   if (changed.value.events.length === 0) return ok(undefined)

@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { ListHasActiveTasksError } from '@/modules/boards/domain/list/list.errors'
 import { toListId } from '@/modules/boards/domain/list/list-id'
 import { archiveList as archiveListOperation } from '@/modules/boards/domain/services/archiving.service'
@@ -38,6 +39,7 @@ export async function archiveList(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | ListHasActiveTasksError
     | ConflictError
   >
@@ -60,7 +62,7 @@ export async function archiveList(
 
   const changed = archiveListOperation(
     list.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     inList
   )
   if (!changed.ok) return changed

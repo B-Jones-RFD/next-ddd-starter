@@ -1,4 +1,5 @@
-import type { Role } from '@/modules/boards/domain/board/board'
+import { mayChange, type Membership } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { ListId } from '@/modules/boards/domain/list/list-id'
 import {
@@ -8,9 +9,9 @@ import {
 import { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import type { ListEvent } from '@/modules/boards/domain/list/list.events'
 import { ConflictError, NotFoundError } from '@/shared/kernel/errors/app-error'
-import {
+import type {
   ForbiddenError,
-  type ValidationError,
+  ValidationError,
 } from '@/shared/kernel/errors/domain-error'
 import { keyBetween } from '@/shared/kernel/key-between'
 import { err, ok, type Result } from '@/shared/kernel/result'
@@ -28,13 +29,9 @@ export type List = {
   /** Owned by persistence: 0 until first saved (§5). */
   readonly version: number
 }
-
-/**
- * The actor's role on the list's board, read from the loaded Board before
- * the operation (a read-check), or undefined if they aren't a Board member.
- */
-export type Membership = Role | undefined
 // #endregion list
+
+export type { Membership }
 
 type Change = { state: List; events: ListEvent[] }
 
@@ -52,8 +49,9 @@ export function createList(input: {
   /** The position of the board's last list, or null if it has none. */
   after: string | null
   now: Date
-}): Result<Change, ValidationError | ForbiddenError> {
-  if (!input.membership) return err(new ForbiddenError())
+}): Result<Change, ValidationError | ForbiddenError | BoardArchivedError> {
+  const allowed = mayChange(input.membership)
+  if (!allowed.ok) return allowed
   const name = parseListName(input.name)
   if (!name.ok) return name
   return ok({
@@ -80,8 +78,12 @@ export function renameList(
   list: List,
   membership: Membership,
   rawName: string
-): Result<Change, ValidationError | ForbiddenError | ListArchivedError> {
-  if (!membership) return err(new ForbiddenError())
+): Result<
+  Change,
+  ValidationError | ForbiddenError | BoardArchivedError | ListArchivedError
+> {
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (list.archived) return err(new ListArchivedError())
   const name = parseListName(rawName)
   if (!name.ok) return name
@@ -114,9 +116,14 @@ export function moveList(
   place: { after?: List; before?: List }
 ): Result<
   Change,
-  ForbiddenError | ListArchivedError | NotFoundError | ConflictError
+  | ForbiddenError
+  | BoardArchivedError
+  | ListArchivedError
+  | NotFoundError
+  | ConflictError
 > {
-  if (!membership) return err(new ForbiddenError())
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (list.archived) return err(new ListArchivedError())
   const { after, before } = place
   for (const neighbour of [after, before]) {
@@ -153,8 +160,9 @@ export function moveList(
 export function restoreList(
   list: List,
   membership: Membership
-): Result<Change, ForbiddenError> {
-  if (!membership) return err(new ForbiddenError())
+): Result<Change, ForbiddenError | BoardArchivedError> {
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (!list.archived) return ok({ state: list, events: [] })
   return ok({
     state: { ...list, archived: false },

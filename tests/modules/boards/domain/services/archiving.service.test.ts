@@ -13,6 +13,7 @@ import {
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
 import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 
+import { asMember, asOutsider } from '@tests/fixtures/boards'
 import { aList } from '@tests/fixtures/lists'
 import { aTask } from '@tests/fixtures/tasks'
 
@@ -24,7 +25,7 @@ describe('archiveList', () => {
   it('archives a list with no active tasks in its place and raises ListArchived', () => {
     const archivedTask = aTask({ listId: list.id, archived: true })
 
-    expect(archiveList(list, 'member', [archivedTask])).toEqual({
+    expect(archiveList(list, asMember(), [archivedTask])).toEqual({
       ok: true,
       value: {
         state: { ...list, archived: true },
@@ -39,7 +40,7 @@ describe('archiveList', () => {
   })
 
   it('archives an empty list', () => {
-    expect(archiveList(list, 'owner', []).ok).toBe(true)
+    expect(archiveList(list, asMember('owner'), []).ok).toBe(true)
   })
 
   it('returns ListHasActiveTasksError while any task in it is active', () => {
@@ -48,7 +49,7 @@ describe('archiveList', () => {
       aTask({ listId: list.id }),
     ]
 
-    expect(archiveList(list, 'member', tasks)).toEqual({
+    expect(archiveList(list, asMember(), tasks)).toEqual({
       ok: false,
       error: new ListHasActiveTasksError(),
     })
@@ -57,20 +58,20 @@ describe('archiveList', () => {
   it('ignores active tasks in other lists', () => {
     const elsewhere = aTask({ listId: toListId('list-other') })
 
-    expect(archiveList(list, 'member', [elsewhere]).ok).toBe(true)
+    expect(archiveList(list, asMember(), [elsewhere]).ok).toBe(true)
   })
 
   it('raises nothing for a list already archived', () => {
     const archived = { ...list, archived: true }
 
-    expect(archiveList(archived, 'member', [])).toEqual({
+    expect(archiveList(archived, asMember(), [])).toEqual({
       ok: true,
       value: { state: archived, events: [] },
     })
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(archiveList(list, undefined, [])).toEqual({
+    expect(archiveList(list, asOutsider, [])).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })
@@ -82,7 +83,7 @@ describe('restoreTask', () => {
   const task = aTask({ listId: list.id, archived: true, position: 'k' })
 
   it('restores the task in its old place and raises TaskRestored', () => {
-    expect(restoreTask(task, 'member', list)).toEqual({
+    expect(restoreTask(task, asMember(), list)).toEqual({
       ok: true,
       value: {
         state: { ...task, archived: false },
@@ -97,7 +98,7 @@ describe('restoreTask', () => {
   })
 
   it('returns ListArchivedError when its list is archived', () => {
-    expect(restoreTask(task, 'member', { ...list, archived: true })).toEqual({
+    expect(restoreTask(task, asMember(), { ...list, archived: true })).toEqual({
       ok: false,
       error: new ListArchivedError(),
     })
@@ -106,7 +107,7 @@ describe('restoreTask', () => {
   it('returns NotFoundError for a list that isn’t the task’s', () => {
     const other = aList({ id: toListId('list-other'), boardId })
 
-    expect(restoreTask(task, 'member', other)).toEqual({
+    expect(restoreTask(task, asMember(), other)).toEqual({
       ok: false,
       error: new NotFoundError('List', other.id),
     })
@@ -115,14 +116,14 @@ describe('restoreTask', () => {
   it('raises nothing for an active task', () => {
     const active = { ...task, archived: false }
 
-    expect(restoreTask(active, 'member', list)).toEqual({
+    expect(restoreTask(active, asMember(), list)).toEqual({
       ok: true,
       value: { state: active, events: [] },
     })
   })
 
   it('returns ForbiddenError for a user who isn’t a Board member', () => {
-    expect(restoreTask(task, undefined, list)).toEqual({
+    expect(restoreTask(task, asOutsider, list)).toEqual({
       ok: false,
       error: new ForbiddenError(),
     })

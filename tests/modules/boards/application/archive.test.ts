@@ -2,15 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getInjection } from '@/di/container'
 import {
+  addComment,
   addMember,
   archiveBoard,
   archiveList,
   archiveTask,
+  assignTask,
   BoardArchivedError,
   BoardNameMismatchError,
+  changeTaskDescription,
   ConflictError,
   createBoard,
   createList,
+  createTag,
   createTask,
   ForbiddenError,
   getBoard,
@@ -18,14 +22,20 @@ import {
   listBoards,
   ListArchivedError,
   ListHasActiveTasksError,
+  moveList,
+  moveTask,
   NotFoundError,
   renameBoard,
   renameList,
   renameTask,
+  reorderTask,
   restoreBoard,
   restoreList,
   restoreTask,
+  tagTask,
   TaskArchivedError,
+  unassignTask,
+  untagTask,
   ValidationError,
 } from '@/modules/boards/api'
 import { resetMockStores } from '@/shared/infrastructure/mock-stores'
@@ -193,6 +203,106 @@ describe('archiveBoard', () => {
       ok: false,
       error: new BoardArchivedError(),
     })
+  })
+})
+
+describe('an archived board', () => {
+  let task: string
+  let archivedTask: string
+  let archivedList: string
+  let tagId: string
+  let tagged: string
+  let assigned: string
+
+  beforeEach(async () => {
+    task = await givenTask(backlog, 'Write the brief')
+    await givenTask(done, 'Ship it')
+    archivedTask = await givenTask(backlog, 'Old idea')
+    await archiveTask({ actorId: ada, taskId: archivedTask })
+    archivedList = await givenList('Someday')
+    await archiveList({ actorId: ada, listId: archivedList })
+    const tag = await createTag({
+      actorId: ada,
+      boardId,
+      name: 'Urgent',
+      color: 'red',
+    })
+    if (!tag.ok) throw new Error('setup failed')
+    tagId = tag.value.tagId
+    tagged = await givenTask(backlog, 'Tagged')
+    await tagTask({ actorId: ada, taskId: tagged, tagId })
+    assigned = await givenTask(backlog, 'Assigned')
+    await assignTask({ actorId: ada, taskId: assigned, userId: ben })
+    await archiveBoard({ actorId: ada, boardId, confirmName: 'Launch plan' })
+  })
+
+  const changes: [string, () => Promise<unknown>][] = [
+    ['createList', () => createList({ actorId: ben, boardId, name: 'Later' })],
+    [
+      'renameList',
+      () => renameList({ actorId: ben, listId: backlog, name: 'Todo' }),
+    ],
+    [
+      'moveList',
+      () => moveList({ actorId: ben, listId: done, before: backlog }),
+    ],
+    ['archiveList', () => archiveList({ actorId: ben, listId: done })],
+    ['restoreList', () => restoreList({ actorId: ben, listId: archivedList })],
+    [
+      'createTask',
+      () => createTask({ actorId: ben, listId: backlog, title: 'New' }),
+    ],
+    [
+      'renameTask',
+      () => renameTask({ actorId: ben, taskId: task, title: 'X' }),
+    ],
+    [
+      'changeTaskDescription',
+      () =>
+        changeTaskDescription({ actorId: ben, taskId: task, description: 'X' }),
+    ],
+    [
+      'reorderTask',
+      () => reorderTask({ actorId: ben, taskId: tagged, before: task }),
+    ],
+    [
+      'moveTask',
+      () => moveTask({ actorId: ben, taskId: task, toListId: done }),
+    ],
+    ['archiveTask', () => archiveTask({ actorId: ben, taskId: task })],
+    ['restoreTask', () => restoreTask({ actorId: ben, taskId: archivedTask })],
+    ['tagTask', () => tagTask({ actorId: ben, taskId: task, tagId })],
+    ['untagTask', () => untagTask({ actorId: ben, taskId: tagged, tagId })],
+    [
+      'assignTask',
+      () => assignTask({ actorId: ben, taskId: task, userId: ben }),
+    ],
+    [
+      'unassignTask',
+      () => unassignTask({ actorId: ben, taskId: assigned, userId: ben }),
+    ],
+    [
+      'addComment',
+      () => addComment({ actorId: ben, taskId: task, text: 'Hi' }),
+    ],
+  ]
+
+  it.each(changes)(
+    'refuses %s with BoardArchivedError',
+    async (_name, change) => {
+      expect(await change()).toEqual({
+        ok: false,
+        error: new BoardArchivedError(),
+      })
+    }
+  )
+
+  it('still refuses a non-member with ForbiddenError', async () => {
+    const cy = await givenUser('Cy', 'cy@example.com')
+
+    expect(await renameTask({ actorId: cy, taskId: task, title: 'X' })).toEqual(
+      { ok: false, error: new ForbiddenError() }
+    )
   })
 })
 

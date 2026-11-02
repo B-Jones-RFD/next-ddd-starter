@@ -1,3 +1,5 @@
+import { mayChange } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import {
   acceptTasks,
   type List,
@@ -11,7 +13,7 @@ import type { ListEvent } from '@/modules/boards/domain/list/list.events'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskEvent } from '@/modules/boards/domain/task/task.events'
 import { NotFoundError } from '@/shared/kernel/errors/app-error'
-import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
+import type { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 
 // Archiving never cascades: a list and its tasks are archived and restored
@@ -30,9 +32,10 @@ export function archiveList(
   tasks: readonly Task[]
 ): Result<
   { state: List; events: ListEvent[] },
-  ForbiddenError | ListHasActiveTasksError
+  ForbiddenError | BoardArchivedError | ListHasActiveTasksError
 > {
-  if (!membership) return err(new ForbiddenError())
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (list.archived) return ok({ state: list, events: [] })
   if (tasks.some((task) => task.listId === list.id && !task.archived)) {
     return err(new ListHasActiveTasksError())
@@ -60,9 +63,10 @@ export function restoreTask(
   list: List
 ): Result<
   { state: Task; events: TaskEvent[] },
-  ForbiddenError | NotFoundError | ListArchivedError
+  ForbiddenError | BoardArchivedError | NotFoundError | ListArchivedError
 > {
-  if (!membership) return err(new ForbiddenError())
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (list.id !== task.listId) return err(new NotFoundError('List', list.id))
   if (!task.archived) return ok({ state: task, events: [] })
   const accepted = acceptTasks(list)

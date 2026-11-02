@@ -7,6 +7,8 @@ import {
   createTag,
   deleteTag,
   leaveBoard,
+  mayChange,
+  membershipOn,
   recolorTag,
   removeMember,
   renameBoard,
@@ -454,6 +456,32 @@ describe('an archived board', () => {
     const result = renameBoard(board, cy, 'New name')
 
     expect(result.ok ? null : result.error).toBeInstanceOf(ForbiddenError)
+  })
+
+  it('makes its lists, tasks and comments read-only through the Membership it gives', () => {
+    expect(membershipOn(board, ben)).toEqual({
+      role: 'member',
+      boardArchived: true,
+    })
+    expect(mayChange(membershipOn(board, ben))).toEqual({
+      ok: false,
+      error: new BoardArchivedError(),
+    })
+    expect(mayChange(membershipOn(board, cy))).toEqual({
+      ok: false,
+      error: new ForbiddenError(),
+    })
+  })
+})
+
+describe('mayChange', () => {
+  it('lets a Board member change things on an active board', () => {
+    const board = aBoard({ members: [{ userId: ada, role: 'owner' }] })
+
+    expect(mayChange(membershipOn(board, ada))).toEqual({
+      ok: true,
+      value: undefined,
+    })
   })
 })
 describe('Tags', () => {

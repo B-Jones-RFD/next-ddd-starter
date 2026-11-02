@@ -45,7 +45,7 @@ One of a fixed palette of named colors that each tag carries. It decorates a tag
 _Avoid_: Hex, swatch, label color
 
 **Archived**:
-The state of a board, list, or task that is hidden by default and read-only, but can be restored. Boards, lists, and tasks are never deleted, only archived. A list can be archived only when none of its tasks are active.
+The state of a board, list, or task that is hidden by default and read-only, but can be restored. Boards, lists, and tasks are never deleted, only archived. Everything on an archived board is read-only too: its lists, tasks, tags, assignees and comments, until the Owner restores it. A list can be archived only when none of its tasks are active.
 _Avoid_: Hidden, soft-deleted, closed
 
 **Active**:

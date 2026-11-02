@@ -1,3 +1,5 @@
+import { mayChange } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { acceptTasks, type List } from '@/modules/boards/domain/list/list'
 import type { ListArchivedError } from '@/modules/boards/domain/list/list.errors'
 import {
@@ -12,7 +14,7 @@ import {
   type ConflictError,
   NotFoundError,
 } from '@/shared/kernel/errors/app-error'
-import { ForbiddenError } from '@/shared/kernel/errors/domain-error'
+import type { ForbiddenError } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 
 /**
@@ -29,12 +31,14 @@ export function moveTask(
 ): Result<
   { state: Task; events: TaskEvent[] },
   | ForbiddenError
+  | BoardArchivedError
   | TaskArchivedError
   | NotFoundError
   | ConflictError
   | ListArchivedError
 > {
-  if (!membership) return err(new ForbiddenError())
+  const allowed = mayChange(membership)
+  if (!allowed.ok) return allowed
   if (task.archived) return err(new TaskArchivedError())
   const { toList, after, before } = place
   if (toList.boardId !== task.boardId) {

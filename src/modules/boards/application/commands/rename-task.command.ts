@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 import { getInjection } from '@/di/container'
 import type { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
-import { roleOf } from '@/modules/boards/domain/board/board'
+import { membershipOn } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import { renameTask as renameTaskOperation } from '@/modules/boards/domain/task/task'
 import { toTaskId } from '@/modules/boards/domain/task/task-id'
 import type {
@@ -37,6 +38,7 @@ export async function renameTask(
     | ValidationError
     | NotFoundError
     | ForbiddenError
+    | BoardArchivedError
     | TaskArchivedError
     | ConflictError
   >
@@ -56,7 +58,7 @@ export async function renameTask(
 
   const renamed = renameTaskOperation(
     task.value,
-    roleOf(board.value, input.actorId),
+    membershipOn(board.value, input.actorId),
     shape.data.title
   )
   if (!renamed.ok) return renamed

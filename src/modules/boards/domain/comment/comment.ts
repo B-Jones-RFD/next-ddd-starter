@@ -1,3 +1,5 @@
+import { mayChange, type Membership } from '@/modules/boards/domain/board/board'
+import type { BoardArchivedError } from '@/modules/boards/domain/board/board.errors'
 import type { BoardId } from '@/modules/boards/domain/board/board-id'
 import type { CommentId } from '@/modules/boards/domain/comment/comment-id'
 import {
@@ -5,13 +7,12 @@ import {
   type CommentText,
 } from '@/modules/boards/domain/comment/comment-text'
 import type { CommentEvent } from '@/modules/boards/domain/comment/comment.events'
-import type { Membership } from '@/modules/boards/domain/list/list'
 import type { Task } from '@/modules/boards/domain/task/task'
 import type { TaskId } from '@/modules/boards/domain/task/task-id'
 import { TaskArchivedError } from '@/modules/boards/domain/task/task.errors'
-import {
+import type {
   ForbiddenError,
-  type ValidationError,
+  ValidationError,
 } from '@/shared/kernel/errors/domain-error'
 import { err, ok, type Result } from '@/shared/kernel/result'
 import type { UserId } from '@/shared/kernel/user-id'
@@ -41,8 +42,12 @@ export function addComment(input: {
   authorId: UserId
   text: string
   now: Date
-}): Result<Change, ValidationError | ForbiddenError | TaskArchivedError> {
-  if (!input.membership) return err(new ForbiddenError())
+}): Result<
+  Change,
+  ValidationError | ForbiddenError | BoardArchivedError | TaskArchivedError
+> {
+  const allowed = mayChange(input.membership)
+  if (!allowed.ok) return allowed
   if (input.task.archived) return err(new TaskArchivedError())
   const text = parseCommentText(input.text)
   if (!text.ok) return text

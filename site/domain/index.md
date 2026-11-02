@@ -41,7 +41,7 @@ Every operation that changes an aggregate returns the new state together with th
 
 <<< @/../src/modules/boards/domain/task/task.ts#rename-task{ts}
 
-Read it top to bottom and it is the whole rule: only a Board member may rename, the title must parse, the same title changes nothing, and a real rename raises `TaskRenamed` with `from` and `to`. The input task is never modified. The new state is a copy (`{ ...task, title }`).
+Read it top to bottom and it is the whole rule: only a Board member may rename, and only while the board and the task are active, the title must parse, the same title changes nothing, and a real rename raises `TaskRenamed` with `from` and `to`. The input task is never modified. The new state is a copy (`{ ...task, title }`).
 
 Why:
 
@@ -95,7 +95,9 @@ An operation that needs a role checks it itself and returns `ForbiddenError`. A 
 
 <<< @/../src/modules/boards/domain/board/board.ts#add-member{ts}
 
-A List's or a Task's operations can't do that, because those aggregates don't hold the members. They take the actor's `Membership` instead: the role read from the loaded Board by `roleOf`, or `undefined` for someone who isn't a Board member. That is what `renameTask` above checks. The command loads the Board, calls `roleOf(board, actorId)` and passes the result in.
+A List's, a Task's or a Comment's operations can't do that, because those aggregates don't hold the members. They take the actor's `Membership` instead, read from the loaded Board by `membershipOn`: the actor's role, or `undefined` for someone who isn't a Board member, and whether the board is archived. Each operation starts with `mayChange(membership)`, which refuses a non-member with `ForbiddenError` and anyone on an archived board with `BoardArchivedError`, so an archived board is read-only all the way down. That is what `renameTask` above checks. The command loads the Board, calls `membershipOn(board, actorId)` and passes the result in:
+
+<<< @/../src/modules/boards/domain/board/board.ts#membership{ts}
 
 Why:
 
@@ -157,7 +159,7 @@ The client never sends keys. It sends the ids of the neighbours, and the domain 
 
 ## Rules that span aggregates are domain services
 
-A rule that needs more than one aggregate is a pure function in `domain/services/`. It takes every aggregate it needs, all loaded by the command before the change, and returns the change for the one aggregate being written. Moving a task to another list ("Move to list…") needs the task, its new list and the actor's role:
+A rule that needs more than one aggregate is a pure function in `domain/services/`. It takes every aggregate it needs, all loaded by the command before the change, and returns the change for the one aggregate being written. Moving a task to another list ("Move to list…") needs the task, its new list and the actor's `Membership`:
 
 <<< @/../src/modules/boards/domain/services/task-placement.service.ts{ts}
 
@@ -169,7 +171,7 @@ sequenceDiagram
   participant R as repositories
   participant S as task-placement.service
   C->>R: load Task, Board, target List, neighbours
-  C->>S: moveTask(task, roleOf(board, actor), { toList, after, before })
+  C->>S: moveTask(task, membershipOn(board, actor), { toList, after, before })
   S-->>C: { state, events }
   C->>R: save(task, events, origin)
   Note over C,R: only the Task is written
