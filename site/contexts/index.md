@@ -115,7 +115,13 @@ Every change records its origin:
 
 <<< @/../src/shared/kernel/events.ts#origin{ts}
 
-A command a user runs passes `{ actorId, causationId: null }`. A handler that makes a Consequence keeps the `actorId` of the envelope it received, so the chain is still credited to the user who started it, and sets `causationId` to that envelope's id. There is no system user. Every Audit entry names a real person, and a Consequence points at the entry that caused it. Activity uses that pointer to show the cause beside the Consequence (`getActivity` loads the cause entries by id).
+A command a user runs passes `{ actorId, causationId: null }`. A handler that makes a Consequence keeps the `actorId` of the envelope it received, so the chain is still credited to the user who started it, and sets `causationId` to that envelope's id. Here is the hand-over, which boards runs when a Board member leaves or is removed:
+
+<<< @/../src/modules/boards/application/handlers/reassign-to-owner.ts{ts}
+
+It handles the published `boards.MemberRemoved.v1` and `boards.MemberLeft.v1`, not the domain events. Their ids are the ids of the Audit entries for the removal, so the `causationId` on each `TaskAssigned` points at an entry audit actually has.
+
+There is no system user. Every Audit entry names a real person, and a Consequence points at the entry that caused it. Activity uses that pointer to show the cause beside the Consequence (`getActivity` loads the cause entries by id).
 
 ## One outbox per context
 
@@ -156,6 +162,8 @@ The relay delivers each event at least once, so a handler has to be safe to run 
 - **The aggregate version.** A projection stores the `aggregateVersion` of the last event it applied, and the update runs only `WHERE excluded.aggregate_version > …`. A late event older than the one already applied changes nothing, so an old Display name can't overwrite a newer one.
 
 The inbox is keyed by handler as well as event, because two handlers in one context may react to the same event, and each needs its own record. Audit has a third guard: an Audit entry's id is the event's id, so a second insert of the same entry does nothing even if two handlers tried. The contract suites check these on both adapters: `tests/contracts/people-projection.contract.ts` ("drops an event its handler already applied", "ignores a version older than the one it applied") and `tests/contracts/audit-log.contract.ts`.
+
+The hand-over above is the one handler without an inbox row, and [§13](/exceptions/) lists it. It saves each task in its own transaction, because each Task is its own aggregate, and it is idempotent by what it does: a redelivery finds no task still assigned to the departed member, so it saves nothing.
 
 ## The relay delivers
 
