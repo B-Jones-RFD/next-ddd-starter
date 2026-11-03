@@ -18,11 +18,11 @@ export default function GlobalError({
   return (
     <html lang='en' suppressHydrationWarning className='h-full antialiased'>
       <body className='flex min-h-full flex-col'>
-        <title>Something went wrong · Task Board</title>
+        <title>Something went wrong · Kanso</title>
         <ThemeSync />
         <header className='border-b border-border'>
           <div className='mx-auto flex h-14 w-full max-w-6xl items-center px-4 font-heading font-semibold'>
-            Task Board
+            Kanso
           </div>
         </header>
         <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8'>

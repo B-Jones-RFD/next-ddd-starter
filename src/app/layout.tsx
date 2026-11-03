@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: { default: 'Task Board', template: '%s · Task Board' },
+  title: { default: 'Kanso', template: '%s · Kanso' },
   description: 'Organize work as tasks on shared boards.',
 }
 
@@ -52,7 +52,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
               href='/'
               className='rounded-sm font-heading font-semibold text-foreground'
             >
-              Task Board
+              Kanso
             </Link>
             {/* Reads the session cookie, so it streams in its own boundary. */}
             <Suspense fallback={null}>
