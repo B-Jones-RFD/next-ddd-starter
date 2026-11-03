@@ -16,9 +16,9 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "db:migrate": "node --conditions=react-server --import tsx scripts/db-migrate.ts",
-    "db:seed": "node --conditions=react-server --import tsx scripts/db-seed.ts",
-    "outbox:replay": "node --conditions=react-server --import tsx scripts/outbox-replay.ts"
+    "db:migrate": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/db-migrate.ts",
+    "db:seed": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/db-seed.ts",
+    "outbox:replay": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/outbox-replay.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

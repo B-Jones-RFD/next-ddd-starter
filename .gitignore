@@ -46,3 +46,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Local SQLite database (DATABASE_PATH)
+/data/
